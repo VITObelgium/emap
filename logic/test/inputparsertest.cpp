@@ -1,5 +1,6 @@
 #include "emap/emissions.h"
 #include "emap/inputparsers.h"
+#include "emap/scalingfactors.h"
 
 #include "testconfig.h"
 
@@ -54,6 +55,12 @@ TEST_CASE("Load emissions")
         CHECK(firstEmission.value.amount() == 0.053);
         CHECK(firstEmission.value.unit() == "Gg");
     }
+}
+
+TEST_CASE("Load scaling factors")
+{
+    auto emissions = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
+    REQUIRE(emissions.size() == 4);
 }
 
 }

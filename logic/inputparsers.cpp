@@ -1,5 +1,6 @@
 #include "emap/inputparsers.h"
 #include "emap/emissions.h"
+#include "emap/scalingfactors.h"
 #include "infra/csvreader.h"
 #include "infra/exception.h"
 #include "infra/log.h"
@@ -113,6 +114,34 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
         return result;
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
+    }
+}
+
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv)
+{
+    // csv columns: country;nfr_sector;pollutant;factor
+
+    try {
+        ScalingFactors result;
+        inf::CsvReader csv(scalingFactorsCsv);
+
+        auto colCountry              = required_csv_column(csv, "country");
+        auto colPollutant            = required_csv_column(csv, "pollutant");
+        auto colFactor               = required_csv_column(csv, "factor");
+        auto [colSector, sectorType] = determine_sector_column(csv);
+
+        for (auto& line : csv) {
+            ScalingFactor sf;
+            sf.country   = line.get_string(colCountry);
+            sf.pollutant = line.get_string(colPollutant);
+            sf.sector    = EmissionSector(sectorType, line.get_string(colSector));
+            sf.factor    = to_double(line.get_string(colFactor));
+            result.add_scaling_factor(std::move(sf));
+        }
+
+        return result;
+    } catch (const std::exception& e) {
+        throw RuntimeError("Error parsing {} ({})", scalingFactorsCsv, e.what());
     }
 }
 
