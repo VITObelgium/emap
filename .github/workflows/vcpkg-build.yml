@@ -1,0 +1,27 @@
+name: Vcpkg build
+
+on: [push]
+
+jobs:
+  build:
+    name: ${{ matrix.cfg.os }}
+    runs-on: ${{ matrix.cfg.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-latest, triplet: x64-linux }
+          - { os: windows-latest, triplet: x64-windows-static-vs2019 }
+          - { os: macos-latest, triplet: x64-osx }
+
+    steps:
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Bootstrap the ports
+      run: python bootstrap.py --triplet ${{ matrix.cfg.triplet }} --clean-after-build
+    - name: Build the code
+      run: python build.py --triplet ${{ matrix.cfg.triplet }} --run-tests
