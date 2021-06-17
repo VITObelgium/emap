@@ -3,6 +3,7 @@
 #find_package(Typesafe REQUIRED)
 
 add_library(emaplogic
+    include/emap/emissions.h emissions.cpp
     include/emap/inputparsers.h inputparsers.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )

@@ -15,7 +15,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(INFRA_INSOURCE "Use submodule version of infra" OFF)
+option(INFRA_INSOURCE "Use submodule version of infra" ON)
 option(GDX_INSOURCE "Use submodule version of gdx" OFF)
 set(PACKAGE_VERSION_COMMITHASH "dev" CACHE STRING "git commit hash")
 if (PACKAGE_VERSION_COMMITHASH STREQUAL "dev")

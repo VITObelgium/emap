@@ -6,6 +6,8 @@
 
 namespace emap {
 
-std::vector<std::string> parse_emissions(const fs::path& emissionsCsv);
+class Emissions;
+
+Emissions parse_emissions(const fs::path& emissionsCsv);
 
 }

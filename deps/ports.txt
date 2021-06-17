@@ -1,5 +1,9 @@
 doctest
 tiff[lzw]
-infra[log,charset,gdal,testutils,cliprogress]
-lyra
+date,
+icu,
+spdlog,
+fmt,
 gdal[expat,geos]
+indicators
+lyra
