@@ -4,7 +4,8 @@
     "cmake.configureSettings": {
         "VCPKG_ALLOW_SYSTEM_LIBS": "ON",
         "INFRA_INSOURCE": "ON",
-        "GDX_INSOURCE": "ON"
+        "GDX_INSOURCE": "ON",
+        "BUILD_TESTING": "ON"
     },
     "files.exclude": {
         "**/.git": true,
@@ -19,5 +20,7 @@
     "git.ignoreLimitWarning": true,
     "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
     "clangd.semanticHighlighting": false,
-    "C_Cpp.formatting": "Disabled"
+    "C_Cpp.formatting": "Disabled",
+    "C_Cpp.intelliSenseEngine": "Disabled",
+    "C_Cpp.vcpkg.enabled": false
 }

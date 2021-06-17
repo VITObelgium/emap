@@ -2,10 +2,12 @@
 #include "emap/emissions.h"
 #include "infra/csvreader.h"
 #include "infra/exception.h"
+#include "infra/log.h"
 #include "infra/string.h"
 
 #include <cpl_port.h>
 #include <exception>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -50,7 +52,7 @@ static EmissionType emission_type_from_string(std::string_view type)
 
 static date::year to_year(std::string_view yearString)
 {
-    auto year = str::to_int32(yearString);
+    const auto year = str::to_int32(yearString);
     if (!year.has_value()) {
         throw RuntimeError("Invalid year value: {}", yearString);
     }
@@ -61,6 +63,20 @@ static date::year to_year(std::string_view yearString)
     }
 
     return result;
+}
+
+static double to_double(std::string_view valueString)
+{
+    if (auto value = str::to_double(valueString); value.has_value()) {
+        return *value;
+    }
+
+    if (valueString.empty()) {
+        Log::warn("Empty emission value");
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
 Emissions parse_emissions(const fs::path& emissionsCsv)
@@ -90,7 +106,7 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
             info.reportingYear = to_year(line.get_string(colReporting));
             info.sector        = EmissionSector(sectorType, line.get_string(colSector));
             info.pollutant     = line.get_string(colPollutant);
-            info.value         = EmissionValue(line.get_double(colEmission).value(), line.get_string(colUnit));
+            info.value         = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
             result.add_emission(std::move(info));
         }
 

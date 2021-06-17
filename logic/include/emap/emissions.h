@@ -44,17 +44,29 @@ private:
     std::string _name;
 };
 
-struct EmissionValue
+class EmissionValue
 {
+public:
     EmissionValue() = default;
-    EmissionValue(double val, std::string_view un)
-    : value(val)
-    , unit(un)
+    EmissionValue(double amount, std::string_view unit)
+    : _amount(amount)
+    , _unit(unit)
     {
     }
 
-    double value = 0.0;
-    std::string unit;
+    double amount() const noexcept
+    {
+        return _amount;
+    }
+
+    std::string_view unit() const noexcept
+    {
+        return _unit;
+    }
+
+private:
+    double _amount = 0.0;
+    std::string _unit;
 };
 
 struct EmissionInfo
@@ -73,6 +85,17 @@ class Emissions
 {
 public:
     void add_emission(EmissionInfo&& info);
+    size_t size() const noexcept;
+
+    auto begin() const noexcept
+    {
+        return _emissions.begin();
+    }
+
+    auto end() const noexcept
+    {
+        return _emissions.end();
+    }
 
 private:
     std::vector<EmissionInfo> _emissions;

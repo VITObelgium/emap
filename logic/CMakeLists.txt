@@ -27,3 +27,7 @@ PRIVATE
     #pstl::ParallelSTL
     #Typesafe::Typesafe
 )
+
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif ()

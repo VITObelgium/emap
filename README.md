@@ -6,9 +6,7 @@ The emission mapper (E-MAP) is an emission preprocessor for different Air Qualit
 #### Requirements
 - cpp-infra (https://github.com/VITObelgium/cpp-infra)
 - Lyra (https://github.com/bfgroup/Lyra)
-
-Optional
-- Doctest (https://github.com/onqtam/doctest) [unit tests]
+- Doctest (https://github.com/onqtam/doctest)
 
 The library is built using CMake:
 ```
