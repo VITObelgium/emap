@@ -4,10 +4,12 @@ add_executable(emapcli
 
 target_link_libraries(emapcli
 PRIVATE
-    #emaplogic
+    emaplogic
     Infra::infra
+    $<$<PLATFORM_ID:Windows>:${CMAKE_BINARY_DIR}/version.rc>
 )
 
-if (WIN32)
-    target_sources(emapcli PRIVATE ${CMAKE_BINARY_DIR}/version.rc)
-endif ()
+install(TARGETS emapcli
+    BUNDLE DESTINATION . COMPONENT Runtime
+    RESOURCE DESTINATION data COMPONENT Runtime
+)
