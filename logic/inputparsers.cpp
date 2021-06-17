@@ -22,6 +22,19 @@ static int32_t required_csv_column(const inf::CsvReader& csv, const std::string&
     throw RuntimeError("Missing column '{}'", columnName);
 }
 
+static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const inf::CsvReader& csv)
+{
+    if (auto index = csv.column_index("nfr_sector"); index.has_value()) {
+        return std::make_pair(*index, EmissionSector::Type::Nfr);
+    }
+
+    if (auto index = csv.column_index("gnfr_sector"); index.has_value()) {
+        return std::make_pair(*index, EmissionSector::Type::Gnfr);
+    }
+
+    throw RuntimeError("Missing nfr_sector or gnfr_sector column");
+}
+
 static EmissionType emission_type_from_string(std::string_view type)
 {
     if (type == "historic") {
@@ -52,21 +65,21 @@ static date::year to_year(std::string_view yearString)
 
 Emissions parse_emissions(const fs::path& emissionsCsv)
 {
-    // csv columns: type;scenario;year;reporting;country;nfr_sector;pollutant;emission;unit
+    // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
 
     try {
         Emissions result;
         inf::CsvReader csv(emissionsCsv);
 
-        auto colType      = required_csv_column(csv, "type");
-        auto colScenario  = required_csv_column(csv, "scenario");
-        auto colYear      = required_csv_column(csv, "year");
-        auto colReporting = required_csv_column(csv, "reporting");
-        auto colCountry   = required_csv_column(csv, "country");
-        auto colNfrSector = required_csv_column(csv, "nfr_sector");
-        auto colPollutant = required_csv_column(csv, "pollutant");
-        auto colEmission  = required_csv_column(csv, "emission");
-        auto colUnit      = required_csv_column(csv, "unit");
+        auto colType                 = required_csv_column(csv, "type");
+        auto colScenario             = required_csv_column(csv, "scenario");
+        auto colYear                 = required_csv_column(csv, "year");
+        auto colReporting            = required_csv_column(csv, "reporting");
+        auto colCountry              = required_csv_column(csv, "country");
+        auto colPollutant            = required_csv_column(csv, "pollutant");
+        auto colEmission             = required_csv_column(csv, "emission");
+        auto colUnit                 = required_csv_column(csv, "unit");
+        auto [colSector, sectorType] = determine_sector_column(csv);
 
         for (auto& line : csv) {
             EmissionInfo info;
@@ -75,7 +88,7 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
             info.country       = line.get_string(colCountry);
             info.year          = to_year(line.get_string(colYear));
             info.reportingYear = to_year(line.get_string(colReporting));
-            info.nfrSector     = line.get_string(colNfrSector);
+            info.sector        = EmissionSector(sectorType, line.get_string(colSector));
             info.pollutant     = line.get_string(colPollutant);
             info.value         = EmissionValue(line.get_double(colEmission).value(), line.get_string(colUnit));
             result.add_emission(std::move(info));

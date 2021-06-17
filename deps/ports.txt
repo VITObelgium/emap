@@ -4,6 +4,7 @@ date,
 icu,
 spdlog,
 fmt,
+gsl,
 gdal[expat,geos]
 indicators
 lyra

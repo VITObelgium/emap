@@ -2,6 +2,7 @@
 
 #include <date/date.h>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace emap {
@@ -10,6 +11,37 @@ enum class EmissionType
 {
     Historic,
     Future,
+};
+
+class EmissionSector
+{
+public:
+    enum class Type
+    {
+        Nfr,
+        Gnfr,
+    };
+
+    EmissionSector() = default;
+    EmissionSector(Type type, std::string_view name)
+    : _type(type)
+    , _name(name)
+    {
+    }
+
+    Type type() const noexcept
+    {
+        return _type;
+    }
+
+    std::string_view name() const noexcept
+    {
+        return _name;
+    }
+
+private:
+    Type _type = Type::Nfr;
+    std::string _name;
 };
 
 struct EmissionValue
@@ -32,7 +64,7 @@ struct EmissionInfo
     date::year year;
     date::year reportingYear;
     std::string country;
-    std::string nfrSector;
+    EmissionSector sector;
     std::string pollutant;
     EmissionValue value;
 };
