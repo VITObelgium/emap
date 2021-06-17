@@ -1,0 +1,5 @@
+doctest
+tiff[lzw]
+infra[log,gdal,testutils,cliprogress]
+lyra
+gdal[expat,geos]

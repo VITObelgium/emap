@@ -1,0 +1,23 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "cmake.buildDirectory": "${workspaceFolder}/build/vscode",
+    "cmake.configureSettings": {
+        "VCPKG_ALLOW_SYSTEM_LIBS": "ON",
+        "INFRA_INSOURCE": "ON",
+        "GDX_INSOURCE": "ON"
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/build/deps-toolchain-*": true,
+        "**/deps/vcpkg/buildtrees": true,
+        "**/deps/vcpkg/packages": true
+    },
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "cmake.configureOnOpen": true,
+    "git.ignoreLimitWarning": true,
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "clangd.semanticHighlighting": false,
+    "C_Cpp.formatting": "Disabled"
+}
