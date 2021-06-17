@@ -3,3 +3,4 @@ build/vscode/compile_commands.json
 build
 **/.DS_Store
 compile_commands.json
+.vs

@@ -1,0 +1,78 @@
+﻿{
+  "environments": [
+    {
+      "generator": "Ninja",
+      "buildRoot": "${workspaceRoot}/../builds/emap",
+      "cmakeToolchain": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
+      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-vs2019 -DTOOLS_PREFIX=${workspaceRoot}/../vcpkg-ports/installed/x64-windows-static-vs2019/tools -DVCPKG_APPLOCAL_DEPS=OFF"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "E-MAP [DBG]",
+      "generator": "Ninja",
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
+      "configurationType": "Debug",
+      "buildRoot": "${env.buildRoot}/${name}",
+      "cmakeToolchain": "${env.cmakeToolchain}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": []
+    },
+    {
+      "name": "E-MAP [REL]",
+      "generator": "Ninja",
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
+      "configurationType": "Release",
+      "buildRoot": "${env.buildRoot}/${name}",
+      "cmakeToolchain": "${env.cmakeToolchain}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": []
+    },
+    {
+      "name": "E-MAP [DBG][Clang]",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${env.buildRoot}/${name}",
+      "cmakeToolchain": "${env.cmakeToolchain}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": [
+        {
+          "name": "VCPKG_CLANG",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "VCPKG_CLANG_PATH",
+          "value": "${workspaceRoot}/../builds/downloads/tools/clang++/bin",
+          "type": "PATH"
+        }
+      ],
+      "inheritEnvironments": []
+    },
+    {
+      "name": "E-MAP [REL][Clang]",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${env.buildRoot}/${name}",
+      "cmakeToolchain": "${env.cmakeToolchain}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": [
+        {
+          "name": "VCPKG_CLANG",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "VCPKG_CLANG_PATH",
+          "value": "${workspaceRoot}/../builds/downloads/tools/clang++/bin",
+          "type": "PATH"
+        }
+      ],
+      "inheritEnvironments": []
+    }
+  ]
+}

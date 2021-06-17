@@ -32,7 +32,7 @@ if __name__ == "__main__":
         elif not triplet:
             triplet = vcpkg.prompt_for_triplet()
 
-        build_dir = "legionella"
+        build_dir = "emap"
         if sys_platform != "win-amd64":
             build_dir += "-" + args.build_config.lower()
         vcpkg_root = os.path.join(".", "deps", "vcpkg", "installed", triplet, "tools")
