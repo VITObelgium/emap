@@ -8,3 +8,4 @@ gsl,
 gdal[expat,geos]
 indicators
 lyra
+tomlplusplus
