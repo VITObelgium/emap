@@ -91,7 +91,7 @@ endif ()
 #     set(GDX_ENABLE_TOOLS OFF CACHE BOOL "" FORCE)
 #     add_subdirectory(deps/geodynamix)
 # else ()
-#     find_package(Gdx CONFIG REQUIRED)
+#     find_package(Geodynamix CONFIG REQUIRED)
 # endif ()
 
 add_subdirectory(logic)

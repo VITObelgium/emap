@@ -1,6 +1,7 @@
 #find_package(TBB CONFIG REQUIRED)
 #find_package(ParallelSTL CONFIG REQUIRED)
 #find_package(Typesafe REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/emissions.h emissions.cpp
@@ -22,11 +23,12 @@ target_compile_definitions(emaplogic PUBLIC __TBB_NO_IMPLICIT_LINKAGE PRIVATE NO
 target_link_libraries(emaplogic
 PUBLIC
     Infra::infra
-    #Gdx::gdxcore
+    #geodynamix::gdxcore
 PRIVATE
     #TBB::tbb
     #pstl::ParallelSTL
     #Typesafe::Typesafe
+    tomlplusplus::tomlplusplus
 )
 
 if (BUILD_TESTING)

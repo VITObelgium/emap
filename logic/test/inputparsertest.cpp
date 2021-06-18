@@ -61,6 +61,34 @@ TEST_CASE("Load scaling factors")
 {
     auto emissions = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
     REQUIRE(emissions.size() == 4);
+
+    auto iter = emissions.begin();
+    CHECK(iter->country == "AL");
+    CHECK(iter->sector.name() == "1A2a");
+    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant == "NOx");
+    CHECK(iter->factor == 1.0);
+    ++iter;
+
+    CHECK(iter->country == "AL");
+    CHECK(iter->sector.name() == "1A2a");
+    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant == "PM10");
+    CHECK(iter->factor == 1.0);
+    ++iter;
+
+    CHECK(iter->country == "AM");
+    CHECK(iter->sector.name() == "1A1a");
+    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant == "NMVOC");
+    CHECK(iter->factor == 0.8);
+    ++iter;
+
+    CHECK(iter->country == "AM");
+    CHECK(iter->sector.name() == "1A1a");
+    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant == "NOx");
+    CHECK(iter->factor == 1.5);
 }
 
 }
