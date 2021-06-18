@@ -46,10 +46,13 @@ if __name__ == "__main__":
                 "..", "vcpkg-ports", "installed", triplet, "tools"
             )
 
+        cmake_args = ["-DBUILD_TESTING=ON"]
+
         if args.build_dist:
             vcpkg.build_project_release(
                 os.path.abspath(args.source_dir),
                 triplet=triplet,
+                cmake_args=cmake_args,
                 build_name=build_dir,
                 targets=["package"],
                 build_config=args.build_config,
@@ -58,6 +61,7 @@ if __name__ == "__main__":
             vcpkg.build_project(
                 os.path.abspath(args.source_dir),
                 triplet=triplet,
+                cmake_args=cmake_args,
                 build_name=build_dir,
                 build_config=args.build_config,
             )

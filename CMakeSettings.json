@@ -4,7 +4,7 @@
       "generator": "Ninja",
       "buildRoot": "${workspaceRoot}/../builds/emap",
       "cmakeToolchain": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
-      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-vs2019 -DTOOLS_PREFIX=${workspaceRoot}/../vcpkg-ports/installed/x64-windows-static-vs2019/tools -DVCPKG_APPLOCAL_DEPS=OFF"
+      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-vs2019 -DVCPKG_APPLOCAL_DEPS=OFF -DBUILD_TESTING=ON"
     }
   ],
   "configurations": [

@@ -49,11 +49,13 @@ if (WIN32)
         $<$<CXX_COMPILER_ID:MSVC>:/w35038>
     )
 
-    # Fixes warning when linking against release c library in debug mode
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:LIBCMT")
-    set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:LIBCMT")
-    set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:LIBCMT")
-    set(CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:LIBCMT")
+    if (MSVC)
+        # Fixes warning when linking against release c library in debug mode
+        # Fixes warning when linking against release c library in debug mode
+        add_link_options("$<$<CONFIG:Debug>:/NODEFAULTLIB:MSVCRT;/NODEFAULTLIB:LIBCMT>")
+        # Enable faster linking for debug builds
+        add_link_options($<$<CONFIG:Debug>:/DEBUG:FASTLINK>)
+    endif ()
 else ()
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wfatal-errors -Wno-unknown-pragmas
