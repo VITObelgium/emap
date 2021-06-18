@@ -1,0 +1,32 @@
+# Directory structuur
+# historisch (Emep)
+# / 2019
+# / 2020
+
+# prognoses (gains)
+# / scenarionaam
+#     / 2015
+#        emissions.csv
+#        scalefactors.csv
+#     / 2020
+
+# 2010 / emissions.csv
+# 2011 / emissions.csv
+
+[input]
+grid = "beleuros"
+datapath = "C:/emap/emissies/"
+type = "Emep" # of gains
+year = 2020
+report_year = 2020 # empty for latest
+scenario = "scenarionaam" # enkel bij gains type
+scalefactors = "file.csv" 
+
+[output]
+path = ""
+
+# rasters or shapefiles?
+
+[options]
+validation = true
+

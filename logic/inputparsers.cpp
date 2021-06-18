@@ -88,10 +88,6 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
         Emissions result;
         inf::CsvReader csv(emissionsCsv);
 
-        auto colType                 = required_csv_column(csv, "type");
-        auto colScenario             = required_csv_column(csv, "scenario");
-        auto colYear                 = required_csv_column(csv, "year");
-        auto colReporting            = required_csv_column(csv, "reporting");
         auto colCountry              = required_csv_column(csv, "country");
         auto colPollutant            = required_csv_column(csv, "pollutant");
         auto colEmission             = required_csv_column(csv, "emission");
@@ -100,14 +96,10 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
 
         for (auto& line : csv) {
             EmissionInfo info;
-            info.type          = emission_type_from_string(line.get_string(colType));
-            info.scenario      = line.get_string(colScenario);
-            info.country       = line.get_string(colCountry);
-            info.year          = to_year(line.get_string(colYear));
-            info.reportingYear = to_year(line.get_string(colReporting));
-            info.sector        = EmissionSector(sectorType, line.get_string(colSector));
-            info.pollutant     = line.get_string(colPollutant);
-            info.value         = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
+            info.country   = line.get_string(colCountry);
+            info.sector    = EmissionSector(sectorType, line.get_string(colSector));
+            info.pollutant = line.get_string(colPollutant);
+            info.value     = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
             result.add_emission(std::move(info));
         }
 

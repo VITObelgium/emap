@@ -1,6 +1,7 @@
 add_executable(emaplogictest
     testconfig.h.in
     inputparsertest.cpp
+    runconfigurationparsertest.cpp
 )
 
 target_include_directories(emaplogictest

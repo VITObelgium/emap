@@ -1,6 +1,7 @@
 #pragma once
 
 #include <date/date.h>
+#include <fmt/core.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -71,10 +72,6 @@ private:
 
 struct EmissionInfo
 {
-    EmissionType type = EmissionType::Historic;
-    std::string scenario;
-    date::year year;
-    date::year reportingYear;
     std::string country;
     EmissionSector sector;
     std::string pollutant;
@@ -99,5 +96,43 @@ public:
 
 private:
     std::vector<EmissionInfo> _emissions;
+};
+
+std::string_view emission_type_name(EmissionType type);
+std::string_view emission_sector_type_name(EmissionSector::Type type);
+
+}
+
+namespace fmt {
+template <>
+struct formatter<emap::EmissionType>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const emap::EmissionType& val, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), emission_type_name(val));
+    }
+};
+
+template <>
+struct formatter<emap::EmissionSector::Type>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const emap::EmissionSector::Type& val, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), emission_sector_type_name(val));
+    }
 };
 }

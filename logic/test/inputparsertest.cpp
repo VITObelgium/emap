@@ -20,9 +20,6 @@ TEST_CASE("Load emissions")
         REQUIRE(emissions.size() == 6);
 
         for (auto& em : emissions) {
-            CHECK(em.type == EmissionType::Historic);
-            CHECK(em.year == 1990_y);
-            CHECK(em.reportingYear == 2020_y);
             CHECK(em.sector.type() == EmissionSector::Type::Nfr);
         }
 
@@ -41,9 +38,6 @@ TEST_CASE("Load emissions")
         REQUIRE(emissions.size() == 6);
 
         for (auto& em : emissions) {
-            CHECK(em.type == EmissionType::Historic);
-            CHECK(em.year == 1990_y);
-            CHECK(em.reportingYear == 2019_y);
             CHECK(em.sector.type() == EmissionSector::Type::Gnfr);
         }
 

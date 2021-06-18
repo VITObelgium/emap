@@ -5,8 +5,12 @@ find_package(tomlplusplus CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/emissions.h emissions.cpp
+    include/emap/griddefinition.h
     include/emap/inputparsers.h inputparsers.cpp
+    include/emap/modelrun.h modelrun.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
+    include/emap/runconfiguration.h runconfiguration.cpp
+    include/emap/runconfigurationparser.h runconfigurationparser.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 
