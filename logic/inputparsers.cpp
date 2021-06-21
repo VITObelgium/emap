@@ -38,34 +38,6 @@ static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const in
     throw RuntimeError("Missing nfr_sector or gnfr_sector column");
 }
 
-static EmissionType emission_type_from_string(std::string_view type)
-{
-    if (type == "historic") {
-        return EmissionType::Historic;
-    }
-
-    if (type == "future") {
-        return EmissionType::Future;
-    }
-
-    throw RuntimeError("Invalid emission type: {}", type);
-}
-
-static date::year to_year(std::string_view yearString)
-{
-    const auto year = str::to_int32(yearString);
-    if (!year.has_value()) {
-        throw RuntimeError("Invalid year value: {}", yearString);
-    }
-
-    date::year result(*year);
-    if (!result.ok()) {
-        throw RuntimeError("Invalid year value: {}", yearString);
-    }
-
-    return result;
-}
-
 static double to_double(std::string_view valueString)
 {
     if (auto value = str::to_double(valueString); value.has_value()) {
@@ -83,6 +55,7 @@ static double to_double(std::string_view valueString)
 Emissions parse_emissions(const fs::path& emissionsCsv)
 {
     // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
+    // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
 
     try {
         Emissions result;
@@ -93,6 +66,8 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
         auto colEmission             = required_csv_column(csv, "emission");
         auto colUnit                 = required_csv_column(csv, "unit");
         auto [colSector, sectorType] = determine_sector_column(csv);
+        auto colX                    = csv.column_index("x");
+        auto colY                    = csv.column_index("y");
 
         for (auto& line : csv) {
             EmissionInfo info;
@@ -100,6 +75,17 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
             info.sector    = EmissionSector(sectorType, line.get_string(colSector));
             info.pollutant = line.get_string(colPollutant);
             info.value     = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
+
+            if (colX.has_value() && colY.has_value()) {
+                auto x = line.get_int32(*colX);
+                auto y = line.get_int32(*colY);
+                if (x.has_value() && y.has_value()) {
+                    info.coordinate = Coordinate(*x, *y);
+                } else {
+                    throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
+                }
+            }
+
             result.add_emission(std::move(info));
         }
 

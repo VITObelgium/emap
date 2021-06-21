@@ -1,12 +1,17 @@
 #pragma once
 
+#include "infra/point.h"
+
 #include <date/date.h>
 #include <fmt/core.h>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace emap {
+
+using Coordinate = inf::Point<int32_t>;
 
 enum class EmissionType
 {
@@ -76,6 +81,7 @@ struct EmissionInfo
     EmissionSector sector;
     std::string pollutant;
     EmissionValue value;
+    std::optional<Coordinate> coordinate;
 };
 
 class Emissions

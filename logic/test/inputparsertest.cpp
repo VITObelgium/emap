@@ -51,6 +51,30 @@ TEST_CASE("Load emissions")
     }
 }
 
+TEST_CASE("Load point source emissions")
+{
+    SUBCASE("nfr sectors")
+    {
+        auto emissions = parse_emissions(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "pointsource_emissions_2021.csv");
+        REQUIRE(emissions.size() == 4);
+
+        int lineNr = 1;
+        for (auto& em : emissions) {
+            CHECK(em.sector.type() == EmissionSector::Type::Nfr);
+            REQUIRE_MESSAGE(em.coordinate.has_value(), fmt::format("Line nr: {} pol {}", lineNr++, em.pollutant));
+        }
+
+        auto iter = emissions.begin();
+        CHECK(iter->coordinate == Coordinate(95820, 173080));
+        ++iter;
+        CHECK(iter->coordinate == Coordinate(148450, 197211));
+        ++iter;
+        CHECK(iter->coordinate == Coordinate(205000, 209000));
+        ++iter;
+        CHECK(iter->coordinate == Coordinate(130643, 159190));
+    }
+}
+
 TEST_CASE("Load scaling factors")
 {
     auto emissions = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
