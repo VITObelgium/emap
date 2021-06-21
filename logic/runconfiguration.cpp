@@ -26,7 +26,6 @@ RunConfiguration::RunConfiguration(
     date::year year,
     std::optional<date::year> reportYear,
     std::string_view scenario,
-    ScalingFactors sf,
     const fs::path& outputPath)
 : _dataPath(dataPath)
 , _outputPath(outputPath)
@@ -36,7 +35,6 @@ RunConfiguration::RunConfiguration(
 , _year(year)
 , _reportYear(reportYear)
 , _scenario(scenario)
-, _scalingFactors(std::move(sf))
 {
 }
 
@@ -48,13 +46,13 @@ fs::path RunConfiguration::emissions_dir_path() const
 fs::path RunConfiguration::point_source_emissions_path() const
 {
     auto year = _reportYear.value_or(_year);
-    return emissions_dir_path() / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(_year));
+    return emissions_dir_path() / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(year));
 }
 
 fs::path RunConfiguration::total_emissions_path(EmissionSector::Type sectorType) const
 {
     auto year = _reportYear.value_or(_year);
-    return emissions_dir_path() / fmt::format("total_emissions_{}_{}.csv", sectorType, static_cast<int>(_year));
+    return emissions_dir_path() / fmt::format("total_emissions_{}_{}.csv", sectorType, static_cast<int>(year));
 }
 
 fs::path RunConfiguration::diffuse_scalings_path() const
@@ -105,11 +103,6 @@ std::optional<date::year> RunConfiguration::reporting_year() const noexcept
 std::string_view RunConfiguration::scenario() const noexcept
 {
     return _scenario;
-}
-
-const ScalingFactors& RunConfiguration::scaling_factors() const noexcept
-{
-    return _scalingFactors;
 }
 
 }

@@ -47,8 +47,6 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.output_path() == fs::path("c:/temp"));
         CHECK(config.validation_type() == ValidationType::SumValidation);
-
-        CHECK(config.scaling_factors().size() == 4);
     }
 
     SUBCASE("valid file no report year")

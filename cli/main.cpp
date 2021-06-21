@@ -3,10 +3,12 @@
 #include "infra/gdal.h"
 #include "infra/gdallog.h"
 #include "infra/log.h"
-
 #include "infra/progressinfo.h"
 
+#include "emap/modelrun.h"
+
 #include <cstdlib>
+#include <filesystem>
 #include <fmt/ostream.h>
 #include <locale>
 #include <lyra/lyra.hpp>
@@ -33,13 +35,15 @@ int main(int argc, char** argv)
         bool showHelp     = false;
         bool showProgress = false;
         bool consoleLog   = false;
+        std::string config;
         std::optional<int32_t> concurrency;
     } options;
 
     auto cli = lyra::help(options.showHelp) |
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
                lyra::opt(options.showProgress)["--progress"]("Show progress bar on the console") |
-               lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use");
+               lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use") |
+               lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
     cli.parse(lyra::args(argc, argv));
     if (options.showHelp) {
@@ -48,22 +52,28 @@ int main(int argc, char** argv)
     }
 
     try {
-        inf::Log::add_console_sink(inf::Log::Colored::On);
-        inf::LogRegistration logReg("e-map");
-        inf::gdal::Registration reg;
-        inf::gdal::set_log_handler();
+        std::unique_ptr<inf::LogRegistration> logReg;
+        if (options.consoleLog) {
+            inf::Log::add_console_sink(inf::Log::Colored::On);
+            inf::gdal::Registration reg;
+            inf::gdal::set_log_handler();
+            logReg = std::make_unique<inf::LogRegistration>("e-map");
 
 #ifdef NDEBUG
-        inf::Log::set_level(inf::Log::Level::Info);
+            inf::Log::set_level(inf::Log::Level::Debug);
 #else
-        inf::Log::set_level(inf::Log::Level::Debug);
+            inf::Log::set_level(inf::Log::Level::Debug);
 #endif
+        }
 
+        emap::run_model(fs::u8path(options.config), [](const emap::ModelProgress::Status& /*info*/) {
+            return emap::ModelProgress::StatusResult::Continue;
+        });
+
+        return EXIT_SUCCESS;
     } catch (const std::exception& e) {
         fmt::print("{}\n", e.what());
         inf::Log::error(e.what());
         return EXIT_FAILURE;
     }
-
-    return EXIT_SUCCESS;
 }

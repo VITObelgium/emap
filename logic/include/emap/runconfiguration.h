@@ -1,7 +1,7 @@
 #pragma once
 
+#include "emap/emissions.h"
 #include "emap/griddefinition.h"
-#include "emap/scalingfactors.h"
 #include "infra/filesystem.h"
 
 #include <date/date.h>
@@ -33,7 +33,6 @@ public:
         date::year year,
         std::optional<date::year> reportYear,
         std::string_view scenario,
-        ScalingFactors sf,
         const fs::path& outputPath);
 
     fs::path point_source_emissions_path() const;
@@ -54,8 +53,6 @@ public:
 
     std::string_view scenario() const noexcept;
 
-    const ScalingFactors& scaling_factors() const noexcept;
-
 private:
     fs::path emissions_dir_path() const;
 
@@ -67,7 +64,6 @@ private:
     date::year _year;
     std::optional<date::year> _reportYear;
     std::string _scenario;
-    ScalingFactors _scalingFactors;
 };
 
 std::string run_type_name(RunType type);

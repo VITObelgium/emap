@@ -6,6 +6,7 @@
 #include "infra/exception.h"
 
 #include <cassert>
+#include <filesystem>
 #include <toml++/toml.h>
 
 namespace emap {
@@ -69,7 +70,7 @@ static RunType read_run_type(std::optional<std::string_view> type)
     return run_type_from_string(*type);
 }
 
-static fs::path read_path(const NamedSection& ns, std::string_view name)
+static fs::path read_path(const NamedSection& ns, std::string_view name, const fs::path& basePath)
 {
     assert(ns.section.is_table());
     auto nodeValue = ns.section[name];
@@ -79,7 +80,15 @@ static fs::path read_path(const NamedSection& ns, std::string_view name)
     }
 
     if (auto pathValue = nodeValue.value<std::string_view>(); pathValue.has_value()) {
-        return fs::u8path(*pathValue);
+        auto result = fs::u8path(*pathValue);
+        if (result.is_relative()) {
+            result = basePath / result;
+            if (fs::exists(result)) {
+                result = fs::canonical(basePath / result);
+            }
+        }
+
+        return result;
     } else {
         throw RuntimeError("Invalid path value for '{0:}' key in '{1:}' section (e.g. {0:} = \"/some/path\")", name, ns.name);
     }
@@ -152,10 +161,11 @@ static void throw_on_missing_section(const toml::table& table, std::string_view 
     }
 }
 
-static RunConfiguration parse_run_configuration(std::string_view configContents, const fs::path& path)
+static RunConfiguration parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
-        const toml::table table = toml::parse(configContents, path.u8string());
+        const auto basePath     = tomlPath.parent_path();
+        const toml::table table = toml::parse(configContents, tomlPath.u8string());
 
         throw_on_missing_section(table, "input");
         throw_on_missing_section(table, "output");
@@ -164,14 +174,13 @@ static RunConfiguration parse_run_configuration(std::string_view configContents,
         NamedSection output("output", table["output"]);
 
         const auto grid       = read_grid(input.section["grid"].value<std::string_view>());
-        const auto dataPath   = read_path(input, "datapath");
+        const auto dataPath   = read_path(input, "datapath", basePath);
         const auto runType    = read_run_type(input.section["type"].value<std::string_view>());
         const auto year       = read_year(input.section["year"]);
         const auto reportYear = read_optional_year(input.section["report_year"]);
         const auto scenario   = read_string(input, "scenario");
 
-        const auto outputSection = table["output"];
-        const auto outputPath    = read_path(output, "path");
+        const auto outputPath = read_path(output, "path", basePath);
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);
@@ -183,7 +192,6 @@ static RunConfiguration parse_run_configuration(std::string_view configContents,
                                 year,
                                 reportYear,
                                 scenario,
-                                parse_scaling_factors(read_path(input, "scalefactors")),
                                 outputPath);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
@@ -196,7 +204,7 @@ static RunConfiguration parse_run_configuration(std::string_view configContents,
 
 RunConfiguration parse_run_configuration(const fs::path& config)
 {
-    return parse_run_configuration(file::read_as_text(config), config.u8string());
+    return parse_run_configuration(file::read_as_text(config), config);
 }
 
 RunConfiguration parse_run_configuration(std::string_view configContents)
