@@ -38,6 +38,28 @@ static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const in
     throw RuntimeError("Missing nfr_sector or gnfr_sector column");
 }
 
+static Pollutant to_pollutant(std::string_view name)
+{
+    return pollutant_from_string(name);
+}
+
+static Country to_country(std::string_view name)
+{
+    return country_from_string(name);
+}
+
+static EmissionSector to_sector(EmissionSector::Type type, std::string_view name)
+{
+    switch (type) {
+    case EmissionSector::Type::Nfr:
+        return EmissionSector(nfr_sector_from_string(name));
+    case EmissionSector::Type::Gnfr:
+        return EmissionSector(gnfr_sector_from_string(name));
+    default:
+        throw RuntimeError("Invalid sector type");
+    }
+}
+
 static double to_double(std::string_view valueString)
 {
     if (auto value = str::to_double(valueString); value.has_value()) {
@@ -72,8 +94,8 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
         for (auto& line : csv) {
             EmissionInfo info;
             info.country   = line.get_string(colCountry);
-            info.sector    = EmissionSector(sectorType, line.get_string(colSector));
-            info.pollutant = line.get_string(colPollutant);
+            info.sector    = to_sector(sectorType, line.get_string(colSector));
+            info.pollutant = to_pollutant(line.get_string(colPollutant));
             info.value     = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
 
             if (colX.has_value() && colY.has_value()) {
@@ -110,9 +132,9 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv)
 
         for (auto& line : csv) {
             ScalingFactor sf;
-            sf.country   = line.get_string(colCountry);
-            sf.pollutant = line.get_string(colPollutant);
-            sf.sector    = EmissionSector(sectorType, line.get_string(colSector));
+            sf.country   = to_country(line.get_string(colCountry));
+            sf.pollutant = to_pollutant(line.get_string(colPollutant));
+            sf.sector    = to_sector(sectorType, line.get_string(colSector));
             sf.factor    = to_double(line.get_string(colFactor));
             result.add_scaling_factor(std::move(sf));
         }

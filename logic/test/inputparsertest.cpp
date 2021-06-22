@@ -27,7 +27,7 @@ TEST_CASE("Load emissions")
         //historic;NA;1990;2020;AL;1A1a;CO;0;Gg
         CHECK(firstEmission.country == "AL");
         CHECK(firstEmission.sector.name() == "1A1a");
-        CHECK(firstEmission.pollutant == "CO");
+        CHECK(firstEmission.pollutant == Pollutant::CO);
         CHECK(firstEmission.value.amount() == 0.0);
         CHECK(firstEmission.value.unit() == "Gg");
     }
@@ -45,7 +45,7 @@ TEST_CASE("Load emissions")
         //historic;NA;1990;2019;AL;A_PublicPower;CO;0.053;Gg
         CHECK(firstEmission.country == "AL");
         CHECK(firstEmission.sector.name() == "A_PublicPower");
-        CHECK(firstEmission.pollutant == "CO");
+        CHECK(firstEmission.pollutant == Pollutant::CO);
         CHECK(firstEmission.value.amount() == 0.053);
         CHECK(firstEmission.value.unit() == "Gg");
     }
@@ -81,31 +81,31 @@ TEST_CASE("Load scaling factors")
     REQUIRE(emissions.size() == 4);
 
     auto iter = emissions.begin();
-    CHECK(iter->country == "AL");
+    CHECK(iter->country == Country::AL);
     CHECK(iter->sector.name() == "1A2a");
     CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == "NOx");
+    CHECK(iter->pollutant == Pollutant::NOx);
     CHECK(iter->factor == 1.0);
     ++iter;
 
-    CHECK(iter->country == "AL");
+    CHECK(iter->country == Country::AL);
     CHECK(iter->sector.name() == "1A2a");
     CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == "PM10");
+    CHECK(iter->pollutant == Pollutant::PM10);
     CHECK(iter->factor == 1.0);
     ++iter;
 
-    CHECK(iter->country == "AM");
+    CHECK(iter->country == Country::AM);
     CHECK(iter->sector.name() == "1A1a");
     CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == "NMVOC");
+    CHECK(iter->pollutant == Pollutant::NMVOC);
     CHECK(iter->factor == 0.8);
     ++iter;
 
-    CHECK(iter->country == "AM");
+    CHECK(iter->country == Country::AM);
     CHECK(iter->sector.name() == "1A1a");
     CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == "NOx");
+    CHECK(iter->pollutant == Pollutant::NOx);
     CHECK(iter->factor == 1.5);
 }
 

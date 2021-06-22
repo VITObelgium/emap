@@ -14,7 +14,6 @@ target_link_libraries(emaplogictest
 PRIVATE
     emaplogic
     Infra::infratestutilmain
-    geodynamix::gdxcore
 )
 
 configure_file(testconfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/testconfig.h)

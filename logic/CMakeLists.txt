@@ -4,13 +4,17 @@
 find_package(tomlplusplus CONFIG REQUIRED)
 
 add_library(emaplogic
+    include/emap/country.h country.cpp
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
+    include/emap/pollutant.h pollutant.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
+    include/emap/sector.h sector.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
     include/emap/runconfigurationparser.h runconfigurationparser.cpp
+    enuminfo.h
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 
@@ -27,7 +31,7 @@ target_compile_definitions(emaplogic PUBLIC __TBB_NO_IMPLICIT_LINKAGE PRIVATE NO
 target_link_libraries(emaplogic
 PUBLIC
     Infra::infra
-    #geodynamix::gdxcore
+    geodynamix::gdxcore
 PRIVATE
     #TBB::tbb
     #pstl::ParallelSTL

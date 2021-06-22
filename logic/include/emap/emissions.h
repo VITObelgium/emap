@@ -1,5 +1,7 @@
 #pragma once
 
+#include "emap/pollutant.h"
+#include "emap/sector.h"
 #include "infra/point.h"
 
 #include <date/date.h>
@@ -17,37 +19,6 @@ enum class EmissionType
 {
     Historic,
     Future,
-};
-
-class EmissionSector
-{
-public:
-    enum class Type
-    {
-        Nfr,
-        Gnfr,
-    };
-
-    EmissionSector() = default;
-    EmissionSector(Type type, std::string_view name)
-    : _type(type)
-    , _name(name)
-    {
-    }
-
-    Type type() const noexcept
-    {
-        return _type;
-    }
-
-    std::string_view name() const noexcept
-    {
-        return _name;
-    }
-
-private:
-    Type _type = Type::Nfr;
-    std::string _name;
 };
 
 class EmissionValue
@@ -79,7 +50,7 @@ struct EmissionInfo
 {
     std::string country;
     EmissionSector sector;
-    std::string pollutant;
+    Pollutant pollutant;
     EmissionValue value;
     std::optional<Coordinate> coordinate;
 };

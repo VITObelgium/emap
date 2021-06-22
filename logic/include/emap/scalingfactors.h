@@ -1,14 +1,15 @@
 #pragma once
 
+#include "emap/country.h"
 #include "emap/emissions.h"
-#include <string_view>
+#include "emap/pollutant.h"
 
 namespace emap {
 
 struct ScalingFactor
 {
     ScalingFactor() = default;
-    ScalingFactor(std::string_view ctry, EmissionSector sec, std::string_view pol, double fac)
+    ScalingFactor(Country ctry, EmissionSector sec, Pollutant pol, double fac)
     : country(ctry)
     , sector(sec)
     , pollutant(pol)
@@ -16,10 +17,10 @@ struct ScalingFactor
     {
     }
 
-    std::string country;
+    Country country = Country::Count;
     EmissionSector sector;
-    std::string pollutant;
-    double factor = 1.0;
+    Pollutant pollutant = Pollutant::Count;
+    double factor       = 1.0;
 };
 
 class ScalingFactors
