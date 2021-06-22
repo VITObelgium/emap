@@ -1,4 +1,5 @@
 doctest
+eigen3
 tiff[lzw]
 date,
 icu,
@@ -9,3 +10,4 @@ gdal[expat,geos]
 indicators
 lyra
 tomlplusplus
+vc

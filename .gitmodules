@@ -4,3 +4,6 @@
 [submodule "deps/vcpkg"]
 	path = deps/vcpkg
 	url = https://github.com/VITObelgium/vcpkg-ports.git
+[submodule "deps/geodynamix"]
+	path = deps/geodynamix
+	url = https://github.com/VITObelgium/geodynamix.git

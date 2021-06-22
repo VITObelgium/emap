@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(e-map
-    VERSION 0.1.0
+    VERSION 2.9.0
     LANGUAGES CXX
 )
 
@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(INFRA_INSOURCE "Use submodule version of infra" ON)
-option(GDX_INSOURCE "Use submodule version of gdx" OFF)
+option(GDX_INSOURCE "Use submodule version of geodynamix" ON)
 set(PACKAGE_VERSION_COMMITHASH "dev" CACHE STRING "git commit hash")
 if (PACKAGE_VERSION_COMMITHASH STREQUAL "dev")
     set(EMAP_DEV_BUILD 1)
@@ -84,18 +84,17 @@ else ()
     set_target_properties(Infra::infra PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
 endif ()
 
-# if (GDX_INSOURCE)
-#     set(GDX_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
-#     set(GDX_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
-#     set(GDX_ENABLE_TEST_UTILS ON CACHE BOOL "" FORCE)
-#     set(GDX_ENABLE_TOOLS OFF CACHE BOOL "" FORCE)
-#     add_subdirectory(deps/geodynamix)
-# else ()
-#     find_package(Geodynamix CONFIG REQUIRED)
-# endif ()
+if (GDX_INSOURCE)
+    set(GDX_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
+    set(GDX_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+    set(GDX_ENABLE_TEST_UTILS ON CACHE BOOL "" FORCE)
+    set(GDX_ENABLE_TOOLS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(deps/geodynamix)
+else ()
+    find_package(Geodynamix CONFIG REQUIRED)
+endif ()
 
 add_subdirectory(logic)
-#add_subdirectory(test)
 add_subdirectory(cli)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/legionellaconfig.h)
