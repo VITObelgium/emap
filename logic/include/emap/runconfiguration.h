@@ -37,6 +37,7 @@ public:
 
     fs::path point_source_emissions_path() const;
     fs::path total_emissions_path(EmissionSector::Type sectorType) const;
+    fs::path spatial_pattern_path(const EmissionEntry& emissionInfo) const;
 
     fs::path diffuse_scalings_path() const;
     fs::path point_source_scalings_path() const;

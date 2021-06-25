@@ -1,6 +1,7 @@
 #include "emap/runconfiguration.h"
 
 #include "infra/exception.h"
+#include "infra/string.h"
 
 namespace emap {
 
@@ -53,6 +54,13 @@ fs::path RunConfiguration::total_emissions_path(EmissionSector::Type sectorType)
 {
     auto year = _reportYear.value_or(_year);
     return emissions_dir_path() / fmt::format("total_emissions_{}_{}.csv", sectorType, static_cast<int>(year));
+}
+
+fs::path RunConfiguration::spatial_pattern_path(const EmissionEntry& emissionInfo) const
+{
+    // TODO: if the sector is an nfr sector, map to the gnfr sector name?
+
+    return _dataPath / "spatial patterns" / fmt::format("{}", str::lowercase(to_string(emissionInfo.pollutant())), emissionInfo.sector().name());
 }
 
 fs::path RunConfiguration::diffuse_scalings_path() const

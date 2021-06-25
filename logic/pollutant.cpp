@@ -5,6 +5,7 @@
 #include "infra/exception.h"
 
 #include <array>
+#include <cassert>
 
 namespace emap {
 
@@ -33,4 +34,17 @@ Pollutant pollutant_from_string(std::string_view str)
 
     throw RuntimeError("Invalid pollutant name: '{}'", str);
 }
+
+std::string_view to_string(Pollutant value) noexcept
+{
+    assert(enum_value(value) < s_pollutants.size());
+    return s_pollutants[enum_value(value)].serializedName;
+}
+
+std::string_view to_description_string(Pollutant value) noexcept
+{
+    assert(enum_value(value) < s_pollutants.size());
+    return s_pollutants[enum_value(value)].description;
+}
+
 }

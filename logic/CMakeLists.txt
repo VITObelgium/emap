@@ -6,7 +6,7 @@ find_package(tomlplusplus CONFIG REQUIRED)
 add_library(emaplogic
     include/emap/country.h country.cpp
     include/emap/emissions.h emissions.cpp
-    include/emap/griddefinition.h
+    include/emap/griddefinition.h griddefinition.cpp
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
     include/emap/pollutant.h pollutant.cpp
@@ -15,6 +15,7 @@ add_library(emaplogic
     include/emap/runconfiguration.h runconfiguration.cpp
     include/emap/runconfigurationparser.h runconfigurationparser.cpp
     enuminfo.h
+    emissioninventory.h
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 

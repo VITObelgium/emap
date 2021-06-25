@@ -45,7 +45,7 @@ static Pollutant to_pollutant(std::string_view name)
 
 static Country to_country(std::string_view name)
 {
-    return country_from_string(name);
+    return Country::from_string(name);
 }
 
 static EmissionSector to_sector(EmissionSector::Type type, std::string_view name)
@@ -74,13 +74,13 @@ static double to_double(std::string_view valueString)
     throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
-Emissions parse_emissions(const fs::path& emissionsCsv)
+SingleEmissions parse_emissions(const fs::path& emissionsCsv)
 {
     // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
     // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
 
     try {
-        Emissions result;
+        SingleEmissions result;
         inf::CsvReader csv(emissionsCsv);
 
         auto colCountry              = required_csv_column(csv, "country");
@@ -92,17 +92,20 @@ Emissions parse_emissions(const fs::path& emissionsCsv)
         auto colY                    = csv.column_index("y");
 
         for (auto& line : csv) {
-            EmissionInfo info;
-            info.country   = line.get_string(colCountry);
-            info.sector    = to_sector(sectorType, line.get_string(colSector));
-            info.pollutant = to_pollutant(line.get_string(colPollutant));
-            info.value     = EmissionValue(to_double(line.get_string(colEmission)), line.get_string(colUnit));
+            if (auto unit = line.get_string(colUnit); unit != "Gg" && unit != "ton") {
+                throw RuntimeError("Unexpected unit: '{}', no conversion rules defined yet", unit);
+            }
+
+            EmissionEntry info(
+                EmissionIdentifier(to_country(line.get_string(colCountry)), to_sector(sectorType, line.get_string(colSector)), to_pollutant(line.get_string(colPollutant))),
+                EmissionValue(to_double(line.get_string(colEmission)))
+            );
 
             if (colX.has_value() && colY.has_value()) {
                 auto x = line.get_int32(*colX);
                 auto y = line.get_int32(*colY);
                 if (x.has_value() && y.has_value()) {
-                    info.coordinate = Coordinate(*x, *y);
+                    info.set_coordinate(Coordinate(*x, *y));
                 } else {
                     throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
                 }

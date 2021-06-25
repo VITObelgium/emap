@@ -1,9 +1,14 @@
 #include "emap/modelrun.h"
 
+#include "emap/inputparsers.h"
 #include "emap/runconfigurationparser.h"
+#include "emap/scalingfactors.h"
+#include "emissioninventory.h"
+
 #include "infra/exception.h"
 #include "infra/log.h"
-#include <filesystem>
+
+#include <numeric>
 
 namespace emap {
 
@@ -26,17 +31,12 @@ void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb
 
 void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb*/)
 {
-    const auto pointSourcePath        = throw_if_not_exists(cfg.point_source_emissions_path());
-    const auto nfrTotalEmissionsPath  = throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr));
-    const auto gnfrTotalEmissionsPath = throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr));
-    const auto scalingsDiffuse        = throw_if_not_exists(cfg.diffuse_scalings_path());
-    const auto scalingsPointSource    = throw_if_not_exists(cfg.point_source_scalings_path());
+    const auto pointSource         = parse_emissions(throw_if_not_exists(cfg.point_source_emissions_path()));
+    const auto nfrTotalEmissions   = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr)));
+    const auto gnfrTotalEmissions  = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr)));
+    const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
+    const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 
-    Log::debug("Point sources:         {}", pointSourcePath);
-    Log::debug("Nfr total emissions:   {}", nfrTotalEmissionsPath);
-    Log::debug("Gnfr total emissions:  {}", gnfrTotalEmissionsPath);
-    Log::debug("Diffuse scalings:      {}", scalingsDiffuse);
-    Log::debug("Point source scalings: {}", scalingsPointSource);
+    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSource);
 }
-
 }

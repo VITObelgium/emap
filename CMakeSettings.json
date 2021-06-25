@@ -11,26 +11,20 @@
     {
       "name": "E-MAP [DBG]",
       "generator": "Ninja",
-      "inheritEnvironments": [
-        "msvc_x64_x64"
-      ],
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "configurationType": "Debug",
       "buildRoot": "${env.buildRoot}/${name}",
       "cmakeToolchain": "${env.cmakeToolchain}",
-      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
-      "variables": []
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}"
     },
     {
       "name": "E-MAP [REL]",
       "generator": "Ninja",
-      "inheritEnvironments": [
-        "msvc_x64_x64"
-      ],
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "configurationType": "Release",
       "buildRoot": "${env.buildRoot}/${name}",
       "cmakeToolchain": "${env.cmakeToolchain}",
-      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
-      "variables": []
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}"
     },
     {
       "name": "E-MAP [DBG][Clang]",

@@ -17,9 +17,9 @@ struct ScalingFactor
     {
     }
 
-    Country country = Country::Count;
+    Country country;
     EmissionSector sector;
-    Pollutant pollutant = Pollutant::Count;
+    Pollutant pollutant = Pollutant::Invalid;
     double factor       = 1.0;
 };
 

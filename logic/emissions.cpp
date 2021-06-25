@@ -6,16 +6,6 @@ namespace emap {
 
 using namespace inf;
 
-void Emissions::add_emission(EmissionInfo&& info)
-{
-    _emissions.push_back(std::move(info));
-}
-
-size_t Emissions::size() const noexcept
-{
-    return _emissions.size();
-}
-
 std::string_view emission_type_name(EmissionType type)
 {
     switch (type) {

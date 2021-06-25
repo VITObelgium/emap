@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fmt/core.h>
 #include <string_view>
 #include <variant>
 
@@ -165,11 +166,21 @@ public:
     };
 
     EmissionSector() = default;
-    EmissionSector(GnfrSector sector);
-    EmissionSector(NfrSector sector);
+    explicit EmissionSector(GnfrSector sector);
+    explicit EmissionSector(NfrSector sector);
 
     Type type() const;
     std::string_view name() const noexcept;
+
+    constexpr bool operator==(const EmissionSector& other) const noexcept
+    {
+        return _sector == other._sector;
+    }
+
+    constexpr bool operator!=(const EmissionSector& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
 private:
     std::variant<NfrSector, GnfrSector> _sector;
@@ -178,4 +189,22 @@ private:
 GnfrSector gnfr_sector_from_string(std::string_view str);
 NfrSector nfr_sector_from_string(std::string_view str);
 
+}
+
+namespace fmt {
+template <>
+struct formatter<emap::EmissionSector>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const emap::EmissionSector& val, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), val.name());
+    }
+};
 }

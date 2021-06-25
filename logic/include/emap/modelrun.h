@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emap/runconfiguration.h"
+#include "infra/filesystem.h"
 #include "infra/progressinfo.h"
 
 namespace emap {
