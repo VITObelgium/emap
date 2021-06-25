@@ -8,6 +8,10 @@ enum class GridDefinition
 {
     Beleuros,
     Chimere1,
+    Vlops1km,
+    Vlops250m,
+    Rio4x4,
+    Rio4x4Extended,
     Count,
 };
 

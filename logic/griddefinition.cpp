@@ -31,6 +31,32 @@ PROJCS["WGS 84 / Pseudo-Mercator",
     AUTHORITY["EPSG","3857"]]
 )wkt";
 
+static const char* s_belgianLambert72 = R"wkt(
+PROJCS["Belge 1972 / Belgian Lambert 72",
+    GEOGCS["Belge 1972",
+        DATUM["Reseau_National_Belge_1972",
+            SPHEROID["International 1924",6378388,297,
+                AUTHORITY["EPSG","7022"]],
+            AUTHORITY["EPSG","6313"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4313"]],
+    PROJECTION["Lambert_Conformal_Conic_2SP"],
+    PARAMETER["latitude_of_origin",90],
+    PARAMETER["central_meridian",4.36748666666667],
+    PARAMETER["standard_parallel_1",51.1666672333333],
+    PARAMETER["standard_parallel_2",49.8333339],
+    PARAMETER["false_easting",150000.013],
+    PARAMETER["false_northing",5400088.438],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["EPSG","31370"]]
+)wkt";
+
 using namespace inf;
 
 constexpr double nan = std::numeric_limits<double>::quiet_NaN();
@@ -38,6 +64,10 @@ constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 static const std::array<GridData, enum_value(GridDefinition::Count)> s_gridData{{
     {GridDefinition::Beleuros, GeoMetadata(0, 0, 0.0, 0.0, {100.0, -100}, nan, "")},
     {GridDefinition::Chimere1, GeoMetadata(45, 110, -116764.223, 6266274.438, {11233.540664545453183, -18200.716633333348000}, nan, s_wgs84)},
+    {GridDefinition::Vlops1km, GeoMetadata(120, 260, 11000.0, 140000.0, {1000.0, -1000.0}, nan, s_belgianLambert72)},
+    {GridDefinition::Vlops250m, GeoMetadata(480, 1040, 11000.0, 140000.0, {250.0, -250.0}, nan, s_belgianLambert72)},
+    {GridDefinition::Rio4x4, GeoMetadata(57, 69, 22000.0, 20000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
+    {GridDefinition::Rio4x4Extended, GeoMetadata(61, 73, 14000.0, 12000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
 }};
 
 const GridData& grid_data(GridDefinition grid) noexcept
