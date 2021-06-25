@@ -16,12 +16,15 @@ TEST_CASE("Parse run configuration")
 {
     const auto scaleFactors = fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv";
 
+    const auto expectedDataRoot = fs::absolute("/emap/emissies/");
+    const auto expectedOutput = fs::absolute("/temp");
+
     SUBCASE("valid file")
     {
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = "C:/emap/emissies/"
+                datapath = "/emap/emissies/"
                 type = "emep"
                 year = 2020
                 report_year = 2018
@@ -29,7 +32,7 @@ TEST_CASE("Parse run configuration")
                 scalefactors = "{}" 
 
             [output]
-                path = "c:/temp"
+                path = "/temp"
 
             [options]
                 validation = true
@@ -38,14 +41,14 @@ TEST_CASE("Parse run configuration")
         const auto config = parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string())));
 
         CHECK(config.grid_definition() == GridDefinition::Beleuros);
-        CHECK(config.data_root() == fs::path("C:/emap/emissies/"));
+        CHECK(config.data_root() == expectedDataRoot);
         CHECK(config.run_type() == RunType::Emep);
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year().has_value());
         CHECK(config.reporting_year() == 2018_y);
         CHECK(config.scenario() == "scenarionaam");
 
-        CHECK(config.output_path() == fs::path("c:/temp"));
+        CHECK(config.output_path() == expectedOutput);
         CHECK(config.validation_type() == ValidationType::SumValidation);
     }
 
@@ -54,14 +57,14 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = "C:/emap/emissies/"
+                datapath = "/emap/emissies/"
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
                 scalefactors = "{}" 
 
             [output]
-                path = "c:/temp"
+                path = "/temp"
 
             [options]
                 validation = true
@@ -70,13 +73,13 @@ TEST_CASE("Parse run configuration")
         const auto config = parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string())));
 
         CHECK(config.grid_definition() == GridDefinition::Beleuros);
-        CHECK(config.data_root() == fs::path("C:/emap/emissies/"));
+        CHECK(config.data_root() == expectedDataRoot);
         CHECK(config.run_type() == RunType::Gains);
         CHECK(config.year() == 2020_y);
         CHECK(!config.reporting_year().has_value());
         CHECK(config.scenario() == "scenarionaam");
 
-        CHECK(config.output_path() == fs::path("c:/temp"));
+        CHECK(config.output_path() == expectedOutput);
         CHECK(config.validation_type() == ValidationType::SumValidation);
     }
 
@@ -90,7 +93,7 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = "C:/emap/emissies/"
+                datapath = "/emap/emissies/"
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
@@ -110,14 +113,14 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = C:/emap/emissies/
+                datapath = /emap/emissies/
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
                 scalefactors = "{}"
 
             [output]
-                path = "c:/temp"
+                path = "/temp"
 
             [options]
                 validation = true
@@ -131,14 +134,14 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = "C:/emap/emissies/"
+                datapath = "/emap/emissies/"
                 type = "gains"
                 year = "2020"
                 scenario = "scenarionaam"
                 scalefactors = "{}" 
 
             [output]
-                path = "c:/temp"
+                path = "/temp"
 
             [options]
                 validation = true
@@ -152,14 +155,14 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [input]
                 grid = "beleuros"
-                datapath = "C:/emap/emissies/"
+                datapath = "/emap/emissies/"
                 type = "gains"
                 year = 2020
                 scenario = 2010
                 scalefactors = "{}" 
 
             [output]
-                path = "c:/temp"
+                path = "/temp"
 
             [options]
                 validation = true
