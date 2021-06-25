@@ -82,10 +82,7 @@ static fs::path read_path(const NamedSection& ns, std::string_view name, const f
     if (auto pathValue = nodeValue.value<std::string_view>(); pathValue.has_value()) {
         auto result = fs::u8path(*pathValue);
         if (result.is_relative()) {
-            result = basePath / result;
-            if (fs::exists(result)) {
-                result = fs::canonical(basePath / result);
-            }
+            result = fs::absolute(basePath / result);
         }
 
         return result;
