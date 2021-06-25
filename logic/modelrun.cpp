@@ -5,6 +5,7 @@
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
 
+#include "infra/chrono.h"
 #include "infra/exception.h"
 #include "infra/log.h"
 
@@ -14,7 +15,7 @@ namespace emap {
 
 using namespace inf;
 
-static fs::path throw_if_not_exists(const fs::path&& path)
+static fs::path throw_if_not_exists(fs::path&& path)
 {
     if (!fs::is_regular_file(path)) {
         throw RuntimeError("File does not exist: {}", path);
@@ -37,6 +38,9 @@ void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb
     const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
     const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 
-    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSource);
+    Log::debug("Generate emission inventory");
+    chrono::DurationRecorder dur;
+    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSource, scalingsDiffuse, scalingsPointSource);
+    Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 }
 }

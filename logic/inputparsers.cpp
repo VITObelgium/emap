@@ -60,14 +60,14 @@ static EmissionSector to_sector(EmissionSector::Type type, std::string_view name
     }
 }
 
-static double to_double(std::string_view valueString)
+static double to_double(std::string_view valueString, size_t lineNr)
 {
     if (auto value = str::to_double(valueString); value.has_value()) {
         return *value;
     }
 
     if (valueString.empty()) {
-        Log::warn("Empty emission value");
+        Log::warn("Empty emission value on line {}", lineNr);
         return std::numeric_limits<double>::quiet_NaN();
     }
 
@@ -80,6 +80,8 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
     // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
 
     try {
+        Log::debug("Parse emissions: {}", emissionsCsv);
+
         SingleEmissions result;
         inf::CsvReader csv(emissionsCsv);
 
@@ -91,6 +93,7 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
         auto colX                    = csv.column_index("x");
         auto colY                    = csv.column_index("y");
 
+        size_t lineNr = 2;
         for (auto& line : csv) {
             if (auto unit = line.get_string(colUnit); unit != "Gg" && unit != "ton") {
                 throw RuntimeError("Unexpected unit: '{}', no conversion rules defined yet", unit);
@@ -98,8 +101,7 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
 
             EmissionEntry info(
                 EmissionIdentifier(to_country(line.get_string(colCountry)), to_sector(sectorType, line.get_string(colSector)), to_pollutant(line.get_string(colPollutant))),
-                EmissionValue(to_double(line.get_string(colEmission)))
-            );
+                EmissionValue(to_double(line.get_string(colEmission), lineNr)));
 
             if (colX.has_value() && colY.has_value()) {
                 auto x = line.get_int32(*colX);
@@ -112,6 +114,7 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
             }
 
             result.add_emission(std::move(info));
+            ++lineNr;
         }
 
         return result;
@@ -125,6 +128,8 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv)
     // csv columns: country;nfr_sector;pollutant;factor
 
     try {
+        Log::debug("Parse scaling factors: {}", scalingFactorsCsv);
+
         ScalingFactors result;
         inf::CsvReader csv(scalingFactorsCsv);
 
@@ -133,13 +138,17 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv)
         auto colFactor               = required_csv_column(csv, "factor");
         auto [colSector, sectorType] = determine_sector_column(csv);
 
+        size_t lineNr = 2;
         for (auto& line : csv) {
-            ScalingFactor sf;
-            sf.country   = to_country(line.get_string(colCountry));
-            sf.pollutant = to_pollutant(line.get_string(colPollutant));
-            sf.sector    = to_sector(sectorType, line.get_string(colSector));
-            sf.factor    = to_double(line.get_string(colFactor));
-            result.add_scaling_factor(std::move(sf));
+            const auto country   = to_country(line.get_string(colCountry));
+            const auto sector    = to_sector(sectorType, line.get_string(colSector));
+            const auto pollutant = to_pollutant(line.get_string(colPollutant));
+            const auto factor    = to_double(line.get_string(colFactor), lineNr);
+
+            if (factor != 1.0) {
+                result.add_scaling_factor(ScalingFactor(EmissionIdentifier(country, sector, pollutant), factor));
+            }
+            ++lineNr;
         }
 
         return result;

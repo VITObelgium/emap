@@ -15,18 +15,17 @@
 
 [input]
 grid = "beleuros"
-datapath = "C:/emap/emissies/"
-type = "Emep" # of gains
-year = 2020
-report_year = 2020 # empty for latest
-scenario = "scenarionaam" # enkel bij gains type
-scalefactors = "file.csv" 
+datapath = "./input"
+type = "emep" # of gains
+year = 1990
+report_year = 2021 # empty for latest
+scenario = "test"
 
 [output]
-path = ""
+path = "./output"
 
 # rasters or shapefiles?
 
 [options]
-validation = true
+validation = false
 

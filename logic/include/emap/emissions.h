@@ -82,7 +82,7 @@ struct EmissionIdentifier
     Pollutant pollutant = Pollutant::Invalid;
 };
 
-struct EmissionEntry
+class EmissionEntry
 {
 public:
     constexpr EmissionEntry() noexcept = default;
@@ -170,10 +170,37 @@ public:
         return _pointEmission;
     }
 
+    constexpr double scaled_total_emissions() const noexcept
+    {
+        return scaled_point_emissions() + scaled_diffuse_emissions();
+    }
+
+    constexpr double scaled_diffuse_emissions() const noexcept
+    {
+        return _diffuseEmission * _diffuseScaling;
+    }
+
+    constexpr double scaled_point_emissions() const noexcept
+    {
+        return _pointEmission * _pointScaling;
+    }
+
+    constexpr void set_point_scaling(double factor) noexcept
+    {
+        _pointScaling = factor;
+    }
+
+    constexpr void set_diffuse_scaling(double factor) noexcept
+    {
+        _diffuseScaling = factor;
+    }
+
 private:
     EmissionIdentifier _id;
     double _pointEmission   = 0.0;
     double _diffuseEmission = 0.0;
+    double _pointScaling    = 1.0;
+    double _diffuseScaling  = 1.0;
 };
 
 template <typename TEmission>
@@ -220,6 +247,16 @@ public:
     }
 
     auto end() const noexcept
+    {
+        return _emissions.end();
+    }
+
+    auto begin() noexcept
+    {
+        return _emissions.begin();
+    }
+
+    auto end() noexcept
     {
         return _emissions.end();
     }

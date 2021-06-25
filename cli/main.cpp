@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <fmt/color.h>
 #include <fmt/ostream.h>
 #include <locale>
 #include <lyra/lyra.hpp>
@@ -52,10 +53,11 @@ int main(int argc, char** argv)
     }
 
     try {
+        inf::gdal::Registration reg;
         std::unique_ptr<inf::LogRegistration> logReg;
+
         if (options.consoleLog) {
             inf::Log::add_console_sink(inf::Log::Colored::On);
-            inf::gdal::Registration reg;
             inf::gdal::set_log_handler();
             logReg = std::make_unique<inf::LogRegistration>("e-map");
 
@@ -72,7 +74,7 @@ int main(int argc, char** argv)
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
-        fmt::print("{}\n", e.what());
+        fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
         inf::Log::error(e.what());
         return EXIT_FAILURE;
     }

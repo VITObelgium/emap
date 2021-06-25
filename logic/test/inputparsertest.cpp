@@ -81,32 +81,32 @@ TEST_CASE("Load scaling factors")
     REQUIRE(emissions.size() == 4);
 
     auto iter = emissions.begin();
-    CHECK(iter->country.id() == Country::Id::AL);
-    CHECK(iter->sector.name() == "1A2a");
-    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == Pollutant::NOx);
-    CHECK(iter->factor == 1.0);
+    CHECK(iter->country().id() == Country::Id::AL);
+    CHECK(iter->sector().name() == "1A2a");
+    CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant() == Pollutant::NOx);
+    CHECK(iter->factor() == 0.5);
     ++iter;
 
-    CHECK(iter->country.id() == Country::Id::AL);
-    CHECK(iter->sector.name() == "1A2a");
-    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == Pollutant::PM10);
-    CHECK(iter->factor == 1.0);
+    CHECK(iter->country().id() == Country::Id::AL);
+    CHECK(iter->sector().name() == "1A2a");
+    CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant() == Pollutant::PM10);
+    CHECK(iter->factor() == 1.3);
     ++iter;
 
-    CHECK(iter->country.id() == Country::Id::AM);
-    CHECK(iter->sector.name() == "1A1a");
-    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == Pollutant::NMVOC);
-    CHECK(iter->factor == 0.8);
+    CHECK(iter->country().id() == Country::Id::AM);
+    CHECK(iter->sector().name() == "1A1a");
+    CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant() == Pollutant::NMVOC);
+    CHECK(iter->factor() == 0.8);
     ++iter;
 
-    CHECK(iter->country.id() == Country::Id::AM);
-    CHECK(iter->sector.name() == "1A1a");
-    CHECK(iter->sector.type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant == Pollutant::NOx);
-    CHECK(iter->factor == 1.5);
+    CHECK(iter->country().id() == Country::Id::AM);
+    CHECK(iter->sector().name() == "1A1a");
+    CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
+    CHECK(iter->pollutant() == Pollutant::NOx);
+    CHECK(iter->factor() == 1.5);
 }
 
 }

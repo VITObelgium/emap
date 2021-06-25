@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emap/emissions.h"
+#include "emap/scalingfactors.h"
 
 #include <numeric>
 
@@ -8,7 +9,10 @@ namespace emap {
 
 using namespace inf;
 
-inline EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissions, const SingleEmissions& pointSourceEmissions)
+inline EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissions,
+                                                   const SingleEmissions& pointSourceEmissions,
+                                                   const ScalingFactors& diffuseScalings,
+                                                   const ScalingFactors& pointScalings)
 {
     EmissionInventory result;
 
@@ -28,7 +32,10 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
             // TODO: validated results logic
         }
 
-        result.add_emission(EmissionInventoryEntry(em.id(), pointEmissionSum, diffuseEmission - pointEmissionSum));
+        EmissionInventoryEntry entry(em.id(), pointEmissionSum, diffuseEmission - pointEmissionSum);
+        entry.set_diffuse_scaling(diffuseScalings.scaling_for_id(em.id()).value_or(1.0));
+        entry.set_point_scaling(pointScalings.scaling_for_id(em.id()).value_or(1.0));
+        result.add_emission(std::move(entry));
     }
 
     return result;

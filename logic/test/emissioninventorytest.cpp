@@ -37,22 +37,26 @@ TEST_CASE("Emission inventory")
 
         // no point emissions for Industry CO
 
-        const auto inventory = create_emission_inventory(totalEmissions, pointEmissions);
+        ScalingFactors diffuseScalings, pointScalings;
+        diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::RoadTransport), Pollutant::NOx), 0.5));
+        pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(Country::Id::BEB, EmissionSector(GnfrSector::RoadTransport), Pollutant::PMcoarse), 2.0));
+
+        const auto inventory = create_emission_inventory(totalEmissions, pointEmissions, diffuseScalings, pointScalings);
 
         auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
             const auto emissions = inventory.emissions_with_id(id);
             REQUIRE(emissions.size() == 1);
-            CHECK_MESSAGE(emissions.front().diffuse_emissions() == expectedDiffuse, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().point_emissions() == expectedPoint, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().total_emissions() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_diffuse_emissions() == expectedDiffuse, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_point_emissions() == expectedPoint, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_total_emissions() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
         });
 
-        checkEmission(EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::RoadTransport), Pollutant::NOx), 111.0, 0.0);
+        checkEmission(EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::RoadTransport), Pollutant::NOx), 55.5, 0.0);
         checkEmission(EmissionIdentifier(Country::Id::ES, EmissionSector(GnfrSector::RoadTransport), Pollutant::NOx), 222.0, 0.0);
 
         checkEmission(EmissionIdentifier(Country::Id::BEF, EmissionSector(GnfrSector::RoadTransport), Pollutant::NOx), 88.0, 12.0 /*5 + 7*/);
         checkEmission(EmissionIdentifier(Country::Id::BEW, EmissionSector(GnfrSector::RoadTransport), Pollutant::PM10), 99.5, 100.5);
-        checkEmission(EmissionIdentifier(Country::Id::BEB, EmissionSector(GnfrSector::RoadTransport), Pollutant::PMcoarse), 450, 50.0);
+        checkEmission(EmissionIdentifier(Country::Id::BEB, EmissionSector(GnfrSector::RoadTransport), Pollutant::PMcoarse), 450, 100.0);
         checkEmission(EmissionIdentifier(Country::Id::BEF, EmissionSector(GnfrSector::Industry), Pollutant::CO), 300.0, 0.0);
     }
 }
