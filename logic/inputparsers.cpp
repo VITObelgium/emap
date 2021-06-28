@@ -1,8 +1,9 @@
-#include "emap/inputparsers.h"
+﻿#include "emap/inputparsers.h"
 #include "emap/emissions.h"
 #include "emap/scalingfactors.h"
 #include "infra/csvreader.h"
 #include "infra/exception.h"
+#include "infra/gdal.h"
 #include "infra/log.h"
 #include "infra/string.h"
 #include "unitconversion.h"
@@ -11,6 +12,7 @@
 #include <exception>
 #include <limits>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 namespace emap {
@@ -97,7 +99,7 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
         size_t lineNr = 2;
         for (auto& line : csv) {
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
-            
+
             EmissionEntry info(
                 EmissionIdentifier(to_country(line.get_string(colCountry)), to_sector(sectorType, line.get_string(colSector)), to_pollutant(line.get_string(colPollutant))),
                 EmissionValue(emissionValue));
@@ -154,6 +156,84 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv)
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", scalingFactorsCsv, e.what());
     }
+}
+
+SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData)
+{
+    SingleEmissions result;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(emissionsData);
+    auto layer = ds.layer(0);
+
+    auto colX         = layer.layer_definition().required_field_index("Emissiepunt X Coördinaat (Lambert)");
+    auto colY         = layer.layer_definition().required_field_index("Emissiepunt Y Coördinaat (Lambert)");
+    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
+    auto colUnit      = layer.layer_definition().required_field_index("Eenheid emissie");
+    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
+    auto colPollutant = layer.layer_definition().required_field_index("Verontreinigende stof");
+
+    for (auto& feature : layer) {
+        if (feature.field_as<std::string_view>(colPollutant).empty()) {
+            continue; // skip empty rows
+        }
+
+        EmissionEntry info(
+            EmissionIdentifier(Country::Id::BEF,
+                               to_sector(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colSector)),
+                               to_pollutant(feature.field_as<std::string_view>(colPollutant))),
+            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
+
+        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
+        result.add_emission(std::move(info));
+    }
+
+    return result;
+}
+
+SingleEmissions parse_emissions_flanders(const fs::path& emissionsData)
+{
+    SingleEmissions result;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(emissionsData);
+    auto layer = ds.layer(0);
+
+    auto colX         = layer.layer_definition().required_field_index("KM2 Grid Lambert X Coördinaat");
+    auto colY         = layer.layer_definition().required_field_index("KM2 Grid Lambert Y Coördinaat");
+    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
+    auto colUnit      = layer.layer_definition().required_field_index("Eenheid Symbool");
+    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
+    auto colPollutant = layer.layer_definition().required_field_index("Parameter Symbool");
+
+    static const std::unordered_set<std::string_view> memoSectors{{
+        "1A3ai(ii)",
+        "1A3aii(ii)",
+        "1A3di(i)",
+        "1A5c"
+        "6B",
+        "11A",
+        "11B",
+        "11C",
+    }};
+
+    for (auto& feature : layer) {
+        auto sectorName = feature.field_as<std::string_view>(colSector);
+        if (sectorName.empty() || memoSectors.count(sectorName) > 0) {
+            continue;
+        }
+
+        EmissionEntry info(
+            EmissionIdentifier(Country::Id::BEF,
+                               to_sector(EmissionSector::Type::Nfr, sectorName),
+                               to_pollutant(feature.field_as<std::string_view>(colPollutant))),
+            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
+
+        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
+        result.add_emission(std::move(info));
+    }
+
+    return result;
 }
 
 }

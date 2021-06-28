@@ -49,13 +49,31 @@ TEST_CASE("Load emissions")
         CHECK(firstEmission.value().amount() == 0.053);
         CHECK(firstEmission.value().unit() == "Gg");
     }
+
+    SUBCASE("flanders emissions")
+    {
+        auto emissions = parse_emissions_flanders(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx");
+        REQUIRE(emissions.size() == 2);
+
+        for (auto& em : emissions) {
+            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+            CHECK(em.country().id() == Country::Id::BEF);
+        }
+
+        const auto& firstEmission = *emissions.begin();
+        CHECK(firstEmission.sector().name() == "1A3di(ii)");
+        CHECK(firstEmission.pollutant() == Pollutant::CO);
+        CHECK(firstEmission.value().amount() == Approx(0.000002621703567834));
+        CHECK(firstEmission.value().unit() == "Gg");
+        CHECK(firstEmission.coordinate() == Coordinate(2000, 249000));
+    }
 }
 
 TEST_CASE("Load point source emissions")
 {
     SUBCASE("nfr sectors")
     {
-        auto emissions = parse_emissions(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "pointsource_emissions_2021.csv");
+        const auto emissions = parse_emissions(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "pointsource_emissions_2021.csv");
         REQUIRE(emissions.size() == 4);
 
         int lineNr = 1;
@@ -73,14 +91,36 @@ TEST_CASE("Load point source emissions")
         ++iter;
         CHECK(iter->coordinate() == Coordinate(130643, 159190));
     }
+
+    SUBCASE("flanders point sources")
+    {
+        const auto emissions = parse_point_sources_flanders(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "2019" / "E-MAP_puntbrongegevens_2019_CO.xlsx");
+        REQUIRE(emissions.size() == 2);
+
+        int lineNr = 1;
+        for (auto& em : emissions) {
+            CHECK(em.pollutant() == Pollutant::CO);
+            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+            REQUIRE_MESSAGE(em.coordinate().has_value(), fmt::format("Line nr: {} pol {}", lineNr++, em.pollutant()));
+        }
+
+        auto iter = emissions.begin();
+        CHECK(iter->sector().name() == "1A2c");
+        CHECK(iter->value().amount() == 0.000005);
+        CHECK(iter->coordinate() == Coordinate(148404, 197316));
+        ++iter;
+        CHECK(iter->sector().name() == "1A1a");
+        CHECK(iter->value().amount() == 0.00075);
+        CHECK(iter->coordinate() == Coordinate(144944, 222999));
+    }
 }
 
 TEST_CASE("Load scaling factors")
 {
-    auto emissions = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
-    REQUIRE(emissions.size() == 4);
+    const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
+    REQUIRE(scalings.size() == 4);
 
-    auto iter = emissions.begin();
+    auto iter = scalings.begin();
     CHECK(iter->country().id() == Country::Id::AL);
     CHECK(iter->sector().name() == "1A2a");
     CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
