@@ -1,5 +1,5 @@
 type;scenario;year;reporting;country;gnfr_sector;pollutant;emission;unit
-historic;NA;1990;2019;AL;A_PublicPower;CO;0.053;Gg
+historic;NA;1990;2019;AL;A_PublicPower;CO;53;ton
 historic;NA;1990;2019;AL;B_Industry;CO;24.661;Gg
 historic;NA;1990;2019;AL;C_OtherStatComb;CO;132.538;Gg
 historic;NA;1990;2019;AM;A_PublicPower;CO;3.851400323;Gg

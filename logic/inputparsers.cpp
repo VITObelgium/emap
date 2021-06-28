@@ -5,6 +5,7 @@
 #include "infra/exception.h"
 #include "infra/log.h"
 #include "infra/string.h"
+#include "unitconversion.h"
 
 #include <cpl_port.h>
 #include <exception>
@@ -95,13 +96,11 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
 
         size_t lineNr = 2;
         for (auto& line : csv) {
-            if (auto unit = line.get_string(colUnit); unit != "Gg" && unit != "ton") {
-                throw RuntimeError("Unexpected unit: '{}', no conversion rules defined yet", unit);
-            }
-
+            double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
+            
             EmissionEntry info(
                 EmissionIdentifier(to_country(line.get_string(colCountry)), to_sector(sectorType, line.get_string(colSector)), to_pollutant(line.get_string(colPollutant))),
-                EmissionValue(to_double(line.get_string(colEmission), lineNr)));
+                EmissionValue(emissionValue));
 
             if (colX.has_value() && colY.has_value()) {
                 auto x = line.get_int32(*colX);
