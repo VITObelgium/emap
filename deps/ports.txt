@@ -3,11 +3,14 @@ eigen3
 tiff[lzw]
 date,
 icu,
-spdlog,
+lyra
 fmt,
 gsl,
-gdal[expat,geos]
+gdal[expat,geos,spatialite]
 indicators
-lyra
+parallelstl
+polyclipping
+spdlog,
+tbb
 tomlplusplus
 vc

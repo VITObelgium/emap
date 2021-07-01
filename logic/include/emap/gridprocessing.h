@@ -1,19 +1,17 @@
 #pragma once
 
 #include "emap/griddefinition.h"
+#include "infra/filesystem.h"
 
-#include <gdx/denseraster.h>
-#include <gdx/denserasterio.h>
+#include <gdx/rasterfwd.h>
 
 namespace emap {
 
 using namespace inf;
 
-gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid)
-{
-    const auto& resultMeta = grid_data(grid).meta;
+gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid);
 
-    return gdx::resample_raster(ras, resultMeta, gdal::ResampleAlgorithm::Average);
-}
+void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const fs::path& rasterOutput);
 
 }
+ 

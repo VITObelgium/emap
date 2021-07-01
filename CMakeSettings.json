@@ -3,28 +3,34 @@
     {
       "generator": "Ninja",
       "buildRoot": "${workspaceRoot}/../builds/emap",
-      "cmakeToolchain": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
-      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-vs2019 -DVCPKG_APPLOCAL_DEPS=OFF -DBUILD_TESTING=ON"
+      "cmakeToolchain": "${workspaceRoot}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cmakeCommandArgs": "-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${workspaceRoot}/deps/vcpkg/scripts/toolchains/windows.cmake -C ${workspaceRoot}/deps/vcpkg/triplets/x64-windows-static-vs2019.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-vs2019 -DVCPKG_APPLOCAL_DEPS=OFF -DBUILD_TESTING=ON"
     }
   ],
   "configurations": [
     {
       "name": "E-MAP [DBG]",
       "generator": "Ninja",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
       "configurationType": "Debug",
       "buildRoot": "${env.buildRoot}/${name}",
       "cmakeToolchain": "${env.cmakeToolchain}",
-      "cmakeCommandArgs": "${env.cmakeCommandArgs}"
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": []
     },
     {
       "name": "E-MAP [REL]",
       "generator": "Ninja",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
       "configurationType": "Release",
       "buildRoot": "${env.buildRoot}/${name}",
       "cmakeToolchain": "${env.cmakeToolchain}",
-      "cmakeCommandArgs": "${env.cmakeCommandArgs}"
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": []
     },
     {
       "name": "E-MAP [DBG][Clang]",

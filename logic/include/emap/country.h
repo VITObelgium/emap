@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/core.h>
+#include <optional>
 #include <string_view>
 
 namespace emap {
@@ -85,6 +86,7 @@ public:
     };
 
     static Country from_string(std::string_view str);
+    static std::optional<Country> try_from_string(std::string_view str) noexcept;
 
     constexpr Country() noexcept = default;
     constexpr Country(Id id)
@@ -113,6 +115,7 @@ public:
     }
 
     std::string_view to_string() const noexcept;
+    std::string_view code() const noexcept;
     std::string_view full_name() const noexcept;
 
 private:

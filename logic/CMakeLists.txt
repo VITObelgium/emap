@@ -1,7 +1,8 @@
-#find_package(TBB CONFIG REQUIRED)
-#find_package(ParallelSTL CONFIG REQUIRED)
+find_package(TBB CONFIG REQUIRED)
+find_package(ParallelSTL CONFIG REQUIRED)
 #find_package(Typesafe REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
+find_package(polyclipping CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/country.h country.cpp
@@ -18,6 +19,7 @@ add_library(emaplogic
     enuminfo.h
     emissioninventory.h
     unitconversion.h
+    geometry.h geometry.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 
@@ -36,10 +38,11 @@ PUBLIC
     Infra::infra
     geodynamix::gdxcore
 PRIVATE
-    #TBB::tbb
-    #pstl::ParallelSTL
+    TBB::tbb
+    pstl::ParallelSTL
     #Typesafe::Typesafe
     tomlplusplus::tomlplusplus
+    polyclipping::polyclipping
 )
 
 if (BUILD_TESTING)

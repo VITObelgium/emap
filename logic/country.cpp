@@ -93,9 +93,27 @@ Country Country::from_string(std::string_view str)
         return Country(iter->id);
     }
 
-    throw RuntimeError("Invalid pollutant name: '{}'", str);
+    throw RuntimeError("Invalid country name: '{}'", str);
 }
+
+std::optional<Country> Country::try_from_string(std::string_view str) noexcept
+{
+    std::optional<Country> result;
+
+    try {
+        result = Country::from_string(str);
+    } catch (const std::exception&) {
+    }
+
+    return result;
+}
+
 std::string_view Country::to_string() const noexcept
+{
+    return code();
+}
+
+std::string_view Country::code() const noexcept
 {
     return s_countries[enum_value(_id)].serializedName;
 }

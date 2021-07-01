@@ -1,0 +1,76 @@
+get_filename_component(Gdal_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+list(APPEND CMAKE_MODULE_PATH ${Gdal_CMAKE_DIR})
+
+if (@GDAL_THREAD_SUPPORT@)
+    find_dependency(Threads REQUIRED)
+endif ()
+
+if (@GDAL_JPEG_SUPPORT@)
+    find_dependency(JPEG REQUIRED)
+endif ()
+
+if (@GDAL_PNG_SUPPORT@)
+    find_dependency(PNG REQUIRED)
+endif ()
+
+if (@GDAL_ZLIB_SUPPORT@)
+    find_dependency(ZLIB)
+endif ()
+
+if (@GDAL_ICONV_SUPPORT@)
+    find_dependency(Iconv REQUIRED)
+endif ()
+
+if (@GDAL_GEOS_SUPPORT@)
+    find_dependency(GEOS CONFIG REQUIRED)
+endif ()
+
+if (@GDAL_LIBXML2_SUPPORT@)
+    find_dependency(LibXml2 REQUIRED)
+endif ()
+
+if (@GDAL_OGR_FRMTS_SQLITE@)
+    find_dependency(sqlite3 CONFIG REQUIRED)
+    find_dependency(libspatialite REQUIRED)
+endif ()
+
+if (@GDAL_FRMTS_GTIFF@)
+    find_dependency(TIFF REQUIRED)
+endif ()
+
+if (@GDAL_FRMTS_GIF@)
+    find_dependency(GIF REQUIRED)
+endif ()
+
+if (@GDAL_FRMTS_HDF5@)
+    find_dependency(HDF5 CONFIG REQUIRED)
+endif ()
+
+if (@GDAL_FRMTS_NETCDF@)
+    find_package(netCDF CONFIG REQUIRED)
+endif ()
+
+if (@GDAL_OGR_FRMTS_XLSX@)
+    find_dependency(EXPAT REQUIRED)
+endif ()
+
+if (@GDAL_OPENCL_SUPPORT@)
+    find_dependency(OpenCL REQUIRED)
+endif ()
+
+if (@GDAL_CURL_SUPPORT@)
+    find_dependency(CURL REQUIRED)
+endif ()
+
+find_dependency(PROJ CONFIG REQUIRED)
+
+list(REMOVE_AT CMAKE_MODULE_PATH -1)
+
+if(NOT TARGET GDAL::GDAL)
+    include("${Gdal_CMAKE_DIR}/GdalTargets.cmake")
+endif()
+
+set(Gdal_DATA_PATH ${Gdal_CMAKE_DIR})
+set(Gdal_LIBRARIES GDAL::GDAL)

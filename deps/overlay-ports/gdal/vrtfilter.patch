@@ -1,0 +1,39 @@
+diff -Naur a/ogr/ogrsf_frmts/vrt/ogrvrtlayer.cpp b/ogr/ogrsf_frmts/vrt/ogrvrtlayer.cpp
+--- a/ogr/ogrsf_frmts/vrt/ogrvrtlayer.cpp	2020-01-08 12:44:22.000000000 +0100
++++ b/ogr/ogrsf_frmts/vrt/ogrvrtlayer.cpp	2021-05-06 11:11:40.633993400 +0200
+@@ -1191,7 +1191,7 @@
+ 
+                 if( !CPLIsInf(sEnvelope.MinX) )
+                     osFilter +=
+-                        CPLSPrintf("%s > %.15g", pszXField, sEnvelope.MinX);
++                        CPLSPrintf("\"%s\" > %.15g", pszXField, sEnvelope.MinX);
+                 else if( sEnvelope.MinX > 0 )
+                     osFilter += "0 = 1";
+ 
+@@ -1200,7 +1200,7 @@
+                     if( !osFilter.empty() )
+                         osFilter += " AND ";
+                     osFilter +=
+-                        CPLSPrintf("%s < %.15g", pszXField, sEnvelope.MaxX);
++                        CPLSPrintf("\"%s\" < %.15g", pszXField, sEnvelope.MaxX);
+                 }
+                 else if( sEnvelope.MaxX < 0 )
+                 {
+@@ -1214,7 +1214,7 @@
+                     if( !osFilter.empty() )
+                         osFilter += " AND ";
+                     osFilter +=
+-                        CPLSPrintf("%s > %.15g", pszYField, sEnvelope.MinY);
++                        CPLSPrintf("\"%s\" > %.15g", pszYField, sEnvelope.MinY);
+                 }
+                 else if( sEnvelope.MinY > 0 )
+                 {
+@@ -1228,7 +1228,7 @@
+                     if( !osFilter.empty() )
+                         osFilter += " AND ";
+                     osFilter +=
+-                        CPLSPrintf("%s < %.15g", pszYField, sEnvelope.MaxY);
++                        CPLSPrintf("\"%s\" < %.15g", pszYField, sEnvelope.MaxY);
+                 }
+                 else if( sEnvelope.MaxY < 0 )
+                 {

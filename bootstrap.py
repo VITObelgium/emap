@@ -29,10 +29,14 @@ if __name__ == "__main__":
             sys.path.insert(0, os.path.join("..", "vcpkg-ports", "scripts"))
             from buildtools import vcpkg
 
+        overlay_ports = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "deps", "overlay-ports")
+        )
+
         if args.clean:
             vcpkg.clean(triplet=triplet)
         else:
-            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet)
+            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, overlay_ports=overlay_ports)
     except KeyboardInterrupt:
         print("\nInterrupted")
         sys.exit(-1)
