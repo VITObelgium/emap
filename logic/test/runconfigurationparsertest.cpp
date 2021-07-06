@@ -1,4 +1,4 @@
-#include "emap/runconfigurationparser.h"
+#include "emap/configurationparser.h"
 #include "emap/runconfiguration.h"
 #include "infra/exception.h"
 
@@ -38,7 +38,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string())));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()));
 
         CHECK(config.grid_definition() == GridDefinition::Beleuros);
         CHECK(config.data_root() == expectedDataRoot);
@@ -70,7 +70,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string())));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()));
 
         CHECK(config.grid_definition() == GridDefinition::Beleuros);
         CHECK(config.data_root() == expectedDataRoot);
@@ -85,7 +85,7 @@ TEST_CASE("Parse run configuration")
 
     SUBCASE("invalid file: empty")
     {
-        CHECK_THROWS_WITH_AS(parse_run_configuration(std::string_view()), "No 'input' section present in configuration", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration({}), "No 'input' section present in configuration", RuntimeError);
     }
 
     SUBCASE("invalid file: missing output section")
@@ -103,7 +103,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string()))),
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())),
                              "No 'output' section present in configuration",
                              RuntimeError);
     }
@@ -126,7 +126,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_AS(parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string()))), RuntimeError);
+        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), RuntimeError);
     }
 
     SUBCASE("invalid file: year as string")
@@ -147,7 +147,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string()))), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
     }
 
     SUBCASE("invalid file: scenario is integer")
@@ -168,7 +168,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(std::string_view(fmt::format(tomlConfig, scaleFactors.generic_u8string()))), "'scenario' key value in 'input' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "'scenario' key value in 'input' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
     }
 }
 

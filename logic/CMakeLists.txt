@@ -1,21 +1,23 @@
 find_package(TBB CONFIG REQUIRED)
-find_package(ParallelSTL CONFIG REQUIRED)
+find_package(oneDPL CONFIG REQUIRED)
 #find_package(Typesafe REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(polyclipping CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/country.h country.cpp
+    include/emap/configurationparser.h configurationparser.cpp
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h griddefinition.cpp
     include/emap/gridprocessing.h gridprocessing.cpp
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
     include/emap/pollutant.h pollutant.cpp
+    include/emap/preprocessing.h preprocessing.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
-    include/emap/runconfigurationparser.h runconfigurationparser.cpp
+    include/emap/preprocessingconfiguration.h preprocessingconfiguration.cpp
     enuminfo.h
     emissioninventory.h
     unitconversion.h
@@ -39,7 +41,7 @@ PUBLIC
     geodynamix::gdxcore
 PRIVATE
     TBB::tbb
-    pstl::ParallelSTL
+    oneDPL
     #Typesafe::Typesafe
     tomlplusplus::tomlplusplus
     polyclipping::polyclipping

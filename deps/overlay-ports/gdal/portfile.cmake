@@ -1,6 +1,6 @@
 set(MAJOR 3)
 set(MINOR 3)
-set(REVISION 0)
+set(REVISION 1)
 set(VERSION ${MAJOR}.${MINOR}.${REVISION})
 set(PACKAGE_NAME ${PORT}-${VERSION})
 set(PACKAGE ${PACKAGE_NAME}.tar.xz)
@@ -8,14 +8,12 @@ set(PACKAGE ${PACKAGE_NAME}.tar.xz)
 vcpkg_download_distfile(ARCHIVE
     URLS "http://download.osgeo.org/${PORT}/${VERSION}/${PACKAGE}"
     FILENAME "${PACKAGE}"
-    SHA512 b3f8db22c0010ca2f3d38b9445cb8f8754df1e203a882cc739dee086c3d343a53153cd28e35e9cae6baf4f89554e16c0478f75746144f6f3a02bfb731f5465a0
+    SHA512 54d726d2ca5a2d11ece4ea5aef7d9c71ac4f8fb3a91b489a5f7bc9b16405e0ec82ee9220381f8566a555b6ef05f3241e05b36a5a78eb4f726afb945ba8cbcbcb
 )
 
 vcpkg_extract_source_archive_ex(
     OUT_SOURCE_PATH SOURCE_PATH
     ARCHIVE ${ARCHIVE}
-    PATCHES
-        vrtfilter.patch
 )
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt

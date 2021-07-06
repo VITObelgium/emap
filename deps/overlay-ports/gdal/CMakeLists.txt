@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 include(CMakeDependentOption)
 
 project(gdal
-    VERSION 3.3.0
+    VERSION 3.3.1
     LANGUAGES C CXX
 )
 

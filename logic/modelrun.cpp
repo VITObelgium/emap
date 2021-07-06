@@ -1,7 +1,8 @@
 #include "emap/modelrun.h"
 
+#include "emap/configurationparser.h"
 #include "emap/inputparsers.h"
-#include "emap/runconfigurationparser.h"
+#include "emap/preprocessing.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
 
@@ -27,7 +28,17 @@ static fs::path throw_if_not_exists(fs::path&& path)
 void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb)
 {
     Log::debug("Process configuration: {}", runConfigPath);
-    return run_model(parse_run_configuration(runConfigPath), progressCb);
+
+    // Check if there is a preprocessing step defined
+    run_preprocessing(runConfigPath, [&progressCb](const PreprocessingProgress::Status& status) {
+        if (progressCb) {
+            return progressCb(ModelProgress::Status(status.current(), status.total(), status.payload()));
+        }
+
+        return ProgressStatusResult::Continue;
+    });
+
+    return run_model(parse_run_configuration_file(runConfigPath), progressCb);
 }
 
 void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb*/)

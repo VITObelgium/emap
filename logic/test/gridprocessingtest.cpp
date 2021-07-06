@@ -15,7 +15,7 @@ using namespace doctest;
 
 TEST_CASE("Grid processing")
 {
-    SUBCASE("transform grid")
+    /*SUBCASE("transform grid")
     {
         const auto inputPath   = fs::u8path("C:/Users/vdboerd/OneDrive - VITO/Documents/E-map/E-MAP/input/spatial patterns/co_A_PublicPower.tif");
         const auto inputRaster = gdx::read_dense_raster<double>(inputPath);
@@ -26,11 +26,11 @@ TEST_CASE("Grid processing")
     SUBCASE("extract countries")
     {
         const auto inputPath     = fs::u8path("C:/Users/vdboerd/OneDrive - VITO/Documents/E-map/E-MAP/input/spatial patterns/co_A_PublicPower.tif");
-        const auto outputPath    = fs::u8path("C:/temp/countries.tif");
+        const auto outputPath    = fs::u8path("C:/temp/countries");
         const auto countriesPath = fs::u8path("C:/RMABuild/emap/data/eu.gpkg");
 
         extract_countries_from_raster(inputPath, countriesPath, outputPath);
-    }
+    }*/
 }
 
 }

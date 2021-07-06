@@ -21,6 +21,8 @@ Paths from_gdal(inf::gdal::Geometry& geom);
 void add_point_to_path(Path& path, inf::Point<int64_t> point);
 void add_point_to_path(Path& path, inf::Point<double> point);
 
+bool intersects(const Path& subject, const Paths& clip);
+
 Paths intersect(const Path& subject, const Paths& clip);
 Paths intersect(const Paths& subject, const Paths& clip);
 

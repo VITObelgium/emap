@@ -149,6 +149,19 @@ static gdal::Envelope bounding_box(const Paths& path)
 //    return {topLeft, bottomRight};
 //}
 
+bool intersects(const Path& poly1, const Paths& poly2)
+{
+    for (auto& poly : poly2) {
+        Paths solution;
+        ClipperLib::MinkowskiDiff(poly1, poly, solution);
+        if (ClipperLib::PointInPolygon(ClipperLib::IntPoint(0, 0), poly)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Paths intersect(const Path& subject, const Paths& clip)
 {
     Paths result;

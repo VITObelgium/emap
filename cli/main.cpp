@@ -3,8 +3,10 @@
 #include "infra/gdal.h"
 #include "infra/gdallog.h"
 #include "infra/log.h"
+#include "infra/cliprogressbar.h"
 #include "infra/progressinfo.h"
 
+#include "emap/gridprocessing.h"
 #include "emap/modelrun.h"
 
 #include <cstdlib>
@@ -21,6 +23,29 @@
 
 using inf::Log;
 
+static inf::Log::Level log_level_from_value(int32_t value)
+{
+    switch (value) {
+    case 1:
+        return Log::Level::Debug;
+    case 2:
+        return Log::Level::Info;
+    case 3:
+        return Log::Level::Warning;
+    case 4:
+        return Log::Level::Error;
+    case 5:
+        return Log::Level::Critical;
+    default:
+        throw inf::RuntimeError("Invalid log level specified '{}': value must be in range [1-5]", value);
+    }
+}
+
+static fs::path data_dir_from_binary_path(const fs::path& binaryPath)
+{
+    return binaryPath.parent_path() / "data";
+}
+
 int main(int argc, char** argv)
 {
 #ifdef WIN32
@@ -33,16 +58,19 @@ int main(int argc, char** argv)
 
     struct Cli
     {
-        bool showHelp     = false;
-        bool showProgress = false;
-        bool consoleLog   = false;
+        bool showHelp   = false;
+        bool noProgress = false;
+        bool consoleLog = false;
+        std::string preprocessPath;
         std::string config;
+        int32_t logLevel = 2;
         std::optional<int32_t> concurrency;
     } options;
 
     auto cli = lyra::help(options.showHelp) |
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
-               lyra::opt(options.showProgress)["--progress"]("Show progress bar on the console") |
+               lyra::opt(options.consoleLog)["-ll"]["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
+               lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
                lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use") |
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
@@ -60,16 +88,21 @@ int main(int argc, char** argv)
             inf::Log::add_console_sink(inf::Log::Colored::On);
             inf::gdal::set_log_handler();
             logReg = std::make_unique<inf::LogRegistration>("e-map");
-
-#ifdef NDEBUG
-            inf::Log::set_level(inf::Log::Level::Debug);
-#else
-            inf::Log::set_level(inf::Log::Level::Debug);
-#endif
+            inf::Log::set_level(log_level_from_value(options.logLevel));
         }
 
-        emap::run_model(fs::u8path(options.config), [](const emap::ModelProgress::Status& /*info*/) {
-            return emap::ModelProgress::StatusResult::Continue;
+        std::unique_ptr<inf::ProgressBar> progressBar;
+        if (!options.noProgress)
+        {
+            progressBar = std::make_unique<inf::ProgressBar>(120);
+        }
+
+        emap::run_model(fs::u8path(options.config), [&](const emap::ModelProgress::Status& info) {
+            if (progressBar) {
+                progressBar->set_progress(info.progress());
+                progressBar->set_postfix_text(info.payload().to_string());
+            }
+            return inf::ProgressStatusResult::Continue;
         });
 
         return EXIT_SUCCESS;

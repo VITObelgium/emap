@@ -1,6 +1,5 @@
-#include "emap/runconfigurationparser.h"
+#include "emap/configurationparser.h"
 #include "emap/inputparsers.h"
-#include "emap/runconfiguration.h"
 
 #include "infra/cast.h"
 #include "infra/exception.h"
@@ -158,6 +157,41 @@ static void throw_on_missing_section(const toml::table& table, std::string_view 
     }
 }
 
+static std::optional<PreprocessingConfiguration> parse_preprocessing_configuration(std::string_view configContents, const fs::path& tomlPath)
+{
+    try {
+        const auto basePath     = tomlPath.parent_path();
+        const toml::table table = toml::parse(configContents, tomlPath.u8string());
+
+        if (!table.contains("preprocess")) {
+            // No preprocessing configured
+            return {};
+        }
+
+        throw_on_missing_section(table, "output");
+
+        NamedSection preprocessing("preprocess", table["preprocess"]);
+        NamedSection output("output", table["output"]);
+
+        const auto spatialPatternsPath = read_path(preprocessing, "spatial_patterns", basePath);
+        const auto countriesPath       = read_path(preprocessing, "countries_vector", basePath);
+        const auto outputPath          = read_path(output, "path", basePath);
+
+        const auto optionsSection = table["options"];
+        bool validate             = optionsSection["validation"].value_or<bool>(false);
+
+        return PreprocessingConfiguration(spatialPatternsPath,
+                                          countriesPath,
+                                          outputPath);
+    } catch (const toml::parse_error& e) {
+        if (const auto& errorBegin = e.source().begin; errorBegin) {
+            throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);
+        }
+
+        throw RuntimeError("Failed to parse run configuration: {}", e.description());
+    }
+}
+
 static RunConfiguration parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
@@ -199,13 +233,23 @@ static RunConfiguration parse_run_configuration(std::string_view configContents,
     }
 }
 
-RunConfiguration parse_run_configuration(const fs::path& config)
+std::optional<PreprocessingConfiguration> parse_preprocessing_configuration_file(const fs::path& config)
+{
+    return parse_preprocessing_configuration(file::read_as_text(config), config);
+}
+
+std::optional<PreprocessingConfiguration> parse_preprocessing_configuration(std::string_view configContents)
+{
+    return parse_preprocessing_configuration(configContents, fs::path());
+}
+
+RunConfiguration parse_run_configuration_file(const fs::path& config)
 {
     return parse_run_configuration(file::read_as_text(config), config);
 }
 
 RunConfiguration parse_run_configuration(std::string_view configContents)
 {
-    return parse_run_configuration(configContents, "");
+    return parse_run_configuration(configContents, fs::path());
 }
 }

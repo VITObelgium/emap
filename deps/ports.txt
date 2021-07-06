@@ -8,7 +8,7 @@ fmt,
 gsl,
 gdal[expat,geos,spatialite]
 indicators
-parallelstl
+onedpl
 polyclipping
 spdlog,
 tbb
