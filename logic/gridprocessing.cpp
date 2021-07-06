@@ -7,7 +7,6 @@
 #include "infra/gdalio.h"
 #include "infra/log.h"
 #include "infra/math.h"
-#include "infra/parallelstl.h"
 #include "infra/progressinfo.h"
 #include "infra/rect.h"
 
