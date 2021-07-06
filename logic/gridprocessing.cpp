@@ -8,9 +8,9 @@
 #include "infra/log.h"
 #include "infra/math.h"
 #include "infra/parallelstl.h"
+#include "infra/progressinfo.h"
 #include "infra/rect.h"
 
-#include <sys/_types/_size_t.h>
 #include <tbb/parallel_pipeline.h>
 #include <tbb/task_arena.h>
 #include <tbb/task_scheduler_observer.h>
@@ -184,24 +184,23 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
 
     std::mutex mut;
 
-    std::atomic<int64_t> currentCellNr(0);
-    int64_t totalCells = ras.size();
+    ProgressInfo progress(ras.rows(), progressCb);
 
     auto iter = gdx::cell_begin(ras);
     tbb::filter<void, CellPtr> source(tbb::filter_mode::serial_out_of_order, [&](tbb::flow_control& fc) -> CellPtr {
-        if (progressCb) {
-            if (progressCb(ProgressInfo::Status(++currentCellNr, totalCells)) == ProgressStatusResult::Abort) {
-                fc.stop();
-                return nullptr;
-            }
-        }
-
         if (iter == gdx::cell_end(ras)) {
             fc.stop();
             return nullptr;
         }
 
-        return std::make_shared<Cell>(*iter++);
+        const auto cell = std::make_shared<Cell>(*iter++);
+        progress.tick(float(cell->r) / ras.rows());
+        if (progress.cancel_requested()) {
+            fc.stop();
+            return nullptr;
+        }
+
+        return cell;
     });
 
     tbb::filter<CellPtr, IntersectionInfoPtr> transform(tbb::filter_mode::parallel, [&](const CellPtr& cell) -> IntersectionInfoPtr {

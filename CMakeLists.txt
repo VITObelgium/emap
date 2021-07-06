@@ -14,6 +14,7 @@ include(GNUInstallDirs)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 11.3)
 
 option(INFRA_INSOURCE "Use submodule version of infra" ON)
 option(GDX_INSOURCE "Use submodule version of geodynamix" ON)
