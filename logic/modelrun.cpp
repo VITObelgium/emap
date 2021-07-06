@@ -22,7 +22,7 @@ static fs::path throw_if_not_exists(fs::path&& path)
         throw RuntimeError("File does not exist: {}", path);
     }
 
-    return path;
+    return std::move(path);
 }
 
 void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb)

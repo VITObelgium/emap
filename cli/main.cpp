@@ -3,7 +3,6 @@
 #include "infra/gdal.h"
 #include "infra/gdallog.h"
 #include "infra/log.h"
-#include "infra/cliprogressbar.h"
 #include "infra/progressinfo.h"
 
 #include "emap/gridprocessing.h"
@@ -39,11 +38,6 @@ static inf::Log::Level log_level_from_value(int32_t value)
     default:
         throw inf::RuntimeError("Invalid log level specified '{}': value must be in range [1-5]", value);
     }
-}
-
-static fs::path data_dir_from_binary_path(const fs::path& binaryPath)
-{
-    return binaryPath.parent_path() / "data";
 }
 
 int main(int argc, char** argv)
@@ -92,8 +86,7 @@ int main(int argc, char** argv)
         }
 
         std::unique_ptr<inf::ProgressBar> progressBar;
-        if (!options.noProgress)
-        {
+        if (!options.noProgress) {
             progressBar = std::make_unique<inf::ProgressBar>(120);
         }
 

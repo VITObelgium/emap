@@ -10,6 +10,7 @@
 #include "infra/parallelstl.h"
 #include "infra/rect.h"
 
+#include <sys/_types/_size_t.h>
 #include <tbb/parallel_pipeline.h>
 #include <tbb/task_arena.h>
 #include <tbb/task_scheduler_observer.h>
@@ -39,11 +40,7 @@ std::vector<Rect<double>> create_raster_cell_geometry(const gdx::DenseRaster<dou
     OGRLineString cellGeometry;
     cellGeometry.setNumPoints(5);
 
-    const auto cellSize = ras.metadata().cellSize;
-    const auto cellArea = std::abs(cellSize.x * cellSize.y);
-
     std::vector<Rect<double>> cellRects;
-
     std::for_each(gdx::cell_begin(ras), gdx::cell_end(ras), [&](const Cell& cell) {
         cellRects.push_back(ras.metadata().bounding_box(cell));
     });
@@ -79,7 +76,7 @@ std::string rects_to_geojson(std::span<const IntersectionInfo> intersections, Ge
         "features": [
     )json";
 
-    int i = 0;
+    size_t i = 0;
     for (const auto& isect : intersections) {
         geomStr << "{ \"type\" : \"Feature\", \"geometry\" : { \"type\": \"Polygon\", \"coordinates\": [[";
 
@@ -307,16 +304,12 @@ static bool is_complex_country(Country::Id id)
 
 void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const fs::path& outputDir, GridProcessingProgress::Callback progressCb)
 {
-    constexpr const auto numCountries = enum_value(Country::Id::Count);
-
     const auto ras = read_raster_north_up(rasterInput);
 
-    auto memDriver   = gdal::RasterDriver::create(gdal::RasterType::Memory);
     auto countriesDs = gdal::VectorDataSet::open(countriesShape);
 
     auto countriesLayer     = countriesDs.layer(0);
     const auto colCountryId = countriesLayer.layer_definition().required_field_index("FID");
-    int bandCount           = 1;
 
     std::unordered_map<Country::Id, geom::Paths> countryGeometries;
 

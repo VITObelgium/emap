@@ -45,8 +45,7 @@ private:
     EmissionIdentifier _id;
     Country _country;
     EmissionSector _sector;
-    Pollutant _pollutant = Pollutant::Invalid;
-    double _factor       = 1.0;
+    double _factor = 1.0;
 };
 
 class ScalingFactors

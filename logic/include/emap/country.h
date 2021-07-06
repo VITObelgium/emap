@@ -81,7 +81,7 @@ public:
         UA,
         UZE,
         UZO,
-        Count,
+        EnumCount,
         Invalid,
     };
 

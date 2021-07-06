@@ -1,20 +1,28 @@
 [
     {
         "name": "x64-osx",
-        "toolchainFile": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
+        "toolchainFile": "${workspaceRoot}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "cmakeSettings": {
             "VCPKG_TARGET_TRIPLET": "x64-osx",
-            "VCPKG_ALLOW_SYSTEM_LIBS": "ON",
-            "TOOLS_PREFIX": "${workspaceRoot}/../vcpkg-ports/installed/x64-osx/tools"
+            "VCPKG_CMAKE_SYSTEM_NAME": "Darwin",
+            "VCPKG_OSX_ARCHITECTURES": "x86_64",
+            "VCPKG_OSX_DEPLOYMENT_TARGET": "11.3",
+            "VCPKG_C_FLAGS": "-fvisibility=hidden",
+            "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=11.3",
+            "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${workspaceRoot}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake"
         }
     },
     {
         "name": "arm64-osx",
-        "toolchainFile": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
+        "toolchainFile": "${workspaceRoot}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "cmakeSettings": {
             "VCPKG_TARGET_TRIPLET": "arm64-osx",
-            "VCPKG_ALLOW_SYSTEM_LIBS": "ON",
-            "TOOLS_PREFIX": "${workspaceRoot}/../vcpkg-ports/installed/arm64-osx/tools"
+            "VCPKG_CMAKE_SYSTEM_NAME": "Darwin",
+            "VCPKG_OSX_ARCHITECTURES": "arm64",
+            "VCPKG_OSX_DEPLOYMENT_TARGET": "11.3",
+            "VCPKG_C_FLAGS": "-fvisibility=hidden",
+            "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=11.3",
+            "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${workspaceRoot}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake"
         }
     },
     {
@@ -26,7 +34,7 @@
     },
     {
         "name": "x64-osx-homebrew",
-        "toolchainFile": "${workspaceRoot}/../vcpkg-ports/scripts/buildsystems/vcpkg.cmake",
+        "toolchainFile": "${workspaceRoot}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "cmakeSettings": {
             "VCPKG_TARGET_TRIPLET": "x64-osx-homebrew"
         }

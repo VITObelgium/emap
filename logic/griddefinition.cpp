@@ -1,8 +1,10 @@
 #include "emap/griddefinition.h"
 
+#include "infra/cast.h"
 #include "infra/enumutils.h"
 
 #include <cassert>
+#include <type_traits>
 
 namespace emap {
 
@@ -59,7 +61,7 @@ using namespace inf;
 
 constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
-static const std::array<GridData, enum_value(GridDefinition::Count)> s_gridData{{
+static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Beleuros, GeoMetadata(0, 0, 0.0, 0.0, {100.0, -100}, nan, "")},
     {GridDefinition::Chimere1, GeoMetadata(45, 110, -116764.223, 6266274.438, {11233.540664545453183, -18200.716633333348000}, nan, s_wgs84)},
     {GridDefinition::Vlops1km, GeoMetadata(120, 260, 11000.0, 140000.0, {1000.0, -1000.0}, nan, s_belgianLambert72)},
@@ -70,7 +72,7 @@ static const std::array<GridData, enum_value(GridDefinition::Count)> s_gridData{
 
 const GridData& grid_data(GridDefinition grid) noexcept
 {
-    assert(enum_value(grid) < s_gridData.size());
+    assert(enum_value(grid) < truncate<std::underlying_type_t<GridDefinition>>(s_gridData.size()));
     return s_gridData[enum_value(grid)];
 }
 

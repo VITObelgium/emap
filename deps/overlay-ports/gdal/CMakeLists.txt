@@ -446,6 +446,7 @@ add_library(port OBJECT
     port/cpl_csv.cpp
     port/cpl_findfile.cpp
     port/cpl_vsil_win32.cpp
+    port/cpl_vsil_unix_stdio_64.cpp
     port/cpl_minixml.cpp
     port/cpl_multiproc.cpp
     port/cpl_list.cpp

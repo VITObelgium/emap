@@ -10,7 +10,7 @@ namespace emap {
 
 using namespace inf;
 
-static constexpr std::array<EnumInfo<Country>, enum_value(Country::Id::Count)> s_countries = {{
+static constexpr std::array<EnumInfo<Country>, enum_count<Country::Id>()> s_countries = {{
     {Country::Id::AL, "AL", "Albania"},
     {Country::Id::AM, "AM", "Armenia"},
     {Country::Id::ARE, "ARE", "Rest of Aral Lake in the extended EMEP domain"},

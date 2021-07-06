@@ -12,12 +12,13 @@ enum class GridDefinition
     Vlops250m,
     Rio4x4,
     Rio4x4Extended,
-    Count,
+    EnumCount,
+    Invalid,
 };
 
 struct GridData
 {
-    GridDefinition type = GridDefinition::Count;
+    GridDefinition type = GridDefinition::Invalid;
     inf::GeoMetadata meta;
 };
 

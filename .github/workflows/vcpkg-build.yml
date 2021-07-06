@@ -21,6 +21,12 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
+    - name: Install linux dependencies
+      if: ${{ matrix.cfg.os == 'ubuntu-latest' }}
+      run: sudo apt-get install nasm openssl ninja-build
+    - name: Install osx dependencies
+      if: ${{ matrix.cfg.os == 'macos-latest' }}
+      run: brew install nasm ninja
     - name: Bootstrap the ports
       run: python bootstrap.py --triplet ${{ matrix.cfg.triplet }} --clean-after-build
     - name: Build the code

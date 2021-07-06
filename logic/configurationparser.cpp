@@ -177,9 +177,6 @@ static std::optional<PreprocessingConfiguration> parse_preprocessing_configurati
         const auto countriesPath       = read_path(preprocessing, "countries_vector", basePath);
         const auto outputPath          = read_path(output, "path", basePath);
 
-        const auto optionsSection = table["options"];
-        bool validate             = optionsSection["validation"].value_or<bool>(false);
-
         return PreprocessingConfiguration(spatialPatternsPath,
                                           countriesPath,
                                           outputPath);
