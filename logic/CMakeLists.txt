@@ -1,6 +1,7 @@
 find_package(TBB CONFIG REQUIRED)
 find_package(oneDPL CONFIG REQUIRED)
 #find_package(Typesafe REQUIRED)
+find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(polyclipping CONFIG REQUIRED)
 
@@ -43,6 +44,7 @@ PRIVATE
     TBB::tbb
     oneDPL
     #Typesafe::Typesafe
+    GEOS::geos
     tomlplusplus::tomlplusplus
     polyclipping::polyclipping
 )

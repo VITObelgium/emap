@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 
     auto cli = lyra::help(options.showHelp) |
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
-               lyra::opt(options.consoleLog)["-ll"]["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
+               lyra::opt(options.logLevel, "number")["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
                lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
                lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use") |
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
@@ -75,7 +75,9 @@ int main(int argc, char** argv)
     }
 
     try {
-        inf::gdal::Registration reg;
+        inf::gdal::RegistrationConfig gdalCfg;
+        gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path();
+        inf::gdal::Registration reg(gdalCfg);
         std::unique_ptr<inf::LogRegistration> logReg;
 
         if (options.consoleLog) {

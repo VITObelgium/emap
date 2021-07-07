@@ -1,23 +1,42 @@
 #include "emap/gridprocessing.h"
+#include "emap/emissions.h"
 #include "geometry.h"
 
+#include "infra/algo.h"
 #include "infra/cast.h"
 #include "infra/chrono.h"
 #include "infra/enumutils.h"
 #include "infra/gdalio.h"
+#include "infra/geometadata.h"
 #include "infra/log.h"
 #include "infra/math.h"
+#include "infra/parallelstl.h"
 #include "infra/progressinfo.h"
 #include "infra/rect.h"
 
-#include <tbb/parallel_pipeline.h>
-#include <tbb/task_arena.h>
-#include <tbb/task_scheduler_observer.h>
+#include <algorithm>
+#include <mutex>
 
-#include <gdx/algo/algorithm.h>
+#include <oneapi/dpl/pstl/glue_execution_defs.h>
+#include <oneapi/tbb/enumerable_thread_specific.h>
+#include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_pipeline.h>
+#include <oneapi/tbb/task_arena.h>
+#include <oneapi/tbb/task_scheduler_observer.h>
+
 #include <gdx/denseraster.h>
 #include <gdx/denserasterio.h>
 #include <gdx/rasteriterator.h>
+
+#include <geos/geom/Coordinate.h>
+#include <geos/geom/DefaultCoordinateSequenceFactory.h>
+#include <geos/geom/Envelope.h>
+#include <geos/geom/Geometry.h>
+#include <geos/geom/GeometryComponentFilter.h>
+#include <geos/geom/GeometryFactory.h>
+#include <geos/geom/prep/PreparedGeometry.h>
+#include <geos/geom/prep/PreparedGeometryFactory.h>
+#include <geos/index/kdtree/KdTree.h>
 
 namespace emap {
 
@@ -266,8 +285,24 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
     const int maxTokens = tbb::this_task_arena::max_concurrency();
     tbb::parallel_pipeline(maxTokens, chain);
 
-    file::write_as_text(fmt::format("c:/temp/clip_cells_{}.geojson", country.code()), rects_to_geojson(intersectRects, cellSize));
-    file::write_as_text(fmt::format("c:/temp/clip_cells_partial_{}.geojson", country.code()), rects_to_geojson(partialIntersections, cellSize));
+    //file::write_as_text(fmt::format("c:/temp/clip_cells_{}.geojson", country.code()), rects_to_geojson(intersectRects, cellSize));
+    //file::write_as_text(fmt::format("c:/temp/clip_cells_partial_{}.geojson", country.code()), rects_to_geojson(partialIntersections, cellSize));
+
+    return result;
+}
+
+static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& ras, std::span<const CellCoverageInfo> coverages)
+{
+    constexpr auto nan = math::nan<double>();
+    gdx::DenseRaster<double> result(copy_metadata_replace_nodata(ras.metadata(), nan), nan);
+
+    for (auto& [cell, coverage] : coverages) {
+        if (ras.is_nodata(cell)) {
+            continue;
+        }
+
+        result[cell] = ras[cell] * coverage;
+    }
 
     return result;
 }
@@ -283,24 +318,135 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput)
     return ras;
 }
 
-static bool is_complex_country(Country::Id id)
-{
-    return false;
+// static bool is_complex_country(Country::Id id)
+// {
+//     //return false;
 
-    static bool warned = false;
-    if (!warned) {
-        Log::warn("This should never be present production code");
-        warned = true;
+//     static bool warned = false;
+//     if (!warned) {
+//         Log::warn("This should never be present production code");
+//         warned = true;
+//     }
+//     return id == Country::Id::NO ||
+//            id == Country::Id::FR ||
+//            id == Country::Id::RU ||
+//            id == Country::Id::SE ||
+//            id == Country::Id::IT ||
+//            id == Country::Id::GL;
+// }
+
+static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& extent, const geos::geom::Geometry& geom)
+{
+    std::vector<CellCoverageInfo> result;
+
+    auto preparedGeom = geos::geom::prep::PreparedGeometryFactory::prepare(&geom);
+
+    const auto cellSize = extent.cellSize;
+    const auto cellArea = std::abs(cellSize.x * cellSize.y);
+
+    for (auto cell : gdx::RasterCells(extent.rows, extent.cols)) {
+        const Rect<double> box = extent.bounding_box(cell);
+        const auto cellGeom    = geom::create_polygon(box.topLeft, box.bottomRight);
+
+        // Intersect it with the country
+        if (preparedGeom->contains(cellGeom.get())) {
+            result.emplace_back(cell, 1.0);
+        } else if (preparedGeom->intersects(cellGeom.get())) {
+            const auto intersectArea = preparedGeom->getGeometry().intersection(cellGeom.get())->getArea();
+            assert(intersectArea > 0);
+            result.emplace_back(cell, intersectArea / cellArea);
+        }
     }
-    return id == Country::Id::NO ||
-           id == Country::Id::FR ||
-           id == Country::Id::RU ||
-           id == Country::Id::SE ||
-           id == Country::Id::IT ||
-           id == Country::Id::GL;
+
+    return result;
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const fs::path& outputDir, GridProcessingProgress::Callback progressCb)
+static void process_country_borders(std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>>& cellCoverages)
+{
+    for (auto& [country, cells] : cellCoverages) {
+        for (auto& cell : cells) {
+            if (cell.coverage < 1.0) {
+                // country border, check if there are other countries in this cell
+                double otherCountryCoverages = 0;
+
+                for (auto& [testCountry, testCells] : cellCoverages) {
+                    if (testCountry == country) {
+                        continue;
+                    }
+
+                    auto cellIter = std::lower_bound(testCells.begin(), testCells.end(), cell.cell, [](const CellCoverageInfo& cov, Cell c) {
+                        return cov.cell < c;
+                    });
+
+                    if (cellIter != testCells.end() && cellIter->cell == cell.cell) {
+                        otherCountryCoverages += cellIter->coverage;
+                    }
+                }
+
+                if (otherCountryCoverages == 0.0) {
+                    // Cell partially covers the country, but no other countries are in this cell,
+                    // so the rest must be ocean or sea. In that case the cell receives all the emission
+                    cell.coverage = 1.0;
+                } else {
+                    cell.coverage = cell.coverage / (cell.coverage + otherCountryCoverages);
+                }
+            }
+        }
+    }
+}
+
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
+{
+    std::vector<CountryCellCoverage> result;
+
+    auto countriesDs = gdal::VectorDataSet::open(countriesVector);
+
+    auto countriesLayer     = countriesDs.layer(0);
+    const auto colCountryId = countriesLayer.layer_definition().required_field_index(countryIdField);
+
+    const auto bbox = extent.bounding_box();
+    countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
+
+    std::vector<std::pair<Country::Id, geos::geom::Geometry::Ptr>> geometries;
+
+    for (auto& feature : countriesLayer) {
+        if (const auto country = Country::try_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value()) {
+            // known country
+            auto geom = feature.geometry();
+            geometries.emplace_back(country->id(), geom::gdal_to_geos(geom));
+        }
+    }
+
+    {
+        Log::debug("Create cell coverages");
+        chrono::DurationRecorder rec;
+
+        std::mutex mut;
+        std::for_each(std::execution::par, geometries.begin(), geometries.end(), [&](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& idGeom) {
+            auto coverages = create_cell_coverages(extent, *idGeom.second);
+#ifndef NDEBUG
+            if (!coverages.empty()) {
+                for (size_t i = 0; i < coverages.size() - 1; ++i) {
+                    if (!(coverages[i].cell < coverages[i + 1].cell)) {
+                        throw std::logic_error("coverages should be sorted");
+                    }
+                }
+            }
+#endif
+
+            std::scoped_lock lock(mut);
+            result.emplace_back(idGeom.first, std::move(coverages));
+        });
+
+        Log::debug("Create cell coverages took: {}", rec.elapsed_time_string());
+    }
+
+    process_country_borders(result);
+
+    return result;
+}
+
+void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const fs::path& outputDir)
 {
     const auto ras = read_raster_north_up(rasterInput);
 
@@ -319,37 +465,39 @@ void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& 
     for (auto& feature : countriesLayer) {
         if (const auto country = Country::try_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value()) {
             auto geom = feature.geometry();
-
-            if (!is_complex_country(country->id())) {
-                countryGeometries.emplace(country->id(), geom::from_gdal(geom));
-            }
+            countryGeometries.emplace(country->id(), geom::from_gdal(geom));
         }
     }
 
-    chrono::DurationRecorder totalRec;
+    Log::debug("Geometries prepared");
 
-    std::atomic<int64_t> currentCell(0);
-    int64_t totalCellCount = ras.ssize() * countryGeometries.size();
+    chrono::DurationRecorder totalRec;
 
     for (auto& [countryId, geom] : countryGeometries) {
         Country country(countryId);
         Log::debug("Country {} ({})", country.full_name(), country.code());
+        const auto countryOutputPath = outputDir / "polyclip" / fs::u8path(fmt::format("{}_{}.tif", rasterInput.stem().u8string(), country.code()));
 
-        chrono::DurationRecorder rec;
-        const auto countryOutputPath = outputDir / fs::u8path(fmt::format("{}_{}.tif", rasterInput.stem().u8string(), country.code()));
-
-        gdx::write_raster(cutout_country(ras, country, countryGeometries, [&](const ProgressInfo::Status& status) {
-                              if (progressCb) {
-                                  return progressCb(GridProcessingProgress::Status(++currentCell, totalCellCount, GridProcessingProgressInfo(country.id(), status.current(), status.total())));
-                              } else {
-                                  return ProgressStatusResult::Continue;
-                              }
-                          }),
-                          countryOutputPath);
-        Log::debug("{} took: {}", country.full_name(), rec.elapsed_time_string());
+        gdx::write_raster(cutout_country(ras, country, countryGeometries, nullptr), countryOutputPath);
     }
 
     Log::debug("Total duration: {}", totalRec.elapsed_time_string());
 }
 
+void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, GridProcessingProgress::Callback /*progressCb*/)
+{
+    const auto ras = read_raster_north_up(rasterInput);
+    fs::create_directories(outputDir);
+
+    chrono::DurationRecorder totalRec;
+
+    for (auto& [countryId, coverages] : countries) {
+        Country country(countryId);
+
+        const auto countryOutputPath = outputDir / fs::u8path(fmt::format("{}_{}.tif", rasterInput.stem().u8string(), country.code()));
+        gdx::write_raster(cutout_country(ras, coverages), countryOutputPath);
+    }
+
+    Log::debug("Total duration: {}", totalRec.elapsed_time_string());
+}
 }

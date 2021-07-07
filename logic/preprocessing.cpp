@@ -4,6 +4,7 @@
 #include "emap/gridprocessing.h"
 
 #include "infra/chrono.h"
+#include "infra/gdalio.h"
 #include "infra/log.h"
 
 namespace emap {
@@ -11,7 +12,7 @@ namespace emap {
 using namespace inf;
 using namespace std::string_literals;
 
-static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesShape, const fs::path& outputDir, PreprocessingProgress::Callback progressCb)
+static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesVector, const fs::path& outputDir, PreprocessingProgress::Callback progressCb)
 {
     file::create_directory_if_not_exists(outputDir);
 
@@ -19,8 +20,8 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
         throw RuntimeError("Spatial patterns path should be a directory: {}", inputDir);
     }
 
-    if (!fs::is_regular_file(countriesShape)) {
-        throw RuntimeError("Countries vector path should be a path to a file: {}", countriesShape);
+    if (!fs::is_regular_file(countriesVector)) {
+        throw RuntimeError("Countries vector path should be a path to a file: {}", countriesVector);
     }
 
     std::vector<fs::path> pathsToProcess;
@@ -30,16 +31,23 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
         }
     }
 
+    if (pathsToProcess.empty()) {
+        return;
+    }
+
     PreprocessingProgressInfo info;
     info.step = PreprocessingProgressInfo::Step::CountryExtraction;
     std::atomic<int64_t> current(0);
 
+    const auto extent          = gdal::io::read_metadata(pathsToProcess.front());
+    const auto countyCoverages = create_country_coverages(extent, countriesVector, "FID");
+
     for (const auto& filePath : pathsToProcess) {
         info.file = &filePath;
 
-        extract_countries_from_raster(filePath, countriesShape, outputDir, [&](const GridProcessingProgress::Status& status) {
+        extract_countries_from_raster(filePath, countyCoverages, outputDir, [&](const GridProcessingProgress::Status& status) {
             if (progressCb) {
-                info.country = status.payload().country;
+                info.country     = status.payload().country;
                 info.currentCell = status.current();
                 info.cellCount   = status.total();
                 return progressCb(PreprocessingProgress::Status(++current, pathsToProcess.size(), info));
