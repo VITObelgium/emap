@@ -3,7 +3,6 @@
 #include "infra/algo.h"
 #include "infra/chrono.h"
 #include "infra/exception.h"
-#include "infra/gdalgeometry.h"
 #include "infra/log.h"
 #include "infra/parallelstl.h"
 
@@ -30,7 +29,7 @@ static ClipperLib::IntPoint scaled_point(inf::Point<double> point) noexcept
     return {truncate<ClipperLib::cInt>(point.x * s_scalingFactor), truncate<ClipperLib::cInt>(point.y * s_scalingFactor)};
 }
 
-static ClipperLib::Paths from_gdal_polygon(gdal::Polygon& poly)
+static ClipperLib::Paths from_gdal_polygon(gdal::PolygonCRef poly)
 {
     ClipperLib::Paths result;
 
@@ -74,19 +73,18 @@ static ClipperLib::Paths from_gdal_polygon(gdal::Polygon& poly)
     return result;
 }
 
-static ClipperLib::Paths from_gdal_multi_polygon(gdal::MultiPolygon& geom)
+static ClipperLib::Paths from_gdal_multi_polygon(gdal::MultiPolygonCRef geom)
 {
     ClipperLib::Paths result;
 
     for (int i = 0; i < geom.size(); ++i) {
-        auto poly = geom.polygon_at(i);
-        append_to_container(result, from_gdal_polygon(poly));
+        append_to_container(result, from_gdal_polygon(geom.polygon_at(i)));
     }
 
     return result;
 }
 
-std::unique_ptr<geos::geom::LinearRing> gdal_linear_ring_to_geos(const geos::geom::GeometryFactory& factory, gdal::LinearRing& ring)
+std::unique_ptr<geos::geom::LinearRing> gdal_linear_ring_to_geos(const geos::geom::GeometryFactory& factory, gdal::LinearRingCRef ring)
 {
     std::vector<geos::geom::Coordinate> coords;
     coords.reserve(ring.point_count());
@@ -99,63 +97,56 @@ std::unique_ptr<geos::geom::LinearRing> gdal_linear_ring_to_geos(const geos::geo
     return factory.createLinearRing(geos::geom::DefaultCoordinateSequenceFactory::instance()->create(std::move(coords)));
 }
 
-static geos::geom::Polygon::Ptr gdal_polygon_to_geos(const geos::geom::GeometryFactory& factory, gdal::Polygon& poly)
+static geos::geom::Polygon::Ptr gdal_polygon_to_geos(const geos::geom::GeometryFactory& factory, gdal::PolygonCRef poly)
 {
     std::unique_ptr<geos::geom::LinearRing> exteriorRing;
     std::vector<std::unique_ptr<geos::geom::LinearRing>> holes;
 
     {
         // Exterior ring
-        auto gdalRing = poly.exterior_ring();
-        exteriorRing  = gdal_linear_ring_to_geos(factory, gdalRing);
+        exteriorRing = gdal_linear_ring_to_geos(factory, poly.exterior_ring());
     }
 
     // interior rings
     for (int i = 0; i < poly.interior_ring_count(); ++i) {
-        auto gdalRing = poly.interior_ring(i);
-        holes.push_back(gdal_linear_ring_to_geos(factory, gdalRing));
+        holes.push_back(gdal_linear_ring_to_geos(factory, poly.interior_ring(i)));
     }
 
     return factory.createPolygon(std::move(exteriorRing), std::move(holes));
 }
 
-static geos::geom::MultiPolygon::Ptr gdal_multi_polygon_to_geos(const geos::geom::GeometryFactory& factory, gdal::MultiPolygon& geom)
+static geos::geom::MultiPolygon::Ptr gdal_multi_polygon_to_geos(const geos::geom::GeometryFactory& factory, gdal::MultiPolygonCRef geom)
 {
     std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
 
     for (int i = 0; i < geom.size(); ++i) {
-        auto poly = geom.polygon_at(i);
-        geometries.push_back(gdal_polygon_to_geos(factory, poly));
+        geometries.push_back(gdal_polygon_to_geos(factory, geom.polygon_at(i)));
     }
 
     return factory.createMultiPolygon(std::move(geometries));
 }
 
-Paths from_gdal(gdal::Geometry& geom)
+Paths from_gdal(gdal::GeometryCRef geom)
 {
     if (geom.type() == gdal::Geometry::Type::Polygon) {
-        auto poly = geom.as<gdal::Polygon>();
-        return from_gdal_polygon(poly);
+        return from_gdal_polygon(geom.as<gdal::PolygonCRef>());
     } else if (geom.type() == gdal::Geometry::Type::MultiPolygon) {
-        auto poly = geom.as<gdal::MultiPolygon>();
-        return from_gdal_multi_polygon(poly);
+        return from_gdal_multi_polygon(geom.as<gdal::MultiPolygonCRef>());
     }
 
     throw RuntimeError("Geometry type not implemented");
 }
 
-geos::geom::MultiPolygon::Ptr gdal_to_geos(inf::gdal::Geometry& geom)
+geos::geom::MultiPolygon::Ptr gdal_to_geos(inf::gdal::GeometryCRef geom)
 {
     auto factory = geos::geom::GeometryFactory::create();
 
     if (geom.type() == gdal::Geometry::Type::Polygon) {
         std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
-        auto poly = geom.as<gdal::Polygon>();
-        geometries.push_back(gdal_polygon_to_geos(*factory, poly));
+        geometries.push_back(gdal_polygon_to_geos(*factory, geom.as<gdal::PolygonCRef>()));
         return factory->createMultiPolygon(std::move(geometries));
     } else if (geom.type() == gdal::Geometry::Type::MultiPolygon) {
-        auto poly = geom.as<gdal::MultiPolygon>();
-        return gdal_multi_polygon_to_geos(*factory, poly);
+        return gdal_multi_polygon_to_geos(*factory, geom.as<gdal::MultiPolygonCRef>());
     }
 
     throw RuntimeError("Geometry type not implemented");
