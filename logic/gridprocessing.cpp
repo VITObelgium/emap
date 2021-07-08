@@ -10,7 +10,6 @@
 #include "infra/geometadata.h"
 #include "infra/log.h"
 #include "infra/math.h"
-#include "infra/parallelstl.h"
 #include "infra/progressinfo.h"
 #include "infra/rect.h"
 
@@ -20,6 +19,7 @@
 #include <oneapi/dpl/pstl/glue_execution_defs.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
 #include <oneapi/tbb/task_arena.h>
 #include <oneapi/tbb/task_scheduler_observer.h>
@@ -422,7 +422,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         chrono::DurationRecorder rec;
 
         std::mutex mut;
-        std::for_each(std::execution::par, geometries.begin(), geometries.end(), [&](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& idGeom) {
+        tbb::parallel_for_each(geometries.begin(), geometries.end(), [&](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& idGeom) {
             auto coverages = create_cell_coverages(extent, *idGeom.second);
 #ifndef NDEBUG
             if (!coverages.empty()) {

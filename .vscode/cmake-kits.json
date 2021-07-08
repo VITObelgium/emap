@@ -29,7 +29,13 @@
         "name": "x64-osx-gcc",
         "toolchainFile": "${workspaceRoot}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "cmakeSettings": {
-            "VCPKG_TARGET_TRIPLET": "x64-osx-gcc"
+            "VCPKG_TARGET_TRIPLET": "x64-osx-gcc",
+            "VCPKG_CMAKE_SYSTEM_NAME": "Darwin",
+            "VCPKG_OSX_ARCHITECTURES": "x86_64",
+            "VCPKG_OSX_DEPLOYMENT_TARGET": "11.3",
+            "VCPKG_C_FLAGS": "-fvisibility=hidden",
+            "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden -mmacosx-version-min=11.3",
+            "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${workspaceRoot}/deps/vcpkg/triplets/toolchain-osx-gcc-11.cmake"
         }
     },
     {

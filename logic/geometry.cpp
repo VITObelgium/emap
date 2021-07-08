@@ -4,7 +4,6 @@
 #include "infra/chrono.h"
 #include "infra/exception.h"
 #include "infra/log.h"
-#include "infra/parallelstl.h"
 
 #include "infra/gdalgeometry.h"
 
