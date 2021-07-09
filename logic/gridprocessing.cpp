@@ -16,9 +16,6 @@
 #include <algorithm>
 #include <mutex>
 
-#include <oneapi/dpl/pstl/glue_execution_defs.h>
-#include <oneapi/tbb/enumerable_thread_specific.h>
-#include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
 #include <oneapi/tbb/task_arena.h>
@@ -395,7 +392,27 @@ static void process_country_borders(std::vector<std::pair<Country::Id, std::vect
     }
 }
 
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
+size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
+{
+    auto countriesDs = gdal::VectorDataSet::open(countriesVector);
+
+    auto countriesLayer     = countriesDs.layer(0);
+    const auto colCountryId = countriesLayer.layer_definition().required_field_index(countryIdField);
+
+    const auto bbox = extent.bounding_box();
+    countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
+
+    size_t count = 0;
+    for (auto& feature : countriesLayer) {
+        if (Country::try_from_string(feature.field_as<std::string_view>(colCountryId)).has_value() && feature.has_geometry()) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb)
 {
     std::vector<CountryCellCoverage> result;
 
@@ -410,7 +427,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     std::vector<std::pair<Country::Id, geos::geom::Geometry::Ptr>> geometries;
 
     for (auto& feature : countriesLayer) {
-        if (const auto country = Country::try_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value()) {
+        if (const auto country = Country::try_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
             // known country
             auto geom = feature.geometry();
             geometries.emplace_back(country->id(), geom::gdal_to_geos(geom));
@@ -422,6 +439,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         chrono::DurationRecorder rec;
 
         std::mutex mut;
+        GridProcessingProgress progress(geometries.size(), progressCb);
         tbb::parallel_for_each(geometries.begin(), geometries.end(), [&](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& idGeom) {
             auto coverages = create_cell_coverages(extent, *idGeom.second);
 #ifndef NDEBUG
@@ -434,6 +452,8 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
             }
 #endif
 
+            progress.set_payload(idGeom.first);
+            progress.tick();
             std::scoped_lock lock(mut);
             result.emplace_back(idGeom.first, std::move(coverages));
         });
@@ -484,20 +504,20 @@ void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& 
     Log::debug("Total duration: {}", totalRec.elapsed_time_string());
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, GridProcessingProgress::Callback /*progressCb*/)
+void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras = read_raster_north_up(rasterInput);
     fs::create_directories(outputDir);
 
-    chrono::DurationRecorder totalRec;
+    GridProcessingProgress progress(countries.size(), progressCb);
 
-    for (auto& [countryId, coverages] : countries) {
+    for (const auto& [countryId, coverages] : countries) {
         Country country(countryId);
-
         const auto countryOutputPath = outputDir / fs::u8path(fmt::format("{}_{}.tif", rasterInput.stem().u8string(), country.code()));
         gdx::write_raster(cutout_country(ras, coverages), countryOutputPath);
-    }
 
-    Log::debug("Total duration: {}", totalRec.elapsed_time_string());
+        progress.set_payload(countryId);
+        progress.tick_throw_on_cancel();
+    }
 }
 }

@@ -2,17 +2,21 @@
 
 #include "emap/configurationparser.h"
 #include "emap/gridprocessing.h"
+#include "gdx/denseraster.h"
 
 #include "infra/chrono.h"
+#include "infra/enumutils.h"
 #include "infra/gdalio.h"
 #include "infra/log.h"
+
+#include <oneapi/tbb/parallel_for_each.h>
 
 namespace emap {
 
 using namespace inf;
 using namespace std::string_literals;
 
-static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesVector, const fs::path& outputDir, PreprocessingProgress::Callback progressCb)
+static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesVector, const fs::path& outputDir, const PreprocessingProgress::Callback& progressCb)
 {
     file::create_directory_if_not_exists(outputDir);
 
@@ -35,35 +39,44 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
         return;
     }
 
-    PreprocessingProgressInfo info;
-    info.step = PreprocessingProgressInfo::Step::CountryExtraction;
-    std::atomic<int64_t> current(0);
+    static const char* fieldId = "FID";
 
-    const auto extent          = gdal::io::read_metadata(pathsToProcess.front());
-    const auto countyCoverages = create_country_coverages(extent, countriesVector, "FID");
+    auto extent = gdal::io::read_metadata(pathsToProcess.front());
+    if (!extent.is_north_up()) {
+        extent = read_raster_north_up(pathsToProcess.front()).metadata();
+    }
 
-    for (const auto& filePath : pathsToProcess) {
-        info.file = &filePath;
+    PreprocessingProgress progress(known_countries_in_extent(extent, countriesVector, fieldId), progressCb);
 
-        extract_countries_from_raster(filePath, countyCoverages, outputDir, [&](const GridProcessingProgress::Status& status) {
-            if (progressCb) {
-                info.country     = status.payload().country;
-                info.currentCell = status.current();
-                info.cellCount   = status.total();
-                return progressCb(PreprocessingProgress::Status(++current, pathsToProcess.size(), info));
-            }
+    const auto countyCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
+        PreprocessingProgressInfo info;
+        info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
+        info.country = status.payload();
+        progress.set_payload(info);
+        progress.tick();
+        return ProgressStatusResult::Continue;
+    });
 
+    progress.reset(pathsToProcess.size());
+    tbb::parallel_for_each(pathsToProcess.begin(), pathsToProcess.end(), [&](const auto& filePath) {
+        extract_countries_from_raster(filePath, countyCoverages, outputDir, [&progress, &filePath](const GridProcessingProgress::Status& /*status*/) {
             return ProgressStatusResult::Continue;
         });
-    }
+
+        PreprocessingProgressInfo info;
+        info.step = PreprocessingProgressInfo::Step::CountryExtraction;
+        info.file = &filePath;
+        progress.set_payload(info);
+        progress.tick_throw_on_cancel();
+    });
 }
 
-void run_preprocessing(const fs::path& configPath, PreprocessingProgress::Callback progressCb)
+void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb)
 {
     return run_preprocessing(parse_preprocessing_configuration_file(configPath), progressCb);
 }
 
-void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, PreprocessingProgress::Callback progressCb)
+void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, const PreprocessingProgress::Callback& progressCb)
 {
     if (!cfg.has_value()) {
         Log::debug("No preprocessing requested");
@@ -71,14 +84,6 @@ void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, Pre
     }
 
     if (auto spatialPatternsDir = cfg->spatial_patterns_path(); !spatialPatternsDir.empty()) {
-        if (!fs::is_directory(spatialPatternsDir)) {
-            throw RuntimeError("Spatial patterns path should be a directory: {}", spatialPatternsDir);
-        }
-
-        if (!fs::is_regular_file(cfg->countries_vector_path())) {
-            throw RuntimeError("Countries vector path should be a path to a file: {}", cfg->countries_vector_path());
-        }
-
         process_spatial_pattern_directory(spatialPatternsDir, cfg->countries_vector_path(), cfg->output_path(), progressCb);
     }
 }

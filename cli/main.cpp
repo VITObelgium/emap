@@ -96,6 +96,9 @@ int main(int argc, char** argv)
             if (progressBar) {
                 progressBar->set_progress(info.progress());
                 progressBar->set_postfix_text(info.payload().to_string());
+                /*if (info.progress() == 1.0) {
+                    progressBar->done();
+                }*/
             }
             return inf::ProgressStatusResult::Continue;
         });

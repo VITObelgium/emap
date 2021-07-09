@@ -33,6 +33,18 @@
       "variables": []
     },
     {
+      "name": "E-MAP [RELDEB]",
+      "generator": "Ninja",
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${env.buildRoot}/${name}",
+      "cmakeToolchain": "${env.cmakeToolchain}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "variables": []
+    },
+    {
       "name": "E-MAP [DBG][Clang]",
       "generator": "Ninja",
       "configurationType": "Debug",

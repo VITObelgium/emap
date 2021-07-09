@@ -14,26 +14,32 @@ struct PreprocessingProgressInfo
 {
     enum class Step
     {
+        CellBoundaries,
         CountryExtraction,
         Invalid,
     };
 
     std::string to_string() const
     {
-        return fmt::format("{} [{}/{}]", Country(country).full_name(), currentCell, cellCount);
+        if (step == Step::CellBoundaries) {
+            return fmt::format("Calculating cell boundaries for {}", Country(country).full_name());
+        }
+
+        if (step == Step::CountryExtraction) {
+            return fmt::format("Extracting countries from {}", file->stem().u8string());
+        }
+
+        return std::string(Country(country).full_name());
     }
 
-    Step step = Step::Invalid;
-    Country::Id country = Country::Id::Invalid;
+    Step step            = Step::Invalid;
+    Country::Id country  = Country::Id::Invalid;
     const fs::path* file = nullptr;
-
-    int64_t currentCell = 0;
-    int64_t cellCount   = 0;
 };
 
 using PreprocessingProgress = inf::ProgressTracker<PreprocessingProgressInfo>;
 
-void run_preprocessing(const fs::path& configPath, PreprocessingProgress::Callback progressCb);
-void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, PreprocessingProgress::Callback progressCb);
+void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb);
+void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, const PreprocessingProgress::Callback& progressCb);
 
 }
