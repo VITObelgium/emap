@@ -22,5 +22,8 @@
     "clangd.semanticHighlighting": false,
     "C_Cpp.formatting": "Disabled",
     "C_Cpp.intelliSenseEngine": "Disabled",
-    "C_Cpp.vcpkg.enabled": false
+    "C_Cpp.vcpkg.enabled": false,
+    "clangd.arguments": [
+        "-header-insertion=never"
+    ]
 }
