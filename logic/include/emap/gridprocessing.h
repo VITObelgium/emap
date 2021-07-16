@@ -7,6 +7,7 @@
 #include "infra/progressinfo.h"
 #include "infra/span.h"
 
+#include <fmt/core.h>
 #include <gdx/rasterfwd.h>
 
 namespace emap {
@@ -32,6 +33,11 @@ struct CellCoverageInfo
     {
     }
 
+    constexpr bool operator==(const CellCoverageInfo& other) const noexcept
+    {
+        return cell == other.cell && coverage == other.coverage;
+    }
+
     Cell cell;
     double coverage = 0.0;
 };
@@ -44,7 +50,25 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput);
 
 size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb);
-void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const fs::path& outputDir);
+void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb);
 void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb);
 
+}
+
+namespace fmt {
+template <>
+struct formatter<emap::CellCoverageInfo>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const emap::CellCoverageInfo& cov, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), "{} covers {}%", cov.cell, cov.coverage);
+    }
+};
 }

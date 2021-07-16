@@ -172,6 +172,8 @@ public:
     Type type() const;
     std::string_view name() const noexcept;
 
+    bool is_land_sector() const noexcept;
+
     constexpr bool operator==(const EmissionSector& other) const noexcept
     {
         return _sector == other._sector;

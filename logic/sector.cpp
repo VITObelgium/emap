@@ -215,6 +215,13 @@ std::string_view EmissionSector::name() const noexcept
                       _sector);
 }
 
+bool EmissionSector::is_land_sector() const noexcept
+{
+    assert(type() == Type::Gnfr);
+
+    return std::get<GnfrSector>(_sector) != GnfrSector::Shipping;
+}
+
 template <typename SectorInfo>
 static auto find_sector(std::string_view str, const SectorInfo& sectors)
 {

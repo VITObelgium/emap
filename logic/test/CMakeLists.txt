@@ -7,6 +7,9 @@ add_executable(emaplogictest
     runconfigurationparsertest.cpp
 )
 
+target_compile_definitions(emaplogictest
+PRIVATE EMAP_DATA_DIR="${PROJECT_SOURCE_DIR}/data"
+)
 target_include_directories(emaplogictest
 PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}

@@ -1,3 +1,4 @@
+cryptopp
 doctest
 eigen3
 tiff[lzw]
