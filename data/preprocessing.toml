@@ -1,6 +1,6 @@
 [preprocess]
 spatial_patterns = "./input/spatial patterns"
-countries_vector = "./data/eu.gpkg"
+countries_vector = "./eu_01m.gpkg"
 
 [output]
 path = "./output/spreiding"

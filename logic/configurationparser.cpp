@@ -189,13 +189,17 @@ static std::optional<PreprocessingConfiguration> parse_preprocessing_configurati
     }
 }
 
-static RunConfiguration parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
+static std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
         const auto basePath     = tomlPath.parent_path();
         const toml::table table = toml::parse(configContents, tomlPath.u8string());
 
-        throw_on_missing_section(table, "input");
+        if (!table.contains("input")) {
+            // No model run configured
+            return {};
+        }
+        
         throw_on_missing_section(table, "output");
 
         NamedSection input("input", table["input"]);
@@ -240,12 +244,12 @@ std::optional<PreprocessingConfiguration> parse_preprocessing_configuration(std:
     return parse_preprocessing_configuration(configContents, fs::path());
 }
 
-RunConfiguration parse_run_configuration_file(const fs::path& config)
+std::optional<RunConfiguration> parse_run_configuration_file(const fs::path& config)
 {
     return parse_run_configuration(file::read_as_text(config), config);
 }
 
-RunConfiguration parse_run_configuration(std::string_view configContents)
+std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents)
 {
     return parse_run_configuration(configContents, fs::path());
 }

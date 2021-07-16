@@ -38,7 +38,11 @@ void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb
         return ProgressStatusResult::Continue;
     });
 
-    return run_model(parse_run_configuration_file(runConfigPath), progressCb);
+    if (auto runConfig = parse_run_configuration_file(runConfigPath); runConfig.has_value()) {
+        return run_model(*runConfig, progressCb);
+    } else {
+        Log::debug("No model run configured");
+    }
 }
 
 void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb*/)

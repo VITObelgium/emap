@@ -16,6 +16,16 @@ namespace emap {
 using namespace inf;
 using namespace std::string_literals;
 
+static fs::file_status throw_if_not_exists(const fs::path& path)
+{
+    const auto status = fs::status(path);
+    if (!fs::exists(status)) {
+        throw RuntimeError("File does not exist: {}", path);
+    }
+
+    return status;
+}
+
 static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesVector, const fs::path& outputDir, const PreprocessingProgress::Callback& progressCb)
 {
     file::create_directory_if_not_exists(outputDir);
@@ -24,7 +34,7 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
         throw RuntimeError("Spatial patterns path should be a directory: {}", inputDir);
     }
 
-    if (!fs::is_regular_file(countriesVector)) {
+    if (!fs::is_regular_file(throw_if_not_exists(countriesVector))) {
         throw RuntimeError("Countries vector path should be a path to a file: {}", countriesVector);
     }
 

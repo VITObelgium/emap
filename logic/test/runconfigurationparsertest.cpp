@@ -40,16 +40,16 @@ TEST_CASE("Parse run configuration")
 
         const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()));
 
-        CHECK(config.grid_definition() == GridDefinition::Beleuros);
-        CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.run_type() == RunType::Emep);
-        CHECK(config.year() == 2020_y);
-        CHECK(config.reporting_year().has_value());
-        CHECK(config.reporting_year() == 2018_y);
-        CHECK(config.scenario() == "scenarionaam");
+        CHECK(config->grid_definition() == GridDefinition::Beleuros);
+        CHECK(config->data_root() == expectedDataRoot);
+        CHECK(config->run_type() == RunType::Emep);
+        CHECK(config->year() == 2020_y);
+        CHECK(config->reporting_year().has_value());
+        CHECK(config->reporting_year() == 2018_y);
+        CHECK(config->scenario() == "scenarionaam");
 
-        CHECK(config.output_path() == expectedOutput);
-        CHECK(config.validation_type() == ValidationType::SumValidation);
+        CHECK(config->output_path() == expectedOutput);
+        CHECK(config->validation_type() == ValidationType::SumValidation);
     }
 
     SUBCASE("valid file no report year")
@@ -72,20 +72,20 @@ TEST_CASE("Parse run configuration")
 
         const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()));
 
-        CHECK(config.grid_definition() == GridDefinition::Beleuros);
-        CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.run_type() == RunType::Gains);
-        CHECK(config.year() == 2020_y);
-        CHECK(!config.reporting_year().has_value());
-        CHECK(config.scenario() == "scenarionaam");
+        CHECK(config->grid_definition() == GridDefinition::Beleuros);
+        CHECK(config->data_root() == expectedDataRoot);
+        CHECK(config->run_type() == RunType::Gains);
+        CHECK(config->year() == 2020_y);
+        CHECK(!config->reporting_year().has_value());
+        CHECK(config->scenario() == "scenarionaam");
 
-        CHECK(config.output_path() == expectedOutput);
-        CHECK(config.validation_type() == ValidationType::SumValidation);
+        CHECK(config->output_path() == expectedOutput);
+        CHECK(config->validation_type() == ValidationType::SumValidation);
     }
 
     SUBCASE("invalid file: empty")
     {
-        CHECK_THROWS_WITH_AS(parse_run_configuration({}), "No 'input' section present in configuration", RuntimeError);
+        CHECK(!parse_run_configuration("").has_value());
     }
 
     SUBCASE("invalid file: missing output section")
