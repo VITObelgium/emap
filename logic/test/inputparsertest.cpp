@@ -27,7 +27,7 @@ TEST_CASE("Load emissions")
         //historic;NA;1990;2020;AL;1A1a;CO;0;Gg
         CHECK(firstEmission.country().id() == Country::Id::AL);
         CHECK(firstEmission.sector().name() == "1A1a");
-        CHECK(firstEmission.pollutant() == Pollutant::CO);
+        CHECK(firstEmission.pollutant() == Pollutant(Pollutant::Id::CO));
         CHECK(firstEmission.value().amount() == 0.0);
         CHECK(firstEmission.value().unit() == "Gg");
     }
@@ -45,7 +45,7 @@ TEST_CASE("Load emissions")
         //historic;NA;1990;2019;AL;A_PublicPower;CO;0.053;Gg
         CHECK(firstEmission.country().id() == Country::Id::AL);
         CHECK(firstEmission.sector().name() == "A_PublicPower");
-        CHECK(firstEmission.pollutant() == Pollutant::CO);
+        CHECK(firstEmission.pollutant().id() == Pollutant::Id::CO);
         CHECK(firstEmission.value().amount() == 0.053);
         CHECK(firstEmission.value().unit() == "Gg");
     }
@@ -62,7 +62,7 @@ TEST_CASE("Load emissions")
 
         const auto& firstEmission = *emissions.begin();
         CHECK(firstEmission.sector().name() == "1A3di(ii)");
-        CHECK(firstEmission.pollutant() == Pollutant::CO);
+        CHECK(firstEmission.pollutant().id() == Pollutant::Id::CO);
         CHECK(firstEmission.value().amount() == Approx(0.000002621703567834));
         CHECK(firstEmission.value().unit() == "Gg");
         CHECK(firstEmission.coordinate() == Coordinate(2000, 249000));
@@ -99,7 +99,7 @@ TEST_CASE("Load point source emissions")
 
         int lineNr = 1;
         for (auto& em : emissions) {
-            CHECK(em.pollutant() == Pollutant::CO);
+            CHECK(em.pollutant().id() == Pollutant::Id::CO);
             CHECK(em.sector().type() == EmissionSector::Type::Nfr);
             REQUIRE_MESSAGE(em.coordinate().has_value(), fmt::format("Line nr: {} pol {}", lineNr++, em.pollutant()));
         }
@@ -124,28 +124,28 @@ TEST_CASE("Load scaling factors")
     CHECK(iter->country().id() == Country::Id::AL);
     CHECK(iter->sector().name() == "1A2a");
     CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant() == Pollutant::NOx);
+    CHECK(iter->pollutant().id() == Pollutant::Id::NOx);
     CHECK(iter->factor() == 0.5);
     ++iter;
 
     CHECK(iter->country().id() == Country::Id::AL);
     CHECK(iter->sector().name() == "1A2a");
     CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant() == Pollutant::PM10);
+    CHECK(iter->pollutant().id() == Pollutant::Id::PM10);
     CHECK(iter->factor() == 1.3);
     ++iter;
 
     CHECK(iter->country().id() == Country::Id::AM);
     CHECK(iter->sector().name() == "1A1a");
     CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant() == Pollutant::NMVOC);
+    CHECK(iter->pollutant().id() == Pollutant::Id::NMVOC);
     CHECK(iter->factor() == 0.8);
     ++iter;
 
     CHECK(iter->country().id() == Country::Id::AM);
     CHECK(iter->sector().name() == "1A1a");
     CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-    CHECK(iter->pollutant() == Pollutant::NOx);
+    CHECK(iter->pollutant().id() == Pollutant::Id::NOx);
     CHECK(iter->factor() == 1.5);
 }
 

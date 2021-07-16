@@ -79,7 +79,7 @@ struct EmissionIdentifier
 
     Country country = Country::Id::Invalid;
     EmissionSector sector;
-    Pollutant pollutant = Pollutant::Invalid;
+    Pollutant pollutant;
 };
 
 class EmissionEntry

@@ -10,7 +10,12 @@
 #include "infra/exception.h"
 #include "infra/log.h"
 
+#include "gdx/denserasterio.h"
+
 #include <numeric>
+#include <oneapi/tbb/parallel_for_each.h>
+#include <oneapi/tbb/parallel_pipeline.h>
+#include <oneapi/tbb/task_arena.h>
 
 namespace emap {
 
@@ -25,7 +30,7 @@ static fs::path throw_if_not_exists(fs::path&& path)
     return std::move(path);
 }
 
-void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb)
+void run_model(const fs::path& runConfigPath, const ModelProgress::Callback& progressCb)
 {
     Log::debug("Process configuration: {}", runConfigPath);
 
@@ -45,7 +50,71 @@ void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb
     }
 }
 
-void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb*/)
+void spread_emissions(const EmissionInventory& inventory, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
+{
+    ModelProgress progress(inventory.size(), progressCb);
+    progress.set_payload(ModelRunProgressInfo());
+
+    tbb::parallel_for_each(inventory, [&](const auto& entry) {
+        if (auto spatialPatternPath = cfg.spatial_pattern_path(entry.id()); fs::is_regular_file(spatialPatternPath)) {
+            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);
+            spatialPattern *= entry.diffuse_emissions();
+
+            const auto outputFilename = fs::u8path(fmt::format("{}_{}_{}.tif", entry.id().pollutant.code(), entry.id().sector.name(), entry.id().country.code()));
+            gdx::write_raster(spatialPattern, cfg.output_path() / "emissions" / std::to_string(static_cast<int>(cfg.year())) / outputFilename);
+        }
+
+        progress.tick();
+    });
+
+    /*struct RasterMessage
+    {
+        double diffuseEmissions = 0.0;
+        EmissionIdentifier emissionId;
+        std::shared_ptr<gdx::DenseRaster<double>> raster;
+    };
+
+    const int maxRasters = cfg.max_concurrency().value_or(tbb::this_task_arena::max_concurrency() + 4);
+    auto iter            = inventory.begin();
+    tbb::filter<void, RasterMessage> source(tbb::filter_mode::serial_in_order, [&](tbb::flow_control& fc) {
+        if (iter == inventory.end() || progress.cancel_requested()) {
+            fc.stop();
+            return RasterMessage();
+        }
+
+        RasterMessage msg;
+        msg.diffuseEmissions = iter->diffuse_emissions();
+        msg.emissionId       = iter->id();
+        if (auto spatialPatternPath = cfg.spatial_pattern_path(iter->id()); fs::is_regular_file(spatialPatternPath)) {
+            msg.raster = std::make_shared<gdx::DenseRaster<double>>(gdx::read_dense_raster<double>(spatialPatternPath));
+        }
+
+        ++iter;
+        return msg;
+    });
+
+    tbb::filter<RasterMessage, RasterMessage> transform(tbb::filter_mode::parallel, [&](RasterMessage msg) {
+        if (!progress.cancel_requested() && msg.raster) {
+            *msg.raster *= msg.diffuseEmissions;
+        }
+
+        return msg;
+    });
+
+    tbb::filter<RasterMessage, void> writer(tbb::filter_mode::parallel, [&](RasterMessage msg) {
+        if (!progress.cancel_requested() && msg.raster) {
+            const auto outputFilename = fs::u8path(fmt::format("{}_{}_{}.tif", msg.emissionId.pollutant.code(), msg.emissionId.sector.name(), msg.emissionId.country.code()));
+            gdx::write_raster(*msg.raster, cfg.output_path() / "emissions" / std::to_string(static_cast<int>(cfg.year())) / outputFilename);
+        }
+
+        progress.tick();
+    });
+
+    tbb::filter<void, void> chain = source & transform & writer;
+    tbb::parallel_pipeline(maxRasters, chain);*/
+}
+
+void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     const auto pointSource         = parse_emissions(throw_if_not_exists(cfg.point_source_emissions_path()));
     const auto nfrTotalEmissions   = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr)));
@@ -57,5 +126,10 @@ void run_model(const RunConfiguration& cfg, ModelProgress::Callback /*progressCb
     chrono::DurationRecorder dur;
     const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSource, scalingsDiffuse, scalingsPointSource);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
+
+    Log::debug("Spread emissions");
+    dur.reset();
+    spread_emissions(inventory, cfg, progressCb);
+    Log::debug("Spread emissions took {}", dur.elapsed_time_string());
 }
 }

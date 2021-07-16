@@ -9,14 +9,26 @@
 
 namespace emap {
 
+struct ModelRunProgressInfo
+{
+    std::string to_string() const
+    {
+        return {};
+    }
+};
+
 struct ModelProgressInfo
 {
-    ModelProgressInfo(PreprocessingProgressInfo i)
+    ModelProgressInfo() = default;
+    ModelProgressInfo(ModelRunProgressInfo i)
     : info(i)
     {
     }
 
-    std::variant<PreprocessingProgressInfo> info;
+    ModelProgressInfo(PreprocessingProgressInfo i)
+    : info(i)
+    {
+    }
 
     std::string to_string() const
     {
@@ -25,11 +37,13 @@ struct ModelProgressInfo
         },
                           info);
     }
+
+    std::variant<PreprocessingProgressInfo, ModelRunProgressInfo> info;
 };
 
 using ModelProgress = inf::ProgressTracker<ModelProgressInfo>;
 
-void run_model(const fs::path& runConfigPath, ModelProgress::Callback progressCb);
-void run_model(const RunConfiguration& cfg, ModelProgress::Callback progressCb);
+void run_model(const fs::path& runConfigPath, const ModelProgress::Callback& progressCb);
+void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb);
 
 }

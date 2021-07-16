@@ -21,7 +21,7 @@ enum class GnfrSector
     AgriLivestock,       // K
     AgriOther,           // L
     Other,               // M
-    Count,
+    EnumCount,
 };
 
 enum class NfrSector
@@ -153,7 +153,7 @@ enum class NfrSector
     Nfr5D3,
     Nfr5E,
     Nfr6A,
-    Count,
+    EnumCount,
 };
 
 class EmissionSector
@@ -171,6 +171,10 @@ public:
 
     Type type() const;
     std::string_view name() const noexcept;
+    /*! If it is a gnfr sector: returns the name
+     *  If it is s nfr sector: returns the corresponding nfr sector name
+     */
+    std::string_view gnfr_name() const noexcept;
 
     bool is_land_sector() const noexcept;
 
@@ -185,6 +189,9 @@ public:
     }
 
 private:
+    NfrSector nfr_sector() const noexcept;
+    GnfrSector gnfr_sector() const noexcept;
+
     std::variant<NfrSector, GnfrSector> _sector;
 };
 

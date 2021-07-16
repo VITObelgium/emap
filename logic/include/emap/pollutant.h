@@ -5,23 +5,45 @@
 
 namespace emap {
 
-enum class Pollutant
+class Pollutant
 {
-    CO,
-    NH3,
-    NMVOC,
-    NOx,
-    PM10,
-    PM2_5,
-    PMcoarse,
-    SOx,
-    Count,
-    Invalid,
-};
+public:
+    enum class Id
+    {
+        CO,
+        NH3,
+        NMVOC,
+        NOx,
+        PM10,
+        PM2_5,
+        PMcoarse,
+        SOx,
+        EnumCount,
+        Invalid,
+    };
 
-Pollutant pollutant_from_string(std::string_view str);
-std::string_view to_string(Pollutant value) noexcept;
-std::string_view to_description_string(Pollutant value) noexcept;
+    static Pollutant from_string(std::string_view str);
+
+    Pollutant() noexcept = default;
+    Pollutant(Id id) noexcept;
+
+    Pollutant::Id id() const noexcept;
+    std::string_view code() const noexcept;
+    std::string_view full_name() const noexcept;
+
+    constexpr bool operator==(const Pollutant& other) const noexcept
+    {
+        return _id == other._id;
+    }
+
+    constexpr bool operator!=(const Pollutant& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
+private:
+    Id _id = Id::Invalid;
+};
 
 }
 
@@ -38,7 +60,7 @@ struct formatter<emap::Pollutant>
     template <typename FormatContext>
     auto format(const emap::Pollutant& val, FormatContext& ctx)
     {
-        return format_to(ctx.out(), emap::to_string(val));
+        return format_to(ctx.out(), val.code());
     }
 };
 }

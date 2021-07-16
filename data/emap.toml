@@ -20,6 +20,7 @@ type = "emep" # of gains
 year = 1990
 report_year = 2021 # empty for latest
 scenario = "test"
+spatial_patterns = "./output/spreiding"
 
 [output]
 path = "./output"

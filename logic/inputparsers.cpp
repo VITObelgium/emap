@@ -43,7 +43,7 @@ static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const in
 
 static Pollutant to_pollutant(std::string_view name)
 {
-    return pollutant_from_string(name);
+    return Pollutant::from_string(name);
 }
 
 static Country to_country(std::string_view name)

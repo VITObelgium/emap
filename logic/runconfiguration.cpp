@@ -21,6 +21,7 @@ std::string run_type_name(RunType type)
 
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
+    const fs::path& spatialPatternsPath,
     GridDefinition grid,
     RunType runType,
     ValidationType validation,
@@ -29,6 +30,7 @@ RunConfiguration::RunConfiguration(
     std::string_view scenario,
     const fs::path& outputPath)
 : _dataPath(dataPath)
+, _spatialPatternsPath(spatialPatternsPath)
 , _outputPath(outputPath)
 , _grid(grid)
 , _runType(runType)
@@ -56,11 +58,9 @@ fs::path RunConfiguration::total_emissions_path(EmissionSector::Type sectorType)
     return emissions_dir_path() / fmt::format("total_emissions_{}_{}.csv", sectorType, static_cast<int>(year));
 }
 
-fs::path RunConfiguration::spatial_pattern_path(const EmissionEntry& emissionInfo) const
+fs::path RunConfiguration::spatial_pattern_path(const EmissionIdentifier& emissionId) const
 {
-    // TODO: if the sector is an nfr sector, map to the gnfr sector name?
-
-    return _dataPath / "spatial patterns" / fmt::format("{}", str::lowercase(to_string(emissionInfo.pollutant())), emissionInfo.sector().name());
+    return _spatialPatternsPath / fs::u8path(fmt::format("{}_{}_{}.tif", str::lowercase(emissionId.pollutant.code()), emissionId.sector.gnfr_name(), emissionId.country.code()));
 }
 
 fs::path RunConfiguration::diffuse_scalings_path() const
@@ -111,6 +111,16 @@ std::optional<date::year> RunConfiguration::reporting_year() const noexcept
 std::string_view RunConfiguration::scenario() const noexcept
 {
     return _scenario;
+}
+
+void RunConfiguration::set_max_concurrency(int32_t concurrency) noexcept
+{
+    _concurrency = concurrency;
+}
+
+std::optional<int32_t> RunConfiguration::max_concurrency() const noexcept
+{
+    return _concurrency;
 }
 
 }

@@ -11,7 +11,7 @@ namespace emap {
 
 using namespace inf;
 
-static constexpr std::array<EnumInfo<GnfrSector>, enum_value(GnfrSector::Count)> s_gnfrSectors = {{
+static constexpr std::array<EnumInfo<GnfrSector>, enum_count<GnfrSector>()> s_gnfrSectors = {{
     {GnfrSector::PublicPower, "A_PublicPower", "Public power"},
     {GnfrSector::Industry, "B_Industry", "Industry"},
     {GnfrSector::OtherStationaryComb, "C_OtherStatComb", "Other stationary combustion"},
@@ -27,7 +27,7 @@ static constexpr std::array<EnumInfo<GnfrSector>, enum_value(GnfrSector::Count)>
     {GnfrSector::Other, "M_Other", "Other"},
 }};
 
-static constexpr std::array<EnumInfo<NfrSector>, enum_value(NfrSector::Count)> s_nfrSectors = {{
+static constexpr std::array<EnumInfo<NfrSector>, enum_count<NfrSector>()> s_nfrSectors = {{
     {NfrSector::Nfr1A1a, "1A1a", "Public electricity and heat production"},
     {NfrSector::Nfr1A1b, "1A1b", "Petroleum refining"},
     {NfrSector::Nfr1A1c, "1A1c", "Manufacture of solid fuels and other energy industries"},
@@ -157,6 +157,136 @@ static constexpr std::array<EnumInfo<NfrSector>, enum_value(NfrSector::Count)> s
     {NfrSector::Nfr6A, "6A", "Other (included in national total for entire territory) (please specify in the IIR)"},
 }};
 
+static constexpr std::array<GnfrSector, enum_count<NfrSector>()> s_nfrToGnfrMapping = {{
+    GnfrSector::PublicPower,         //1A1a
+    GnfrSector::Industry,            //1A1b
+    GnfrSector::Industry,            //1A1c
+    GnfrSector::Industry,            //1A2a
+    GnfrSector::Industry,            //1A2b
+    GnfrSector::Industry,            //1A2c
+    GnfrSector::Industry,            //1A2d
+    GnfrSector::Industry,            //1A2e
+    GnfrSector::Industry,            //1A2f
+    GnfrSector::Industry,            //1A2gviii
+    GnfrSector::Industry,            //2A1
+    GnfrSector::Industry,            //2A2
+    GnfrSector::Industry,            //2A3
+    GnfrSector::Industry,            //2A5a
+    GnfrSector::Industry,            //2A5b
+    GnfrSector::Industry,            //2A5c
+    GnfrSector::Industry,            //2A6
+    GnfrSector::Industry,            //2B1
+    GnfrSector::Industry,            //2B2
+    GnfrSector::Industry,            //2B3
+    GnfrSector::Industry,            //2B5
+    GnfrSector::Industry,            //2B6
+    GnfrSector::Industry,            //2B7
+    GnfrSector::Industry,            //2B10a
+    GnfrSector::Industry,            //2B10b
+    GnfrSector::Industry,            //2C1
+    GnfrSector::Industry,            //2C2
+    GnfrSector::Industry,            //2C3
+    GnfrSector::Industry,            //2C4
+    GnfrSector::Industry,            //2C5
+    GnfrSector::Industry,            //2C6
+    GnfrSector::Industry,            //2C7a
+    GnfrSector::Industry,            //2C7b
+    GnfrSector::Industry,            //2C7c
+    GnfrSector::Industry,            //2C7d
+    GnfrSector::Industry,            //2D3b
+    GnfrSector::Industry,            //2D3c
+    GnfrSector::Industry,            //2H1
+    GnfrSector::Industry,            //2H2
+    GnfrSector::Industry,            //2H3
+    GnfrSector::Industry,            //2I
+    GnfrSector::Industry,            //2J
+    GnfrSector::Industry,            //2K
+    GnfrSector::Industry,            //2L
+    GnfrSector::OtherStationaryComb, //1A4ai
+    GnfrSector::OtherStationaryComb, //1A4bi
+    GnfrSector::OtherStationaryComb, //1A4ci
+    GnfrSector::OtherStationaryComb, //1A5a
+    GnfrSector::Fugitive,            //1B1a
+    GnfrSector::Fugitive,            //1B1b
+    GnfrSector::Fugitive,            //1B1c
+    GnfrSector::Fugitive,            //1B2ai
+    GnfrSector::Fugitive,            //1B2aiv
+    GnfrSector::Fugitive,            //1B2av
+    GnfrSector::Fugitive,            //1B2b
+    GnfrSector::Fugitive,            //1B2c
+    GnfrSector::Fugitive,            //1B2d
+    GnfrSector::Solvents,            //2D3a
+    GnfrSector::Solvents,            //2D3d
+    GnfrSector::Solvents,            //2D3e
+    GnfrSector::Solvents,            //2D3f
+    GnfrSector::Solvents,            //2D3g
+    GnfrSector::Solvents,            //2D3h
+    GnfrSector::Solvents,            //2D3i
+    GnfrSector::Solvents,            //2G
+    GnfrSector::RoadTransport,       //1A3bi
+    GnfrSector::RoadTransport,       //1A3bii
+    GnfrSector::RoadTransport,       //1A3biii
+    GnfrSector::RoadTransport,       //1A3biv
+    GnfrSector::RoadTransport,       //1A3bv
+    GnfrSector::RoadTransport,       //1A3bvi
+    GnfrSector::RoadTransport,       //1A3bvii
+    GnfrSector::Shipping,            //1A3di(ii)
+    GnfrSector::Shipping,            //1A3dii
+    GnfrSector::Aviation,            //1A3ai(i)
+    GnfrSector::Aviation,            //1A3aii(i)
+    GnfrSector::Offroad,             //1A2gvii
+    GnfrSector::Offroad,             //1A3c
+    GnfrSector::Offroad,             //1A3ei
+    GnfrSector::Offroad,             //1A3eii
+    GnfrSector::Offroad,             //1A4aii
+    GnfrSector::Offroad,             //1A4bii
+    GnfrSector::Offroad,             //1A4cii
+    GnfrSector::Offroad,             //1A4ciii
+    GnfrSector::Offroad,             //1A5b
+    GnfrSector::Waste,               //5A
+    GnfrSector::Waste,               //5B1
+    GnfrSector::Waste,               //5B2
+    GnfrSector::Waste,               //5C1a
+    GnfrSector::Waste,               //5C1bi
+    GnfrSector::Waste,               //5C1bii
+    GnfrSector::Waste,               //5C1biii
+    GnfrSector::Waste,               //5C1biv
+    GnfrSector::Waste,               //5C1bv
+    GnfrSector::Waste,               //5C1bvi
+    GnfrSector::Waste,               //5C2
+    GnfrSector::Waste,               //5D1
+    GnfrSector::Waste,               //5D2
+    GnfrSector::Waste,               //5D3
+    GnfrSector::Waste,               //5E
+    GnfrSector::AgriLivestock,       //3B1a
+    GnfrSector::AgriLivestock,       //3B1b
+    GnfrSector::AgriLivestock,       //3B2
+    GnfrSector::AgriLivestock,       //3B3
+    GnfrSector::AgriLivestock,       //3B4a
+    GnfrSector::AgriLivestock,       //3B4d
+    GnfrSector::AgriLivestock,       //3B4e
+    GnfrSector::AgriLivestock,       //3B4f
+    GnfrSector::AgriLivestock,       //3B4gi
+    GnfrSector::AgriLivestock,       //3B4gii
+    GnfrSector::AgriLivestock,       //3B4giii
+    GnfrSector::AgriLivestock,       //3B4giv
+    GnfrSector::AgriLivestock,       //3B4h
+    GnfrSector::AgriOther,           //3Da1
+    GnfrSector::AgriOther,           //3Da2a
+    GnfrSector::AgriOther,           //3Da2b
+    GnfrSector::AgriOther,           //3Da2c
+    GnfrSector::AgriOther,           //3Da3
+    GnfrSector::AgriOther,           //3Da4
+    GnfrSector::AgriOther,           //3Db
+    GnfrSector::AgriOther,           //3Dc
+    GnfrSector::AgriOther,           //3Dd
+    GnfrSector::AgriOther,           //3De
+    GnfrSector::AgriOther,           //3Df
+    GnfrSector::AgriOther,           //3F
+    GnfrSector::AgriOther,           //3I
+    GnfrSector::Other,               //6A
+}};
+
 constexpr std::string_view sector_name(GnfrSector sector) noexcept
 {
     return s_gnfrSectors[enum_value(sector)].serializedName;
@@ -215,11 +345,30 @@ std::string_view EmissionSector::name() const noexcept
                       _sector);
 }
 
+std::string_view EmissionSector::gnfr_name() const noexcept
+{
+    if (type() == Type::Gnfr) {
+        return name();
+    }
+
+    return sector_name(s_nfrToGnfrMapping[enum_value(nfr_sector())]);
+}
+
 bool EmissionSector::is_land_sector() const noexcept
 {
-    assert(type() == Type::Gnfr);
+    return gnfr_sector() != GnfrSector::Shipping;
+}
 
-    return std::get<GnfrSector>(_sector) != GnfrSector::Shipping;
+NfrSector EmissionSector::nfr_sector() const noexcept
+{
+    assert(type() == Type::Nfr);
+    return std::get<NfrSector>(_sector);
+}
+
+GnfrSector EmissionSector::gnfr_sector() const noexcept
+{
+    assert(type() == Type::Gnfr);
+    return std::get<GnfrSector>(_sector);
 }
 
 template <typename SectorInfo>

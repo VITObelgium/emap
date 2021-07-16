@@ -27,6 +27,7 @@ class RunConfiguration
 public:
     RunConfiguration(
         const fs::path& dataPath,
+        const fs::path& spatialPatternsPath,
         GridDefinition grid,
         RunType runType,
         ValidationType validation,
@@ -37,7 +38,7 @@ public:
 
     fs::path point_source_emissions_path() const;
     fs::path total_emissions_path(EmissionSector::Type sectorType) const;
-    fs::path spatial_pattern_path(const EmissionEntry& emissionInfo) const;
+    fs::path spatial_pattern_path(const EmissionIdentifier& emissionId) const;
 
     fs::path diffuse_scalings_path() const;
     fs::path point_source_scalings_path() const;
@@ -54,10 +55,14 @@ public:
 
     std::string_view scenario() const noexcept;
 
+    void set_max_concurrency(int32_t concurrency) noexcept;
+    std::optional<int32_t> max_concurrency() const noexcept;
+
 private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
+    fs::path _spatialPatternsPath;
     fs::path _outputPath;
     GridDefinition _grid;
     RunType _runType;
@@ -65,6 +70,8 @@ private:
     date::year _year;
     std::optional<date::year> _reportYear;
     std::string _scenario;
+
+    std::optional<int32_t> _concurrency;
 };
 
 std::string run_type_name(RunType type);

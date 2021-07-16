@@ -17,7 +17,7 @@ TEST_CASE("Parse run configuration")
     const auto scaleFactors = fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv";
 
     const auto expectedDataRoot = fs::absolute("/emap/emissies/");
-    const auto expectedOutput = fs::absolute("/temp");
+    const auto expectedOutput   = fs::absolute("/temp");
 
     SUBCASE("valid file")
     {
@@ -29,7 +29,8 @@ TEST_CASE("Parse run configuration")
                 year = 2020
                 report_year = 2018
                 scenario = "scenarionaam"
-                scalefactors = "{}" 
+                scalefactors = "{}"
+                spatial_patterns = "/emap/emissies/spatpat"
 
             [output]
                 path = "/temp"
@@ -47,6 +48,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config->reporting_year().has_value());
         CHECK(config->reporting_year() == 2018_y);
         CHECK(config->scenario() == "scenarionaam");
+        CHECK(config->spatial_pattern_path(EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::Fugitive), Pollutant::Id::NOx)) == expectedDataRoot / "spatpat" / "nox_D_Fugitive_FR.tif");
 
         CHECK(config->output_path() == expectedOutput);
         CHECK(config->validation_type() == ValidationType::SumValidation);
@@ -61,7 +63,8 @@ TEST_CASE("Parse run configuration")
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
-                scalefactors = "{}" 
+                scalefactors = "{}"
+                spatial_patterns = "./spatpat"
 
             [output]
                 path = "/temp"
@@ -97,7 +100,8 @@ TEST_CASE("Parse run configuration")
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
-                scalefactors = "{}" 
+                scalefactors = "{}"
+                spatial_patterns = "./spatpat"
 
             [options]
                 validation = true
@@ -118,6 +122,7 @@ TEST_CASE("Parse run configuration")
                 year = 2020
                 scenario = "scenarionaam"
                 scalefactors = "{}"
+                spatial_patterns = "./spatpat"
 
             [output]
                 path = "/temp"
@@ -138,7 +143,8 @@ TEST_CASE("Parse run configuration")
                 type = "gains"
                 year = "2020"
                 scenario = "scenarionaam"
-                scalefactors = "{}" 
+                scalefactors = "{}"
+                spatial_patterns = "./spatpat"
 
             [output]
                 path = "/temp"
@@ -159,7 +165,8 @@ TEST_CASE("Parse run configuration")
                 type = "gains"
                 year = 2020
                 scenario = 2010
-                scalefactors = "{}" 
+                scalefactors = "{}"
+                spatial_patterns = "./spatpat"
 
             [output]
                 path = "/temp"
