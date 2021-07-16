@@ -16,23 +16,14 @@
 #include <mutex>
 
 #include <oneapi/tbb/parallel_for_each.h>
-#include <oneapi/tbb/parallel_pipeline.h>
-#include <oneapi/tbb/task_arena.h>
 #include <oneapi/tbb/task_scheduler_observer.h>
 
 #include <gdx/denseraster.h>
 #include <gdx/denserasterio.h>
 #include <gdx/rasteriterator.h>
 
-#include <geos/geom/Coordinate.h>
-#include <geos/geom/DefaultCoordinateSequenceFactory.h>
-#include <geos/geom/Envelope.h>
 #include <geos/geom/Geometry.h>
-#include <geos/geom/GeometryComponentFilter.h>
-#include <geos/geom/GeometryFactory.h>
-#include <geos/geom/prep/PreparedGeometry.h>
 #include <geos/geom/prep/PreparedGeometryFactory.h>
-#include <geos/index/kdtree/KdTree.h>
 
 namespace emap {
 
