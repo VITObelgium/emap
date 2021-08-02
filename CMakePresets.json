@@ -1,0 +1,133 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 15,
+        "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "vcpkg-base",
+        "hidden": true,
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build/vcpkg",
+        "cacheVariables": {
+          "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
+          "VCPKG_APPLOCAL_DEPS": "OFF",
+          "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+          "BUILD_TESTING": "ON"
+        },
+        "environment": {
+          "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
+        }
+      },
+        {
+            "name": "osx-base",
+            "inherits": "vcpkg-base",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "11.3",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake",
+                "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
+            }
+        },
+        {
+            "name": "windows-base",
+            "inherits": "vcpkg-base",
+            "hidden": true,
+            "cacheVariables": {
+              "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/toolchains/windows.cmake",
+              "VCPKG_TARGET_ARCHITECTURE": "x64",
+              "VCPKG_CRT_LINKAGE": "static",
+              "VCPKG_LIBRARY_LINKAGE": "static",
+              "VCPKG_PLATFORM_TOOLSET": "v142",
+              "VCPKG_SET_CHARSET_FLAG": "ON"
+            }
+        },
+        {
+            "name": "x64-windows-static-vs2019 debug",
+            "inherits": "windows-base",
+            "displayName": "Windows x64 Debug",
+            "description": "Vcpkg debug build for x64 on windows",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "x64-windows-static-vs2019 release",
+            "inherits": "windows-base",
+            "displayName": "Windows x64 Release",
+            "description": "Vcpkg release build for x64 on windows",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "arm64-osx",
+            "inherits": "osx-base",
+            "displayName": "OSX arm64",
+            "description": "Vcpkg build for arm64 on mac",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "arm64-osx",
+                "CMAKE_OSX_ARCHITECTURES": "arm64"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "x64-osx",
+            "inherits": "osx-base",
+            "displayName": "OSX x64",
+            "description": "Vcpkg build for x64 on mac",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-osx",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Ninja debug",
+            "displayName": "Debug",
+            "configurePreset": "x64-windows-static-vs2019 debug"
+        },
+        {
+            "name": "Ninja release",
+            "displayName": "Release",
+            "configurePreset": "x64-windows-static-vs2019 release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "configurePreset": "x64-windows-static-vs2019 release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        }
+    ]
+}

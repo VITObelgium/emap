@@ -5,3 +5,5 @@ build
 compile_commands.json
 .vs
 data/input
+data
+vcpkg_installed

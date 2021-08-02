@@ -1,0 +1,35 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "emap",
+    "version": "0.1.0",
+    "dependencies": [
+        "cryptopp",
+        "doctest",
+        "eigen3",
+        {
+            "name": "tiff",
+            "features": [
+                "lzw"
+            ]
+        },
+        "date",
+        "icu",
+        "lyra",
+        "fmt",
+        "gsl",
+        {
+            "name": "gdal",
+            "features": [
+                "expat",
+                "spatialite",
+                "geos"
+            ]
+        },
+        "indicators",
+        "onedpl",
+        "spdlog",
+        "tbb",
+        "tomlplusplus",
+        "vc"
+   ]
+}
