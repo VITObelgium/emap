@@ -5,6 +5,7 @@
 #include "infra/exception.h"
 
 #include <array>
+#include <algorithm>
 
 namespace emap {
 
