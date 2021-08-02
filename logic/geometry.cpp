@@ -23,66 +23,6 @@ using namespace inf;
 
 static constexpr double s_scalingFactor = 1e6;
 
-static ClipperLib::IntPoint scaled_point(inf::Point<double> point) noexcept
-{
-    return {truncate<ClipperLib::cInt>(point.x * s_scalingFactor), truncate<ClipperLib::cInt>(point.y * s_scalingFactor)};
-}
-
-static ClipperLib::Paths from_gdal_polygon(gdal::PolygonCRef poly)
-{
-    ClipperLib::Paths result;
-
-    {
-        // Exterior ring
-        auto gdalRing = poly.exterior_ring();
-
-        ClipperLib::Path exterior;
-        exterior.reserve(gdalRing.point_count());
-        for (auto& point : gdalRing) {
-            exterior.push_back(scaled_point(point));
-        }
-
-        if (!gdalRing.is_clockwise()) {
-            ClipperLib::ReversePath(exterior);
-        }
-
-        result.push_back(std::move(exterior));
-    }
-
-    // interior rings
-    for (int i = 0; i < poly.interior_ring_count(); ++i) {
-        ClipperLib::Path interior;
-
-        auto gdalRing = poly.interior_ring(i);
-
-        interior.reserve(gdalRing.point_count());
-        for (auto& point : gdalRing) {
-            interior.emplace_back(scaled_point(point));
-        }
-
-        if (gdalRing.is_clockwise()) {
-            ClipperLib::ReversePath(interior);
-        }
-
-        if (!interior.empty()) {
-            result.emplace_back(std::move(interior));
-        }
-    }
-
-    return result;
-}
-
-static ClipperLib::Paths from_gdal_multi_polygon(gdal::MultiPolygonCRef geom)
-{
-    ClipperLib::Paths result;
-
-    for (int i = 0; i < geom.size(); ++i) {
-        append_to_container(result, from_gdal_polygon(geom.polygon_at(i)));
-    }
-
-    return result;
-}
-
 std::unique_ptr<geos::geom::LinearRing> gdal_linear_ring_to_geos(const geos::geom::GeometryFactory& factory, gdal::LinearRingCRef ring)
 {
     std::vector<geos::geom::Coordinate> coords;
@@ -123,17 +63,6 @@ static geos::geom::MultiPolygon::Ptr gdal_multi_polygon_to_geos(const geos::geom
     }
 
     return factory.createMultiPolygon(std::move(geometries));
-}
-
-Paths from_gdal(gdal::GeometryCRef geom)
-{
-    if (geom.type() == gdal::Geometry::Type::Polygon) {
-        return from_gdal_polygon(geom.as<gdal::PolygonCRef>());
-    } else if (geom.type() == gdal::Geometry::Type::MultiPolygon) {
-        return from_gdal_multi_polygon(geom.as<gdal::MultiPolygonCRef>());
-    }
-
-    throw RuntimeError("Geometry type not implemented");
 }
 
 geos::geom::MultiPolygon::Ptr gdal_to_geos(inf::gdal::GeometryCRef geom)
@@ -185,124 +114,6 @@ void calculate_geometry_envelopes(const geos::geom::Geometry& geom)
             geom.getGeometryN(i)->getEnvelope();
         }
     }
-}
-
-void add_point_to_path(Path& path, inf::Point<int64_t> point)
-{
-    path.emplace_back(point.x, point.y);
-}
-
-void add_point_to_path(Path& path, inf::Point<double> point)
-{
-    path.push_back(scaled_point(point));
-}
-
-static gdal::Envelope bounding_box(const Path& path)
-{
-    gdal::Envelope env;
-
-    for (auto& point : path) {
-        env.merge(double(point.X), double(point.Y));
-    }
-
-    return env;
-}
-
-//static Rect<int64_t> combine_bbox(Rect<int64_t> lhs, Rect<int64_t> rhs)
-//{
-//    Rect<int64_t> result;
-//
-//    result.topLeft.x     = std::min(lhs.topLeft.x, rhs.topLeft.x);
-//    result.bottomRight.x = std::max(lhs.bottomRight.x, rhs.bottomRight.x);
-//
-//    result.topLeft.y     = std::max(lhs.topLeft.y, rhs.topLeft.y);
-//    result.bottomRight.y = std::min(lhs.bottomRight.y, rhs.bottomRight.y);
-//
-//    return result;
-//}
-
-static gdal::Envelope bounding_box(const Paths& path)
-{
-    gdal::Envelope env;
-
-    for (const auto& path : path) {
-        env.merge(bounding_box(path));
-    }
-
-    return env;
-}
-
-//template <typename T>
-//static Rect<int64_t> bounding_box_intersection(const Rect<T>& lhs, const Rect<T>& rhs)
-//{
-//    gdal::Envelope env1(lhs.topLeft, lhs.bottomRight);
-//    gdal::Envelope env2(rhs.topLeft, rhs.bottomRight);
-//
-//    if (!env1.intersects(env2)) {
-//        return {};
-//    }
-//
-//    auto topLeft     = Point<T>(std::max(lhs.topLeft.x, rhs.topLeft.x), std::min(lhs.topLeft.y, rhs.topLeft.y));
-//    auto bottomRight = Point<T>(std::min(lhs.bottomRight.x, rhs.bottomRight.x), std::max(lhs.bottomRight.y, rhs.bottomRight.y));
-//    return {topLeft, bottomRight};
-//}
-
-bool intersects(const Path& poly1, const Paths& poly2)
-{
-    for (auto& poly : poly2) {
-        Paths solution;
-        ClipperLib::MinkowskiDiff(poly1, poly, solution);
-        if (ClipperLib::PointInPolygon(ClipperLib::IntPoint(0, 0), poly)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-Paths intersect(const Path& subject, const Paths& clip)
-{
-    Paths result;
-
-    if (bounding_box(subject).intersects(bounding_box(clip))) {
-        ClipperLib::Clipper clipper;
-        clipper.AddPath(subject, ClipperLib::ptSubject, true);
-        clipper.AddPaths(clip, ClipperLib::ptClip, true);
-
-        if (!clipper.Execute(ClipperLib::ctIntersection, result)) {
-            throw RuntimeError("Intersection failed");
-        }
-    }
-
-    return result;
-}
-
-Paths intersect(const Paths& subject, const Paths& clip)
-{
-    Paths result;
-
-    if (bounding_box(subject).intersects(bounding_box(clip))) {
-        ClipperLib::Clipper clipper;
-        clipper.AddPaths(subject, ClipperLib::ptSubject, true);
-        clipper.AddPaths(clip, ClipperLib::ptClip, true);
-
-        if (!clipper.Execute(ClipperLib::ctIntersection, result)) {
-            throw RuntimeError("Intersection failed");
-        }
-    }
-
-    return result;
-}
-
-double area(const Paths& paths)
-{
-    double totalArea = 0.0;
-
-    for (const auto& path : paths) {
-        totalArea += ClipperLib::Area(path) / (s_scalingFactor * s_scalingFactor);
-    }
-
-    return totalArea;
 }
 
 }

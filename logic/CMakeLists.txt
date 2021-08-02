@@ -3,7 +3,6 @@ find_package(oneDPL CONFIG REQUIRED)
 #find_package(Typesafe REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
-find_package(polyclipping CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/country.h country.cpp
@@ -46,7 +45,6 @@ PRIVATE
     #Typesafe::Typesafe
     GEOS::geos
     tomlplusplus::tomlplusplus
-    polyclipping::polyclipping
 )
 
 if (BUILD_TESTING)
