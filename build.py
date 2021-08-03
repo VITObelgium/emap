@@ -48,6 +48,10 @@ if __name__ == "__main__":
 
         cmake_args = ["-DBUILD_TESTING=ON"]
 
+        os.environ["VCPKG_OVERLAY_PORTS"] = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "deps", "overlay-ports")
+        )
+
         if args.build_dist:
             vcpkg.build_project_release(
                 os.path.abspath(args.source_dir),
