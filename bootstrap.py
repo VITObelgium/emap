@@ -36,7 +36,7 @@ if __name__ == "__main__":
         if args.clean:
             vcpkg.clean(triplet=triplet)
         else:
-            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, overlay_ports=overlay_ports)
+            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, overlay_ports=overlay_ports, clean_after_build=args.clean_after_build)
     except KeyboardInterrupt:
         print("\nInterrupted")
         sys.exit(-1)
