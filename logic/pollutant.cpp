@@ -5,6 +5,7 @@
 #include "infra/enumutils.h"
 #include "infra/exception.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <type_traits>
