@@ -69,7 +69,7 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
 
     progress.reset(pathsToProcess.size());
     tbb::parallel_for_each(pathsToProcess.begin(), pathsToProcess.end(), [&](const auto& filePath) {
-        extract_countries_from_raster(filePath, countyCoverages, outputDir, [&progress, &filePath](const GridProcessingProgress::Status& /*status*/) {
+        extract_countries_from_raster(filePath, countyCoverages, outputDir, [](const GridProcessingProgress::Status& /*status*/) {
             return ProgressStatusResult::Continue;
         });
 

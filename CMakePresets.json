@@ -6,21 +6,21 @@
         "patch": 0
     },
     "configurePresets": [
-      {
-        "name": "vcpkg-base",
-        "hidden": true,
-        "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build/vcpkg",
-        "cacheVariables": {
-          "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "VCPKG_APPLOCAL_DEPS": "OFF",
-          "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
-          "BUILD_TESTING": "ON"
+        {
+            "name": "vcpkg-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/vcpkg",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_APPLOCAL_DEPS": "OFF",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+                "BUILD_TESTING": "ON"
+            },
+            "environment": {
+                "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
+            }
         },
-        "environment": {
-          "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
-        }
-      },
         {
             "name": "osx-base",
             "inherits": "vcpkg-base",
@@ -36,12 +36,12 @@
             "inherits": "vcpkg-base",
             "hidden": true,
             "cacheVariables": {
-              "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/toolchains/windows.cmake",
-              "VCPKG_TARGET_ARCHITECTURE": "x64",
-              "VCPKG_CRT_LINKAGE": "static",
-              "VCPKG_LIBRARY_LINKAGE": "static",
-              "VCPKG_PLATFORM_TOOLSET": "v142",
-              "VCPKG_SET_CHARSET_FLAG": "ON"
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/toolchains/windows.cmake",
+                "VCPKG_TARGET_ARCHITECTURE": "x64",
+                "VCPKG_CRT_LINKAGE": "static",
+                "VCPKG_LIBRARY_LINKAGE": "static",
+                "VCPKG_PLATFORM_TOOLSET": "v142",
+                "VCPKG_SET_CHARSET_FLAG": "ON"
             }
         },
         {
@@ -52,11 +52,6 @@
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
                 "CMAKE_BUILD_TYPE": "Debug"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
             }
         },
         {
@@ -67,11 +62,6 @@
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
                 "CMAKE_BUILD_TYPE": "Release"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
             }
         },
         {
@@ -81,12 +71,8 @@
             "description": "Vcpkg build for arm64 on mac",
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "arm64-osx",
-                "CMAKE_OSX_ARCHITECTURES": "arm64"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -96,12 +82,8 @@
             "description": "Vcpkg build for x64 on mac",
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-osx",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
+                "CMAKE_OSX_ARCHITECTURES": "x86_64",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
