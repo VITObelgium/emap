@@ -30,6 +30,18 @@ namespace emap {
 using namespace inf;
 using namespace std::string_literals;
 
+constexpr CellCoverageInfo::CellCoverageInfo() noexcept = default;
+
+CellCoverageInfo::CellCoverageInfo(Cell c, double cov, std::unique_ptr<geos::geom::Geometry> geom) noexcept
+: cell(c)
+, coverage(cov)
+, geometry(std::move(geom))
+{
+}
+
+CellCoverageInfo::~CellCoverageInfo() noexcept                  = default;
+CellCoverageInfo::CellCoverageInfo(CellCoverageInfo&&) noexcept = default;
+
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid)
 {
     const auto& resultMeta = grid_data(grid).meta;
@@ -114,7 +126,7 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
 
     EmissionSector emissionSector(sector);
 
-    for (auto& [cell, coverage] : coverages) {
+    for (auto& [cell, coverage, geometry] : coverages) {
         if (ras.is_nodata(cell)) {
             continue;
         }
@@ -155,11 +167,17 @@ static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& ex
 
         // Intersect it with the country
         if (preparedGeom->contains(cellGeom.get())) {
-            result.emplace_back(cell, 1.0);
+            result.emplace_back(cell, 1.0, nullptr);
         } else if (preparedGeom->intersects(cellGeom.get())) {
-            const auto intersectArea = preparedGeom->getGeometry().intersection(cellGeom.get())->getArea();
+            auto intersectGeometry   = preparedGeom->getGeometry().intersection(cellGeom.get());
+            const auto intersectArea = intersectGeometry->getArea();
             assert(intersectArea > 0);
-            result.emplace_back(cell, intersectArea / cellArea);
+            if (intersectArea / cellArea >= 1.0) {
+                // The geometry is only interesting if does not cover the complete cell
+                intersectGeometry.reset();
+            }
+
+            result.emplace_back(cell, intersectArea / cellArea, std::move(intersectGeometry));
         }
     }
 

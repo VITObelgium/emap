@@ -1,6 +1,7 @@
 #include "emap/modelrun.h"
 
 #include "emap/configurationparser.h"
+#include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
 #include "emap/preprocessing.h"
 #include "emap/scalingfactors.h"
@@ -16,6 +17,7 @@
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
 #include <oneapi/tbb/task_arena.h>
+#include <oneapi/tbb/concurrent_vector.h>
 
 namespace emap {
 
@@ -50,16 +52,36 @@ void run_model(const fs::path& runConfigPath, const ModelProgress::Callback& pro
     }
 }
 
+struct ModelResult
+{
+    ModelResult() noexcept = default;
+    ModelResult(EmissionIdentifier id_, gdx::DenseRaster<double> ras) noexcept
+    : id(id_)
+    , emissions(std::move(ras))
+    {
+    }
+
+    EmissionIdentifier id;
+    gdx::DenseRaster<double> emissions;
+
+};
+
 void spread_emissions(const EmissionInventory& inventory, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     ModelProgress progress(inventory.size(), progressCb);
     progress.set_payload(ModelRunProgressInfo());
 
+
+    // TODO: smarter splitting to avoid huge memory consumption
+    tbb::concurrent_vector<ModelResult> result;
+    result.reserve(inventory.size());
+
     tbb::parallel_for_each(inventory, [&](const auto& entry) {
         if (auto spatialPatternPath = cfg.spatial_pattern_path(entry.id()); fs::is_regular_file(spatialPatternPath)) {
-            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);
+            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);   
             spatialPattern *= entry.diffuse_emissions();
 
+            //result.emplace_back(entry.id(), std::move(spatialPattern));
             const auto outputFilename = fs::u8path(fmt::format("{}_{}_{}.tif", entry.id().pollutant.code(), entry.id().sector.name(), entry.id().country.code()));
             gdx::write_raster(spatialPattern, cfg.output_path() / "emissions" / std::to_string(static_cast<int>(cfg.year())) / outputFilename);
         }
@@ -121,6 +143,9 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto gnfrTotalEmissions  = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr)));
     const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
     const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
+
+    //Log::debug("Create country coverages");
+    //auto countryCoverages = create_country_coverages(const inf::GeoMetadata& extent, cfg.countries_vector_path(), "FID");
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;

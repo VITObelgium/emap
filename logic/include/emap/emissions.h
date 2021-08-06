@@ -142,65 +142,74 @@ private:
 class EmissionInventoryEntry
 {
 public:
-    constexpr EmissionInventoryEntry() noexcept = default;
-    constexpr EmissionInventoryEntry(EmissionIdentifier id, double pointEmissions, double diffuseEmissions) noexcept
+    EmissionInventoryEntry() noexcept = default;
+    EmissionInventoryEntry(EmissionIdentifier id, double diffuseEmissions) noexcept
     : _id(id)
-    , _pointEmission(pointEmissions)
     , _diffuseEmission(diffuseEmissions)
+    , _pointEmission(0.0)
     {
     }
 
-    constexpr const EmissionIdentifier& id() const noexcept
+    EmissionInventoryEntry(EmissionIdentifier id, double diffuseEmissions, double pointEmissions, std::vector<EmissionEntry> pointEmissionEntries) noexcept
+    : _id(id)
+    , _diffuseEmission(diffuseEmissions)
+    , _pointEmission(pointEmissions)
+    , _pointEmissionEntries(std::move(pointEmissionEntries))
+    {
+    }
+
+    const EmissionIdentifier& id() const noexcept
     {
         return _id;
     }
 
-    constexpr double total_emissions() const noexcept
+    double total_emissions() const noexcept
     {
         return _pointEmission + _diffuseEmission;
     }
 
-    constexpr double diffuse_emissions() const noexcept
+    double diffuse_emissions() const noexcept
     {
         return _diffuseEmission;
     }
 
-    constexpr double point_emissions() const noexcept
+    double point_emissions() const noexcept
     {
         return _pointEmission;
     }
 
-    constexpr double scaled_total_emissions() const noexcept
+    double scaled_total_emissions() const noexcept
     {
         return scaled_point_emissions() + scaled_diffuse_emissions();
     }
 
-    constexpr double scaled_diffuse_emissions() const noexcept
+    double scaled_diffuse_emissions() const noexcept
     {
         return _diffuseEmission * _diffuseScaling;
     }
 
-    constexpr double scaled_point_emissions() const noexcept
+    double scaled_point_emissions() const noexcept
     {
         return _pointEmission * _pointScaling;
     }
 
-    constexpr void set_point_scaling(double factor) noexcept
+    void set_point_scaling(double factor) noexcept
     {
         _pointScaling = factor;
     }
 
-    constexpr void set_diffuse_scaling(double factor) noexcept
+    void set_diffuse_scaling(double factor) noexcept
     {
         _diffuseScaling = factor;
     }
 
 private:
     EmissionIdentifier _id;
-    double _pointEmission   = 0.0;
     double _diffuseEmission = 0.0;
-    double _pointScaling    = 1.0;
-    double _diffuseScaling  = 1.0;
+    double _pointEmission   = 0.0;
+    std::vector<EmissionEntry> _pointEmissionEntries;
+    double _pointScaling   = 1.0;
+    double _diffuseScaling = 1.0;
 };
 
 template <typename TEmission>

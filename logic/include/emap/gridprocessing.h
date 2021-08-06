@@ -10,6 +10,10 @@
 #include <fmt/core.h>
 #include <gdx/rasterfwd.h>
 
+namespace geos::geom {
+class Geometry;
+}
+
 namespace emap {
 
 using namespace inf;
@@ -26,20 +30,21 @@ struct GridProcessingProgressInfo
 
 struct CellCoverageInfo
 {
-    constexpr CellCoverageInfo() noexcept = default;
-    constexpr CellCoverageInfo(Cell c, double cov) noexcept
-    : cell(c)
-    , coverage(cov)
-    {
-    }
+    constexpr CellCoverageInfo() noexcept;
+    CellCoverageInfo(Cell c, double cov, std::unique_ptr<geos::geom::Geometry> geom) noexcept;
+    ~CellCoverageInfo() noexcept;
+
+    CellCoverageInfo(const CellCoverageInfo&) = delete;
+    CellCoverageInfo(CellCoverageInfo&&) noexcept;
 
     constexpr bool operator==(const CellCoverageInfo& other) const noexcept
     {
-        return cell == other.cell && coverage == other.coverage;
+        return cell == other.cell && coverage == other.coverage && geometry.get() == other.geometry.get();
     }
 
     Cell cell;
     double coverage = 0.0;
+    std::unique_ptr<geos::geom::Geometry> geometry; // contains the geometry if the coverage is less than 1.0
 };
 
 using GridProcessingProgress = inf::ProgressTracker<Country::Id>;

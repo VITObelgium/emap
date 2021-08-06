@@ -28,6 +28,7 @@ public:
     RunConfiguration(
         const fs::path& dataPath,
         const fs::path& spatialPatternsPath,
+        const fs::path& countriesPath,
         GridDefinition grid,
         RunType runType,
         ValidationType validation,
@@ -45,6 +46,7 @@ public:
 
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
+    const fs::path& countries_vector_path() const noexcept;
 
     GridDefinition grid_definition() const noexcept;
     RunType run_type() const noexcept;
@@ -63,6 +65,7 @@ private:
 
     fs::path _dataPath;
     fs::path _spatialPatternsPath;
+    fs::path _countriesVectorPath;
     fs::path _outputPath;
     GridDefinition _grid;
     RunType _runType;

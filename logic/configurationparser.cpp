@@ -208,6 +208,7 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto grid                = read_grid(input.section["grid"].value<std::string_view>());
         const auto dataPath            = read_path(input, "datapath", basePath);
         const auto spatialPatternsPath = read_path(input, "spatial_patterns", basePath);
+        //const auto countriesVectorPath = read_path(input, "countries_vector", basePath);
         const auto runType             = read_run_type(input.section["type"].value<std::string_view>());
         const auto year                = read_year(input.section["year"]);
         const auto reportYear          = read_optional_year(input.section["report_year"]);
@@ -220,6 +221,7 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
 
         return RunConfiguration(dataPath,
                                 spatialPatternsPath,
+                                fs::path(), //countriesVectorPath,
                                 grid,
                                 runType,
                                 validate ? ValidationType::SumValidation : ValidationType::NoValidation,

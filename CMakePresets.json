@@ -12,10 +12,11 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/vcpkg",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_APPLOCAL_DEPS": "OFF",
-                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
-                "BUILD_TESTING": "ON"
+              "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
+              "VCPKG_APPLOCAL_DEPS": "OFF",
+              "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+              "BUILD_TESTING": "ON",
+              "VCPKG_MANIFEST_MODE": "OFF"
             },
             "environment": {
                 "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
@@ -45,24 +46,26 @@
             }
         },
         {
-            "name": "x64-windows-static-vs2019 debug",
-            "inherits": "windows-base",
-            "displayName": "Windows x64 Debug",
-            "description": "Vcpkg debug build for x64 on windows",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+          "name": "x64-windows-static-vs2019 debug",
+          "inherits": "windows-base",
+          "displayName": "Windows x64 Debug",
+          "description": "Vcpkg debug build for x64 on windows",
+          "cacheVariables": {
+            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
+            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2019",
+            "CMAKE_BUILD_TYPE": "Debug"
+          }
         },
         {
-            "name": "x64-windows-static-vs2019 release",
-            "inherits": "windows-base",
-            "displayName": "Windows x64 Release",
-            "description": "Vcpkg release build for x64 on windows",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
+          "name": "x64-windows-static-vs2019 release",
+          "inherits": "windows-base",
+          "displayName": "Windows x64 Release",
+          "description": "Vcpkg release build for x64 on windows",
+          "cacheVariables": {
+            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
+            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2019",
+            "CMAKE_BUILD_TYPE": "Release"
+          }
         },
         {
             "name": "arm64-osx",
