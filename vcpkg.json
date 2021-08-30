@@ -6,12 +6,7 @@
         "cryptopp",
         "doctest",
         "eigen3",
-        {
-            "name": "tiff",
-            "features": [
-                "lzw"
-            ]
-        },
+        "tiff",
         "date",
         "icu",
         "lyra",
