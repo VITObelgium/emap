@@ -4,6 +4,5 @@ build
 **/.DS_Store
 compile_commands.json
 .vs
-/data/input
-data
+/data
 vcpkg_installed

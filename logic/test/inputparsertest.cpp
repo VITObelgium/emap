@@ -67,6 +67,58 @@ TEST_CASE("Load emissions")
         CHECK(firstEmission.value().unit() == "Gg");
         CHECK(firstEmission.coordinate() == Coordinate(2000, 249000));
     }
+
+    SUBCASE("Belgian emissions xlsx (Brussels)")
+    {
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019));
+        REQUIRE(emissions.size() == 517);
+
+        for (auto& em : emissions) {
+            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+            CHECK(em.country().id() == Country::Id::BEB);
+        }
+
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEB, EmissionSector(NfrSector::Nfr1A3bi), Pollutant::Id::NOx)).value().amount() == Approx(1.25105927893554));
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEB, EmissionSector(NfrSector::Nfr1A4bi), Pollutant::Id::NMVOC)).value().amount() == Approx(0.123870013146171));
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEB, EmissionSector(NfrSector::Nfr1A3di_ii), Pollutant::Id::NH3)).empty());
+    }
+
+    SUBCASE("Belgian emissions xlsx (Flanders)")
+    {
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019));
+        REQUIRE(emissions.size() == 985);
+
+        for (auto& em : emissions) {
+            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+            CHECK(em.country().id() == Country::Id::BEF);
+        }
+
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A1a), Pollutant::Id::SOx)).value().amount() == Approx(0.476353773));
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A3biv), Pollutant::Id::PCDD_PCDF)).value().amount() == Approx(0.0110035));
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A3bv), Pollutant::Id::PCDD_PCDF)).empty());
+
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A3c), Pollutant::Id::PM10)).value().amount() == Approx(0.335221546632635));
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A3c), Pollutant::Id::PM2_5)).value().amount() == Approx(0.214834979288184));
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr1A3c), Pollutant::Id::PMcoarse)).value().amount() == Approx(0.120386567344451));
+
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5D3), Pollutant::Id::PM10)).empty());
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5D3), Pollutant::Id::PM2_5)).empty());
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5D3), Pollutant::Id::PMcoarse)).empty());
+    }
+
+    SUBCASE("Belgian emissions xlsx (Wallonia)")
+    {
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019));
+        REQUIRE(emissions.size() == 1051);
+
+        for (auto& em : emissions) {
+            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+            CHECK(em.country().id() == Country::Id::BEW);
+        }
+
+        CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEW, EmissionSector(NfrSector::Nfr3Dc), Pollutant::Id::TSP)).value().amount() == Approx(0.800281464075));
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5C1bii), Pollutant::Id::NMVOC)).empty()); // empty cell
+    }
 }
 
 TEST_CASE("Load point source emissions")
