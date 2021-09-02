@@ -18,6 +18,7 @@
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/task_scheduler_observer.h>
 
+#include <gdx/algo/sum.h>
 #include <gdx/denseraster.h>
 #include <gdx/denserasterio.h>
 #include <gdx/rasteriterator.h>
@@ -136,6 +137,13 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
         } else {
             // TODO: sea sector logic
         }
+    }
+
+    // normalize the raster so the sum is 1
+    if (const auto sum = gdx::sum(result); sum != 0.0) {
+        gdx::transform(result, result, [sum](const auto& val) {
+            return val / sum;
+        });
     }
 
     return result;
