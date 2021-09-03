@@ -59,20 +59,20 @@ private:
 
 struct EmissionIdentifier
 {
-    constexpr EmissionIdentifier() noexcept = default;
-    constexpr EmissionIdentifier(Country country_, EmissionSector sector_, Pollutant pollutant_) noexcept
+    EmissionIdentifier() noexcept = default;
+    EmissionIdentifier(Country country_, EmissionSector sector_, Pollutant pollutant_) noexcept
     : country(country_)
     , sector(sector_)
     , pollutant(pollutant_)
     {
     }
 
-    constexpr bool operator==(const EmissionIdentifier& other) const noexcept
+    bool operator==(const EmissionIdentifier& other) const noexcept
     {
         return country == other.country && sector == other.sector && pollutant == other.pollutant;
     }
 
-    constexpr bool operator!=(const EmissionIdentifier& other) const noexcept
+    bool operator!=(const EmissionIdentifier& other) const noexcept
     {
         return !(*this == other);
     }
