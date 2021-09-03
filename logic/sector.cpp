@@ -346,6 +346,20 @@ std::string_view EmissionSector::name() const noexcept
                       _sector);
 }
 
+std::string_view EmissionSector::description() const noexcept
+{
+    assert(!_sector.valueless_by_exception());
+
+    if (_sector.valueless_by_exception()) {
+        return "unknown";
+    }
+
+    return std::visit([](auto& sectorType) {
+        return sector_description(sectorType);
+    },
+                      _sector);
+}
+
 std::string_view EmissionSector::gnfr_name() const noexcept
 {
     if (type() == Type::Gnfr) {

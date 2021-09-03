@@ -171,6 +171,7 @@ public:
 
     Type type() const;
     std::string_view name() const noexcept;
+    std::string_view description() const noexcept;
     /*! If it is a gnfr sector: returns the name
      *  If it is s nfr sector: returns the corresponding nfr sector name
      */

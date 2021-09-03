@@ -1,5 +1,6 @@
 ﻿#include "emap/inputparsers.h"
 #include "emap/emissions.h"
+#include "emap/griddefinition.h"
 #include "emap/scalingfactors.h"
 #include "infra/csvreader.h"
 #include "infra/enumutils.h"
@@ -9,11 +10,11 @@
 #include "infra/string.h"
 #include "unitconversion.h"
 
+#include <cassert>
 #include <cpl_port.h>
 #include <exception>
 #include <limits>
 #include <string>
-#include <cassert>
 #include <unordered_set>
 #include <utility>
 
@@ -327,9 +328,8 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 if (pm2_5.has_value() && pm10.has_value()) {
                     assert(pm10 >= pm2_5);
                     result.add_emission(EmissionEntry(
-                            EmissionIdentifier(country, EmissionSector(nfrSector), Pollutant::Id::PMcoarse),
-                            EmissionValue(*pm10 - *pm2_5)));
-
+                        EmissionIdentifier(country, EmissionSector(nfrSector), Pollutant::Id::PMcoarse),
+                        EmissionValue(*pm10 - *pm2_5)));
                 }
             } catch (const std::exception&) {
                 // not an nfr value line, skipping
@@ -337,6 +337,84 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
         }
 
         ++lineNr;
+    }
+
+    return result;
+}
+
+std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath)
+{
+    std::vector<SpatialPatternData> result;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(spatialPatternPath);
+    auto layer = ds.layer(0);
+    std::optional<date::year> year;
+
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    const auto gridData  = grid_data(GridDefinition::Flanders1km);
+
+    EmissionIdentifier id;
+    id.country = Country::Id::BEF;
+
+    auto colYear      = layer.layer_definition().required_field_index("year");
+    auto colSector    = layer.layer_definition().required_field_index("nfr-sector");
+    auto colPollutant = layer.layer_definition().required_field_index("pollutant");
+    auto colX         = layer.layer_definition().required_field_index("x_lambert");
+    auto colY         = layer.layer_definition().required_field_index("y_lambert");
+    auto colEmission  = layer.layer_definition().required_field_index("emission");
+    //auto colUnit      = layer.layer_definition().required_field_index("unit");
+
+    std::optional<EmissionSector> currentSector;
+    gdx::DenseRaster<double> currentRaster(gridData.meta, gridData.meta.nodata.value());
+    std::unordered_set<std::string> invalidSectors;
+    for (const auto& feature : layer) {
+        year         = date::year(feature.field_as<int>(colYear));
+        id.pollutant = Pollutant::from_string(feature.field_as<std::string_view>(colPollutant));
+
+        try {
+            id.sector = EmissionSector(nfr_sector_from_string(feature.field_as<std::string_view>(colSector)));
+        } catch (const std::exception& e) {
+            std::string sector(feature.field_as<std::string_view>(colSector));
+            if (invalidSectors.count(sector) == 0) {
+                invalidSectors.emplace(feature.field_as<std::string_view>(colSector));
+                Log::warn(e.what());
+            }
+            continue;
+        }
+
+        if (currentSector != id.sector) {
+            if (currentSector.has_value()) {
+                // Store the current raster and start a new one
+
+                SpatialPatternData spData;
+                spData.id     = EmissionIdentifier(id.country, *currentSector, id.pollutant);
+                spData.year   = *year;
+                spData.raster = std::move(currentRaster);
+                result.push_back(std::move(spData));
+
+                // reset the raster
+                currentRaster = gdx::DenseRaster<double>(gridData.meta, gridData.meta.nodata.value());
+            }
+
+            currentSector = id.sector;
+        }
+
+        const Point<double> point(feature.field_as<double>(colX), feature.field_as<double>(colY));
+        const Cell cell = gridData.meta.convert_point_to_cell(point);
+        if (gridData.meta.is_on_map(cell)) {
+            currentRaster[cell] = feature.field_as<double>(colEmission);
+        } else {
+            Log::warn("Point outside of flanders extent: {}", point);
+        }
+    }
+
+    if (year.has_value()) {
+        SpatialPatternData spData;
+        spData.id     = id;
+        spData.year   = *year;
+        spData.raster = std::move(currentRaster);
+        result.push_back(std::move(spData));
     }
 
     return result;

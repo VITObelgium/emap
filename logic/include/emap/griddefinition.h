@@ -12,6 +12,7 @@ enum class GridDefinition
     Vlops250m,
     Rio4x4,
     Rio4x4Extended,
+    Flanders1km,
     EnumCount,
     Invalid,
 };
