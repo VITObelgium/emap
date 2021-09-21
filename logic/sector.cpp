@@ -156,6 +156,13 @@ static constexpr std::array<EnumInfo<NfrSector>, enum_count<NfrSector>()> s_nfrS
     {NfrSector::Nfr5D3, "5D3", "Other wastewater handling"},
     {NfrSector::Nfr5E, "5E", "Other waste (please specify in the IIR)"},
     {NfrSector::Nfr6A, "6A", "Other (included in national total for entire territory) (please specify in the IIR)"},
+    {NfrSector::Nfr1A3bi_fu, "1A3bi(fu)", "Road transport: Passenger cars (fuel used)"},
+    {NfrSector::Nfr1A3bii_fu, "1A3bii(fu)", "Road transport: Light duty vehicles (fuel used)"},
+    {NfrSector::Nfr1A3biii_fu, "1A3biii(fu)", "Road transport: Heavy duty vehicles and buses (fuel used)"},
+    {NfrSector::Nfr1A3biv_fu, "1A3biv(fu)", "Road transport: Mopeds & motorcycles (fuel used)"},
+    {NfrSector::Nfr1A3bv_fu, "1A3bv(fu)", "Road transport: Gasoline evaporation (fuel used)"},
+    {NfrSector::Nfr1A3bvi_fu, "1A3bvi(fu)", "Road transport: Automobile tyre and brake wear (fuel used)"},
+    {NfrSector::Nfr1A3bvii_fu, "1A3bvii(fu)", "Road transport: Automobile road abrasion (fuel used)"},
 }};
 
 static constexpr std::array<GnfrSector, enum_count<NfrSector>()> s_nfrToGnfrMapping = {{
@@ -286,6 +293,13 @@ static constexpr std::array<GnfrSector, enum_count<NfrSector>()> s_nfrToGnfrMapp
     GnfrSector::AgriOther,           //3F
     GnfrSector::AgriOther,           //3I
     GnfrSector::Other,               //6A
+    GnfrSector::RoadTransport,       //1A3bi(fu)
+    GnfrSector::RoadTransport,       //1A3bii(fu)
+    GnfrSector::RoadTransport,       //1A3biii(fu)
+    GnfrSector::RoadTransport,       //1A3biv(fu)
+    GnfrSector::RoadTransport,       //1A3bv(fu)
+    GnfrSector::RoadTransport,       //1A3bvi(fu)
+    GnfrSector::RoadTransport,       //1A3bvii(fu)
 }};
 
 constexpr std::string_view sector_name(GnfrSector sector) noexcept
@@ -372,6 +386,32 @@ std::string_view EmissionSector::gnfr_name() const noexcept
 bool EmissionSector::is_land_sector() const noexcept
 {
     return gnfr_sector() != GnfrSector::Shipping;
+}
+
+std::optional<NfrSector> EmissionSector::is_sector_override() const noexcept
+{
+    if (type() == Type::Gnfr) {
+        return {};
+    }
+
+    switch (nfr_sector()) {
+    case NfrSector::Nfr1A3bi_fu:
+        return NfrSector::Nfr1A3bi;
+    case NfrSector::Nfr1A3bii_fu:
+        return NfrSector::Nfr1A3bii;
+    case NfrSector::Nfr1A3biii_fu:
+        return NfrSector::Nfr1A3biii;
+    case NfrSector::Nfr1A3biv_fu:
+        return NfrSector::Nfr1A3biv;
+    case NfrSector::Nfr1A3bv_fu:
+        return NfrSector::Nfr1A3bv;
+    case NfrSector::Nfr1A3bvi_fu:
+        return NfrSector::Nfr1A3bvi;
+    case NfrSector::Nfr1A3bvii_fu:
+        return NfrSector::Nfr1A3bvii;
+    }
+
+    return {};
 }
 
 NfrSector EmissionSector::nfr_sector() const noexcept

@@ -3,6 +3,7 @@
 #include <fmt/core.h>
 #include <string_view>
 #include <variant>
+#include <optional>
 
 namespace emap {
 
@@ -153,6 +154,13 @@ enum class NfrSector
     Nfr5D3,
     Nfr5E,
     Nfr6A,
+    Nfr1A3bi_fu,
+    Nfr1A3bii_fu,
+    Nfr1A3biii_fu,
+    Nfr1A3biv_fu,
+    Nfr1A3bv_fu,
+    Nfr1A3bvi_fu,
+    Nfr1A3bvii_fu,
     EnumCount,
 };
 
@@ -178,6 +186,8 @@ public:
     std::string_view gnfr_name() const noexcept;
 
     bool is_land_sector() const noexcept;
+    /* Returns the nfr sector this sector overrides if it is applicable */
+    std::optional<NfrSector> is_sector_override() const noexcept;
 
     constexpr bool operator==(const EmissionSector& other) const noexcept
     {

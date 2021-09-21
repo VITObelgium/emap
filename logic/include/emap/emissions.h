@@ -128,6 +128,11 @@ public:
         return _value;
     }
 
+    void set_value(EmissionValue value) noexcept
+    {
+        _value = value;
+    }
+
     constexpr std::optional<Coordinate> coordinate() const noexcept
     {
         return _coordinate;
@@ -219,6 +224,19 @@ public:
     void add_emission(TEmission&& info)
     {
         _emissions.push_back(std::move(info));
+    }
+
+    void update_or_add_emission(TEmission&& info)
+    {
+        auto* emission = inf::find_in_container(_emissions, [&info](const TEmission& em) {
+            return em.id() == info.id();
+        });
+
+        if (emission) {
+            *emission = info;
+        } else {
+            add_emission(std::forward<TEmission&&>(info));
+        }
     }
 
     const TEmission& emission_with_id(const EmissionIdentifier& id) const

@@ -6,17 +6,33 @@
 
 namespace emap {
 
-inline double to_giga_gram(double value, std::string_view unit)
+inline std::optional<double> to_giga_gram_factor(std::string_view unit) noexcept
 {
-    if (unit == "Gg") {
-        return value;
-    }
-    
-    if (unit == "ton" || unit == "t" || unit == "t/jr") {
-        return value / 1000.0;
+    std::optional<double> result;
+
+    if (unit == "Gg" || unit == "kt") {
+        return result = 1.0;
     }
 
-    throw inf::RuntimeError("Unexpected unit: '{}', no conversion rule defined", unit);
+    if (unit == "ton" || unit == "t" || unit == "t/jr") {
+        return 1.0 / 1000.0;
+    }
+
+    if (unit == "g I-TEQ") {
+        return 1.0; // TODO: what unit is this?
+    }
+
+    return result;
+}
+
+inline double to_giga_gram(double value, std::string_view unit)
+{
+    auto factor = to_giga_gram_factor(unit);
+    if (!factor.has_value()) {
+        throw inf::RuntimeError("Unexpected unit: '{}', no conversion rule defined", unit);
+    }
+
+    return value * (*factor);
 }
 
 }

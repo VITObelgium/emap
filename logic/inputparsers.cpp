@@ -208,50 +208,50 @@ Country detect_belgian_region_from_filename(const fs::path& path)
     throw RuntimeError("Could not detect region from filename: {}", filename);
 }
 
-SingleEmissions parse_emissions_flanders(const fs::path& emissionsData)
-{
-    SingleEmissions result;
-
-    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
-    auto ds    = gdal::VectorDataSet::open(emissionsData);
-    auto layer = ds.layer(0);
-
-    auto colX         = layer.layer_definition().required_field_index("KM2 Grid Lambert X Coördinaat");
-    auto colY         = layer.layer_definition().required_field_index("KM2 Grid Lambert Y Coördinaat");
-    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
-    auto colUnit      = layer.layer_definition().required_field_index("Eenheid Symbool");
-    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
-    auto colPollutant = layer.layer_definition().required_field_index("Parameter Symbool");
-
-    static const std::unordered_set<std::string_view> memoSectors{{
-        "1A3ai(ii)",
-        "1A3aii(ii)",
-        "1A3di(i)",
-        "1A5c"
-        "6B",
-        "11A",
-        "11B",
-        "11C",
-    }};
-
-    for (auto& feature : layer) {
-        auto sectorName = feature.field_as<std::string_view>(colSector);
-        if (sectorName.empty() || memoSectors.count(sectorName) > 0) {
-            continue;
-        }
-
-        EmissionEntry info(
-            EmissionIdentifier(Country::Id::BEF,
-                               to_sector(EmissionSector::Type::Nfr, sectorName),
-                               to_pollutant(feature.field_as<std::string_view>(colPollutant))),
-            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
-
-        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
-        result.add_emission(std::move(info));
-    }
-
-    return result;
-}
+//SingleEmissions parse_emissions_flanders(const fs::path& emissionsData)
+//{
+//    SingleEmissions result;
+//
+//    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+//    auto ds    = gdal::VectorDataSet::open(emissionsData);
+//    auto layer = ds.layer(0);
+//
+//    auto colX         = layer.layer_definition().required_field_index("KM2 Grid Lambert X Coördinaat");
+//    auto colY         = layer.layer_definition().required_field_index("KM2 Grid Lambert Y Coördinaat");
+//    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
+//    auto colUnit      = layer.layer_definition().required_field_index("Eenheid Symbool");
+//    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
+//    auto colPollutant = layer.layer_definition().required_field_index("Parameter Symbool");
+//
+//    static const std::unordered_set<std::string_view> memoSectors{{
+//        "1A3ai(ii)",
+//        "1A3aii(ii)",
+//        "1A3di(i)",
+//        "1A5c"
+//        "6B",
+//        "11A",
+//        "11B",
+//        "11C",
+//    }};
+//
+//    for (auto& feature : layer) {
+//        auto sectorName = feature.field_as<std::string_view>(colSector);
+//        if (sectorName.empty() || memoSectors.count(sectorName) > 0) {
+//            continue;
+//        }
+//
+//        EmissionEntry info(
+//            EmissionIdentifier(Country::Id::BEF,
+//                               to_sector(EmissionSector::Type::Nfr, sectorName),
+//                               to_pollutant(feature.field_as<std::string_view>(colPollutant))),
+//            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
+//
+//        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
+//        result.add_emission(std::move(info));
+//    }
+//
+//    return result;
+//}
 
 std::optional<Pollutant> detect_pollutant_name_from_header(std::string_view hdr)
 {
@@ -276,67 +276,108 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
     auto layer = ds.layer(std::to_string(static_cast<int>(year)));
 
     constexpr const int pollutantLineNr = 12;
+    constexpr const int unitLineNr      = pollutantLineNr + 1;
 
-    std::unordered_map<int, Pollutant> pollutantColumns;
+    struct PollutantData
+    {
+        PollutantData(Pollutant pol) noexcept
+        : pollutant(pol)
+        {
+        }
 
-    int lineNr = 1;
+        Pollutant pollutant;
+        double unitConversion = 1.0;
+    };
+
+    std::unordered_map<int, PollutantData> pollutantColumns;
+
+    int lineNr = 0;
     for (const auto& feature : layer) {
+        ++lineNr;
+
         if (lineNr == pollutantLineNr) {
             for (int i = 0; i < feature.field_count(); ++i) {
                 if (auto pol = detect_pollutant_name_from_header(feature.field_as<std::string_view>(i)); pol.has_value()) {
                     pollutantColumns.emplace(i, *pol);
                 }
             }
-        }
-
-        if (auto nfrSectorName = feature.field_as<std::string_view>(1); !nfrSectorName.empty()) {
-            try {
-                const auto nfrSector = nfr_sector_from_string(nfrSectorName);
-                if (pollutantColumns.empty()) {
-                    throw RuntimeError("Invalid format: Sector appears before the Pollutant header");
-                }
-
-                std::optional<double> pm10, pm2_5;
-
-                for (const auto& [index, pol] : pollutantColumns) {
-                    const auto field = feature.field(index);
-                    std::optional<double> emissionValue;
-                    if (const auto* emission = std::get_if<double>(&field)) {
-                        emissionValue = *emission;
-                    } else if (const auto* emission = std::get_if<std::string_view>(&field)) {
-                        emissionValue = str::to_double(*emission);
-                    }
-
-                    if (emissionValue.has_value()) {
-                        if (pol.id() == Pollutant::Id::PM10) {
-                            pm10 = emissionValue;
-                        } else if (pol.id() == Pollutant::Id::PM2_5) {
-                            pm2_5 = emissionValue;
-                        }
-
-                        result.add_emission(EmissionEntry(
-                            EmissionIdentifier(country, EmissionSector(nfrSector), pol),
-                            EmissionValue(*emissionValue)));
-                    } else {
-                        const auto value = feature.field_as<std::string>(index);
-                        if (!value.empty() && value != "NO" && value != "IE" && value != "NA" && value != "NE" && value != "NR") {
-                            Log::error("Failed to obtain emission value from {}", value);
-                        }
-                    }
-                }
-
-                if (pm2_5.has_value() && pm10.has_value()) {
-                    assert(pm10 >= pm2_5);
-                    result.add_emission(EmissionEntry(
-                        EmissionIdentifier(country, EmissionSector(nfrSector), Pollutant::Id::PMcoarse),
-                        EmissionValue(*pm10 - *pm2_5)));
-                }
-            } catch (const std::exception&) {
-                // not an nfr value line, skipping
+        } else if (lineNr == unitLineNr) {
+            for (auto& [index, pol] : pollutantColumns) {
+                pol.unitConversion = to_giga_gram_factor(feature.field_as<std::string_view>(index)).value_or(1.0);
             }
         }
 
-        ++lineNr;
+        if (auto nfrSectorName = feature.field_as<std::string_view>(1); !nfrSectorName.empty()) {
+            EmissionSector nfrSector;
+            std::optional<NfrSector> sectorOverride;
+
+            try {
+                nfrSector            = EmissionSector(nfr_sector_from_string(nfrSectorName));
+                sectorOverride = nfrSector.is_sector_override();
+                if (sectorOverride.has_value()) {
+                    // this sector overrides the value of another sector
+                    nfrSector = EmissionSector(*sectorOverride);
+                }
+            } catch (const std::exception&) {
+                // not an nfr value line, skipping
+                continue;
+            }
+
+            if (pollutantColumns.empty()) {
+                throw RuntimeError("Invalid format: Sector appears before the Pollutant header");
+            }
+
+            std::optional<double> pm10, pm2_5;
+
+            for (const auto& [index, polData] : pollutantColumns) {
+                const auto field = feature.field(index);
+                std::optional<double> emissionValue;
+                if (const auto* emission = std::get_if<double>(&field)) {
+                    emissionValue = (*emission) * polData.unitConversion;
+                } else if (const auto* emission = std::get_if<std::string_view>(&field)) {
+                    emissionValue = str::to_double(*emission);
+                    if (emissionValue.has_value()) {
+                        emissionValue = (*emissionValue) * polData.unitConversion;
+                    }
+                }
+
+                if (emissionValue.has_value()) {
+                    if (polData.pollutant.id() == Pollutant::Id::PM10) {
+                        pm10 = emissionValue;
+                    } else if (polData.pollutant.id() == Pollutant::Id::PM2_5) {
+                        pm2_5 = emissionValue;
+                    }
+
+                    if (sectorOverride.has_value()) {
+                        // update the existing emission with the override
+                        result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue)));
+                    } else {
+                        result.add_emission(EmissionEntry(
+                            EmissionIdentifier(country, nfrSector, polData.pollutant),
+                            EmissionValue(*emissionValue)));
+                    }
+                } else {
+                    const auto value = feature.field_as<std::string>(index);
+                    if (!value.empty() && value != "NO" && value != "IE" && value != "NA" && value != "NE" && value != "NR") {
+                        Log::error("Failed to obtain emission value from {}", value);
+                    }
+                }
+            }
+
+            if (pm2_5.has_value() && pm10.has_value()) {
+                if (pm10 >= pm2_5) {
+                    auto pmcVal = EmissionValue(*pm10 - *pm2_5);
+                    if (sectorOverride.has_value()) {
+                        // update the existing emission with the override
+                        result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, Pollutant::Id::PMcoarse), pmcVal));
+                    } else {
+                        result.add_emission(EmissionEntry(
+                            EmissionIdentifier(country, nfrSector, Pollutant::Id::PMcoarse),
+                            pmcVal));
+                    }
+                }
+            }
+        }
     }
 
     return result;
