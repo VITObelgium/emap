@@ -375,6 +375,8 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                             EmissionIdentifier(country, nfrSector, Pollutant::Id::PMcoarse),
                             pmcVal));
                     }
+                } else {
+                    throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, *pm2_5);
                 }
             }
         }
