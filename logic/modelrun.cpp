@@ -14,10 +14,10 @@
 #include "gdx/denserasterio.h"
 
 #include <numeric>
+#include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
 #include <oneapi/tbb/task_arena.h>
-#include <oneapi/tbb/concurrent_vector.h>
 
 namespace emap {
 
@@ -63,7 +63,6 @@ struct ModelResult
 
     EmissionIdentifier id;
     gdx::DenseRaster<double> emissions;
-
 };
 
 void spread_emissions(const EmissionInventory& inventory, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
@@ -71,14 +70,13 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
     ModelProgress progress(inventory.size(), progressCb);
     progress.set_payload(ModelRunProgressInfo());
 
-
     // TODO: smarter splitting to avoid huge memory consumption
     tbb::concurrent_vector<ModelResult> result;
     result.reserve(inventory.size());
 
     tbb::parallel_for_each(inventory, [&](const auto& entry) {
         if (auto spatialPatternPath = cfg.spatial_pattern_path(entry.id()); fs::is_regular_file(spatialPatternPath)) {
-            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);   
+            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);
             spatialPattern *= entry.diffuse_emissions();
 
             //result.emplace_back(entry.id(), std::move(spatialPattern));
@@ -138,18 +136,19 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
 
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
-    const auto pointSource         = parse_emissions(throw_if_not_exists(cfg.point_source_emissions_path()));
+    const auto pointSourcesFlanders = parse_point_sources_flanders(throw_if_not_exists(cfg.point_source_emissions_path()));
+
     const auto nfrTotalEmissions   = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr)));
     const auto gnfrTotalEmissions  = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr)));
     const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
     const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 
-    //Log::debug("Create country coverages");
-    //auto countryCoverages = create_country_coverages(const inf::GeoMetadata& extent, cfg.countries_vector_path(), "FID");
+    Log::debug("Create country coverages");
+    auto gridData = grid_data(cfg.grid_definition());
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
-    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSource, scalingsDiffuse, scalingsPointSource);
+    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
     Log::debug("Spread emissions");

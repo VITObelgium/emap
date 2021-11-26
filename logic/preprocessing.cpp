@@ -2,14 +2,18 @@
 
 #include "emap/configurationparser.h"
 #include "emap/gridprocessing.h"
+#include "emap/inputparsers.h"
 #include "gdx/denseraster.h"
+#include "gdx/denserasterio.h"
 
 #include "infra/chrono.h"
 #include "infra/enumutils.h"
 #include "infra/gdalio.h"
 #include "infra/log.h"
+#include "infra/math.h"
 
 #include <oneapi/tbb/parallel_for_each.h>
+#include <regex>
 
 namespace emap {
 
@@ -26,7 +30,7 @@ static fs::file_status throw_if_not_exists(const fs::path& path)
     return status;
 }
 
-static void process_spatial_pattern_directory(const fs::path& inputDir, const fs::path& countriesVector, const fs::path& outputDir, const PreprocessingProgress::Callback& progressCb)
+static void process_spatial_pattern_directory(const fs::path& inputDir, date::year year, const fs::path& countriesVector, const fs::path& outputDir, const PreprocessingProgress::Callback& progressCb)
 {
     file::create_directory_if_not_exists(outputDir);
 
@@ -38,47 +42,124 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const fs
         throw RuntimeError("Countries vector path should be a path to a file: {}", countriesVector);
     }
 
-    std::vector<fs::path> pathsToProcess;
-    for (const auto& fileEntry : fs::directory_iterator(inputDir)) {
+    // Capture groups:
+    // [1]: pollutant
+    // [2]: Gnfr: sector
+    const std::regex notBefRegex(fmt::format(".+_{}_(\\w*)_([A-M]_\\w*)", static_cast<int>(year)));
+
+    // Capture groups:
+    // [1]: pollutant
+    const std::regex befRegex(fmt::format(".+_{}_(\\w+)", static_cast<int>(year)));
+
+    struct ProcessData
+    {
+        ProcessData() = default;
+        ProcessData(fs::path path_, Pollutant pol_, GnfrSector sector_)
+        : path(std::move(path_))
+        , pollutant(pol_)
+        , sector(sector_)
+        {
+        }
+
+        fs::path path;
+        Pollutant pollutant;
+        GnfrSector sector;
+    };
+
+    struct ProcessDataBEF
+    {
+        ProcessDataBEF() = default;
+        ProcessDataBEF(fs::path path_, Pollutant pol_)
+        : path(std::move(path_))
+        , pollutant(pol_)
+        {
+        }
+
+        fs::path path;
+        Pollutant pollutant;
+    };
+
+    std::vector<ProcessData> pathsToProcessNotBef;
+    std::smatch baseMatch;
+    for (const auto& fileEntry : fs::directory_iterator(inputDir / "not_bef")) {
         if (fileEntry.is_regular_file() && fileEntry.path().extension() == ".tif") {
-            pathsToProcess.push_back(fileEntry.path());
+            const auto filename = fileEntry.path().stem().u8string();
+            if (std::regex_match(filename, baseMatch, notBefRegex)) {
+                const auto pollutant = Pollutant::from_string(baseMatch[1].str());
+                const auto gnfr      = gnfr_sector_from_string(baseMatch[2].str());
+                pathsToProcessNotBef.emplace_back(fileEntry.path(), pollutant, gnfr);
+            }
         }
     }
 
-    if (pathsToProcess.empty()) {
-        return;
+    std::vector<ProcessDataBEF> pathsToProcessBef;
+    for (const auto& fileEntry : fs::directory_iterator(inputDir / "bef")) {
+        if (fileEntry.is_regular_file() && fileEntry.path().extension() == ".xlsx") {
+            const auto filename = fileEntry.path().stem().u8string();
+            if (std::regex_match(filename, baseMatch, befRegex)) {
+                const auto pollutant = Pollutant::from_string(baseMatch[1].str());
+                pathsToProcessBef.emplace_back(fileEntry.path(), pollutant);
+            }
+        }
     }
 
-    static const char* fieldId = "FID";
-
-    auto extent = gdal::io::read_metadata(pathsToProcess.front());
-    if (!extent.is_north_up()) {
-        extent = read_raster_north_up(pathsToProcess.front()).metadata();
+    if (pathsToProcessBef.empty()) {
+        throw RuntimeError("No spatial patter info available for flanders for year {}", static_cast<int>(year));
     }
 
-    PreprocessingProgress progress(known_countries_in_extent(extent, countriesVector, fieldId), progressCb);
+    int64_t progressTicks = 0;
 
-    const auto countyCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
-        PreprocessingProgressInfo info;
-        info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
-        info.country = status.payload();
-        progress.set_payload(info);
-        progress.tick();
-        return ProgressStatusResult::Continue;
-    });
+    PreprocessingProgress progress(progressCb);
 
-    progress.reset(pathsToProcess.size());
-    tbb::parallel_for_each(pathsToProcess.begin(), pathsToProcess.end(), [&](const auto& filePath) {
-        extract_countries_from_raster(filePath, countyCoverages, outputDir, [](const GridProcessingProgress::Status& /*status*/) {
+    if (!pathsToProcessNotBef.empty()) {
+        static const char* fieldId = "Code3";
+
+        auto extent = gdal::io::read_metadata(pathsToProcessNotBef.front().path);
+        if (!extent.is_north_up()) {
+            extent = read_raster_north_up(pathsToProcessNotBef.front().path).metadata();
+        }
+
+        progress.reset(known_countries_in_extent(extent, countriesVector, fieldId));
+
+        const std::string filenamePrefix = fmt::format("spatial_pattern_{}", static_cast<int>(year));
+
+        const auto countyCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
+            PreprocessingProgressInfo info;
+            info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
+            info.country = status.payload();
+            progress.set_payload(info);
+            progress.tick();
             return ProgressStatusResult::Continue;
         });
 
-        PreprocessingProgressInfo info;
-        info.step = PreprocessingProgressInfo::Step::CountryExtraction;
-        info.file = &filePath;
-        progress.set_payload(info);
-        progress.tick_throw_on_cancel();
-    });
+        tbb::parallel_for_each(pathsToProcessNotBef.begin(), pathsToProcessNotBef.end(), [&](const ProcessData& processData) {
+            extract_countries_from_raster(
+                processData.path, processData.sector, countyCoverages, outputDir, fmt::format("{}_{{}}_{{}}_{}.tif", filenamePrefix, processData.pollutant), [](const GridProcessingProgress::Status& /*status*/) {
+                    return ProgressStatusResult::Continue;
+                });
+
+            PreprocessingProgressInfo info;
+            info.step = PreprocessingProgressInfo::Step::CountryExtraction;
+            info.file = &processData.path;
+            progress.set_payload(info);
+            progress.tick_throw_on_cancel();
+        });
+
+        tbb::parallel_for_each(pathsToProcessBef.begin(), pathsToProcessBef.end(), [&](const ProcessDataBEF& processData) {
+            const auto spatialPatternDataFlanders = parse_spatial_pattern_flanders(processData.path);
+            for (const auto& spatData : spatialPatternDataFlanders) {
+                assert(spatData.year == year);
+
+                gdx::DenseRaster<double> result(copy_metadata_replace_nodata(extent, math::nan<double>()), math::nan<float>());
+                inf::gdal::io::warp_raster<double, double>(spatData.raster, spatData.raster.metadata(), result, result.metadata(), gdal::ResampleAlgorithm::Sum);
+                gdx::write_raster(result, outputDir / fmt::format("{}_{}_{}_{}.tif", filenamePrefix, Country(Country::Id::BEF).code(), spatData.id.sector, processData.pollutant));
+            }
+        });
+    }
+
+    if (!pathsToProcessBef.empty()) {
+        progress.reset(pathsToProcessNotBef.size());
+    }
 }
 
 void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb)
@@ -94,8 +175,7 @@ void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, con
     }
 
     if (auto spatialPatternsDir = cfg->spatial_patterns_path(); !spatialPatternsDir.empty()) {
-        process_spatial_pattern_directory(spatialPatternsDir, cfg->countries_vector_path(), cfg->output_path(), progressCb);
+        process_spatial_pattern_directory(spatialPatternsDir, cfg->year(), cfg->countries_vector_path(), cfg->output_path(), progressCb);
     }
 }
-
 }

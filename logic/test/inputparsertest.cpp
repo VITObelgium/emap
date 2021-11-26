@@ -51,24 +51,6 @@ TEST_CASE("Load emissions")
         CHECK(firstEmission.value().unit() == "Gg");
     }
 
-    /*SUBCASE("flanders emissions")
-    {
-        auto emissions = parse_emissions_flanders(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx");
-        REQUIRE(emissions.size() == 2);
-
-        for (auto& em : emissions) {
-            CHECK(em.sector().type() == EmissionSector::Type::Nfr);
-            CHECK(em.country().id() == Country::Id::BEF);
-        }
-
-        const auto& firstEmission = *emissions.begin();
-        CHECK(firstEmission.sector().name() == "1A3di(ii)");
-        CHECK(firstEmission.pollutant().id() == Pollutant::Id::CO);
-        CHECK(firstEmission.value().amount() == Approx(0.000002621703567834));
-        CHECK(firstEmission.value().unit() == "Gg");
-        CHECK(firstEmission.coordinate() == Coordinate(2000, 249000));
-    }*/
-
     SUBCASE("Belgian emissions xlsx (Brussels)")
     {
         auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019));
@@ -133,7 +115,7 @@ TEST_CASE("Load emissions")
 
         CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEW, EmissionSector(NfrSector::Nfr3Dc), Pollutant::Id::TSP)).value().amount() == Approx(0.800281464075));
         CHECK(emissions.emission_with_id(EmissionIdentifier(Country::Id::BEW, EmissionSector(NfrSector::Nfr1A3biv), Pollutant::Id::Hg)).value().amount() == Approx(0.000000167979106942408)); // only present with fuel used
-        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5C1bii), Pollutant::Id::NMVOC)).empty()); // empty cell
+        CHECK(emissions.emissions_with_id(EmissionIdentifier(Country::Id::BEF, EmissionSector(NfrSector::Nfr5C1bii), Pollutant::Id::NMVOC)).empty());                                         // empty cell
     }
 }
 

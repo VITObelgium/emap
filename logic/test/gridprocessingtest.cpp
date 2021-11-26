@@ -29,7 +29,7 @@ TEST_CASE("Grid processing" * may_fail())
     TempDir tmp("grid_country_extraction");
 
     const auto inputPath     = fs::u8path(TEST_DATA_DIR) / "input" / "spatial_patterns" / "pm10_F_RoadTransport.tif";
-    const auto countriesPath = fs::u8path(EMAP_DATA_DIR) / "countries.gpkg";
+    const auto countriesPath = fs::u8path(EMAP_DATA_DIR) / "boundaries.gpkg";
     const auto outputPath    = tmp.path();
 
     /*SUBCASE("transform grid")
@@ -43,33 +43,34 @@ TEST_CASE("Grid processing" * may_fail())
     SUBCASE("extract countries [regression]")
     {
         ProgressBar progress(80);
+        const std::string spatialPatternFormat = "spatpat_{{}}.tif";
 
-        extract_countries_from_raster(inputPath, countriesPath, "FID", outputPath, [&](const GridProcessingProgress::Status& status) {
-            progress.set_progress(status.progress());
-            progress.set_postfix_text(Country(status.payload()).full_name());
-            return ProgressStatusResult::Continue;
-        });
-
+        extract_countries_from_raster(
+            inputPath, GnfrSector::PublicPower, countriesPath, "Code3", outputPath, spatialPatternFormat, [&](const GridProcessingProgress::Status& status) {
+                progress.set_progress(status.progress());
+                progress.set_postfix_text(Country(status.payload()).full_name());
+                return ProgressStatusResult::Continue;
+            });
 
         std::unordered_map<Country::Id, std::string> hashes = {
             {Country::Id::AL, "fbfff3d45b90c8b38851f2fea40e679b"},
             {Country::Id::AM, "fe12120a056b2be9c94fe8eb7d0ed2bf"},
-            {Country::Id::ARE, ""},
-            {Country::Id::ARO, ""},
-            {Country::Id::ASE, ""},
-            {Country::Id::ASM, ""},
+            {Country::Id::ARE, "0"},
+            {Country::Id::ARO, "0"},
+            {Country::Id::ASE, "0"},
+            {Country::Id::ASM, "0"},
             {Country::Id::AT, "cc095798720282ca002a372cc98c1331"},
-            {Country::Id::ATL, ""},
+            {Country::Id::ATL, "0"},
             {Country::Id::AZ, "629fa23fc7adc2905c15a9c9779533fe"},
             {Country::Id::BA, "9cab60240eb2c89a1535b9954d876422"},
-            {Country::Id::BAS, ""},
-            {Country::Id::BEB, ""}, // TODO "BE" in shapefile
-            {Country::Id::BEF, ""}, // TODO "BE" in shapefile
-            {Country::Id::BEW, ""}, // TODO "BE" in shapefile
+            {Country::Id::BAS, "0"},
+            {Country::Id::BEB, "0"},
+            {Country::Id::BEF, "0"},
+            {Country::Id::BEW, "0"},
             {Country::Id::BG, "6a0b849b8421eef27d97783c86eb5528"},
-            {Country::Id::BLS, ""},
+            {Country::Id::BLS, "0"},
             {Country::Id::BY, "927eaf5a72264427d22f37765bad22ca"},
-            {Country::Id::CAS, ""},
+            {Country::Id::CAS, "0"},
             {Country::Id::CH, "4ee69f04dd502b9938c94cf0c36dd6c0"},
             {Country::Id::CY, "dd6334c1b37b8056eecd523b4cde1f5a"},
             {Country::Id::CZ, "dc9432cf1b756ce31c7848eef9c42e04"},
@@ -90,7 +91,7 @@ TEST_CASE("Grid processing" * may_fail())
             {Country::Id::IT, "828a028ad2b2f7c44761a701371179bd"},
             {Country::Id::KG, ""}, // outside of the spatial pattern map
             {Country::Id::KZ, "f7aecc225403407ea25cb07e38ddc167"},
-            {Country::Id::KZE, ""},
+            {Country::Id::KZE, "0"},
             {Country::Id::LI, "e2602db80df76cd1f0f37bf7e795bef0"},
             {Country::Id::LT, "8c1bd2a53c4d99473d249f0205af218e"},
             {Country::Id::LU, "6c67fe2016fdd35aa01968a882ef95d1"},
@@ -126,7 +127,7 @@ TEST_CASE("Grid processing" * may_fail())
 
         for (auto& [countryId, hash] : hashes) {
             Country country(countryId);
-            const auto filePath = outputPath / fmt::format("pm10_F_RoadTransport_{}.tif", country.code());
+            const auto filePath = outputPath / fmt::format(spatialPatternFormat, country.code());
 
             if (hash.empty()) {
                 REQUIRE_MESSAGE(!fs::exists(filePath), filePath.u8string());

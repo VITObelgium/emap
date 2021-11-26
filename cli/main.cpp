@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 
         std::unique_ptr<inf::ProgressBar> progressBar;
         if (!options.noProgress) {
-            progressBar = std::make_unique<inf::ProgressBar>(80);
+            progressBar = std::make_unique<inf::ProgressBar>(60);
         }
 
         emap::run_model(fs::u8path(options.config), [&](const emap::ModelProgress::Status& info) {

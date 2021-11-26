@@ -173,11 +173,13 @@ static std::optional<PreprocessingConfiguration> parse_preprocessing_configurati
         NamedSection preprocessing("preprocess", table["preprocess"]);
         NamedSection output("output", table["output"]);
 
+        date::year year                = read_year(preprocessing.section["year"]);
         const auto spatialPatternsPath = read_path(preprocessing, "spatial_patterns", basePath);
         const auto countriesPath       = read_path(preprocessing, "countries_vector", basePath);
         const auto outputPath          = read_path(output, "path", basePath);
 
-        return PreprocessingConfiguration(spatialPatternsPath,
+        return PreprocessingConfiguration(year,
+                                          spatialPatternsPath,
                                           countriesPath,
                                           outputPath);
     } catch (const toml::parse_error& e) {
@@ -209,10 +211,10 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto dataPath            = read_path(input, "datapath", basePath);
         const auto spatialPatternsPath = read_path(input, "spatial_patterns", basePath);
         //const auto countriesVectorPath = read_path(input, "countries_vector", basePath);
-        const auto runType             = read_run_type(input.section["type"].value<std::string_view>());
-        const auto year                = read_year(input.section["year"]);
-        const auto reportYear          = read_optional_year(input.section["report_year"]);
-        const auto scenario            = read_string(input, "scenario");
+        const auto runType    = read_run_type(input.section["type"].value<std::string_view>());
+        const auto year       = read_year(input.section["year"]);
+        const auto reportYear = read_optional_year(input.section["report_year"]);
+        const auto scenario   = read_string(input, "scenario");
 
         const auto outputPath = read_path(output, "path", basePath);
 

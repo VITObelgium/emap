@@ -99,6 +99,18 @@ public:
         return _id == Id::BEF || _id == Id::BEB || _id == Id::BEW;
     }
 
+    constexpr bool is_sea() const noexcept
+    {
+        return _id == Id::ARE ||
+               _id == Id::ARO ||
+               _id == Id::ATL ||
+               _id == Id::BAS ||
+               _id == Id::BLS ||
+               _id == Id::CAS ||
+               _id == Id::MED ||
+               _id == Id::NOS;
+    }
+
     constexpr Id id() const noexcept
     {
         return _id;

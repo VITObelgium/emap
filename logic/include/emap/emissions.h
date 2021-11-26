@@ -5,9 +5,11 @@
 #include "emap/sector.h"
 #include "infra/algo.h"
 #include "infra/point.h"
+#include "infra/span.h"
 
 #include <date/date.h>
 #include <fmt/core.h>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -138,10 +140,65 @@ public:
         return _coordinate;
     }
 
+    double height() const noexcept
+    {
+        return _height;
+    }
+
+    double diameter() const noexcept
+    {
+        return _diameter;
+    }
+
+    double temperature() const noexcept
+    {
+        return _temperature;
+    }
+
+    double warmth_contents() const noexcept
+    {
+        return _warmthContents;
+    }
+
+    double flow_rate() const noexcept
+    {
+        return _flowRate;
+    }
+
+    void set_height(double val) noexcept
+    {
+        _height = val;
+    }
+
+    void set_diameter(double val) noexcept
+    {
+        _diameter = val;
+    }
+
+    void set_temperature(double val) noexcept
+    {
+        _temperature = val;
+    }
+
+    void set_warmth_contents(double val) noexcept
+    {
+        _warmthContents = val;
+    }
+
+    void set_flow_rate(double val) noexcept
+    {
+        _flowRate = val;
+    }
+
 private:
     EmissionIdentifier _id;
     EmissionValue _value;
     std::optional<Coordinate> _coordinate;
+    double _height         = 0.0;
+    double _diameter       = 0.0;
+    double _temperature    = 0.0;
+    double _warmthContents = 0.0;
+    double _flowRate       = 0.0;
 };
 
 class EmissionInventoryEntry
@@ -155,10 +212,9 @@ public:
     {
     }
 
-    EmissionInventoryEntry(EmissionIdentifier id, double diffuseEmissions, double pointEmissions, std::vector<EmissionEntry> pointEmissionEntries) noexcept
+    EmissionInventoryEntry(EmissionIdentifier id, double diffuseEmissions, std::vector<EmissionEntry> pointEmissionEntries) noexcept
     : _id(id)
     , _diffuseEmission(diffuseEmissions)
-    , _pointEmission(pointEmissions)
     , _pointEmissionEntries(std::move(pointEmissionEntries))
     {
     }
@@ -178,9 +234,16 @@ public:
         return _diffuseEmission;
     }
 
-    double point_emissions() const noexcept
+    double point_emission_sum() const noexcept
     {
-        return _pointEmission;
+        return std::accumulate(_pointEmissionEntries.cbegin(), _pointEmissionEntries.cend(), 0.0, [](double total, const auto& current) {
+            return total + current.value().amount();
+        });
+    }
+
+    std::span<const EmissionEntry> point_emissions() const noexcept
+    {
+        return _pointEmissionEntries;
     }
 
     double scaled_total_emissions() const noexcept

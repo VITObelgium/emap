@@ -12,16 +12,19 @@ namespace emap {
 
 using namespace inf;
 
-static constexpr std::array<EnumInfo<GnfrSector>, enum_count<GnfrSector>()> s_gnfrSectors = {{
+static constexpr std::array<EnumInfo<GnfrSector>, enum_count<GnfrSector>() + 3> s_gnfrSectors = {{
     {GnfrSector::PublicPower, "A_PublicPower", "Public power"},
     {GnfrSector::Industry, "B_Industry", "Industry"},
     {GnfrSector::OtherStationaryComb, "C_OtherStatComb", "Other stationary combustion"},
+    {GnfrSector::OtherStationaryComb, "C_OtherStationaryComb", "Other stationary combustion"},
     {GnfrSector::Fugitive, "D_Fugitive", "Fugitive"},
+    {GnfrSector::Fugitive, "D_Fugitives", "Fugitive"},
     {GnfrSector::Solvents, "E_Solvents", "Solvents"},
     {GnfrSector::RoadTransport, "F_RoadTransport", "Road transport"},
     {GnfrSector::Shipping, "G_Shipping", "Shipping"},
     {GnfrSector::Aviation, "H_Aviation", "Aviation"},
     {GnfrSector::Offroad, "I_Offroad", "Offroad"},
+    {GnfrSector::Offroad, "I_OffRoad", "Offroad"},
     {GnfrSector::Waste, "J_Waste", "Waste"},
     {GnfrSector::AgriLivestock, "K_AgriLivestock", "Agriculture: live stock"},
     {GnfrSector::AgriOther, "L_AgriOther", "Agriculture: other"},

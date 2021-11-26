@@ -8,13 +8,20 @@ namespace emap {
 using namespace inf;
 
 PreprocessingConfiguration::PreprocessingConfiguration(
+    date::year year,
     const fs::path& spatialPatternsPath,
     const fs::path& countriesVector,
     const fs::path& outputPath)
-: _spatialPatternsPath(spatialPatternsPath)
+: _year(year)
+, _spatialPatternsPath(spatialPatternsPath)
 , _countriesPath(countriesVector)
 , _outputPath(outputPath)
 {
+}
+
+date::year PreprocessingConfiguration::year() const noexcept
+{
+    return _year;
 }
 
 const fs::path& PreprocessingConfiguration::spatial_patterns_path() const noexcept

@@ -14,15 +14,18 @@ class PreprocessingConfiguration
 {
 public:
     PreprocessingConfiguration(
+        date::year year,
         const fs::path& spatialPatternsPath,
         const fs::path& countriesVector,
         const fs::path& outputPath);
 
+    date::year year() const noexcept;
     const fs::path& spatial_patterns_path() const noexcept;
     const fs::path& countries_vector_path() const noexcept;
     const fs::path& output_path() const noexcept;
 
 private:
+    date::year _year;
     fs::path _spatialPatternsPath;
     fs::path _countriesPath;
     fs::path _outputPath;

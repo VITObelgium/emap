@@ -5,6 +5,7 @@
 #include "infra/algo.h"
 #include "infra/cast.h"
 #include "infra/chrono.h"
+#include "infra/crs.h"
 #include "infra/enumutils.h"
 #include "infra/gdalio.h"
 #include "infra/geometadata.h"
@@ -33,15 +34,11 @@ using namespace std::string_literals;
 
 constexpr CellCoverageInfo::CellCoverageInfo() noexcept = default;
 
-CellCoverageInfo::CellCoverageInfo(Cell c, double cov, std::unique_ptr<geos::geom::Geometry> geom) noexcept
+CellCoverageInfo::CellCoverageInfo(Cell c, double cov) noexcept
 : cell(c)
 , coverage(cov)
-, geometry(std::move(geom))
 {
 }
-
-CellCoverageInfo::~CellCoverageInfo() noexcept                  = default;
-CellCoverageInfo::CellCoverageInfo(CellCoverageInfo&&) noexcept = default;
 
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid)
 {
@@ -85,7 +82,7 @@ struct IntersectionInfo
     double percentage  = 0.0;
 };
 
-std::string rects_to_geojson(std::span<const IntersectionInfo> intersections, GeoMetadata::CellSize cellSize)
+static std::string rects_to_geojson(std::span<const IntersectionInfo> intersections, GeoMetadata::CellSize cellSize)
 {
     std::stringstream geomStr;
     geomStr << R"json(
@@ -127,7 +124,7 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
 
     EmissionSector emissionSector(sector);
 
-    for (auto& [cell, coverage, geometry] : coverages) {
+    for (auto& [cell, coverage] : coverages) {
         if (ras.is_nodata(cell)) {
             continue;
         }
@@ -175,57 +172,81 @@ static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& ex
 
         // Intersect it with the country
         if (preparedGeom->contains(cellGeom.get())) {
-            result.emplace_back(cell, 1.0, nullptr);
+            result.emplace_back(cell, 1.0);
         } else if (preparedGeom->intersects(cellGeom.get())) {
             auto intersectGeometry   = preparedGeom->getGeometry().intersection(cellGeom.get());
             const auto intersectArea = intersectGeometry->getArea();
             assert(intersectArea > 0);
-            if (intersectArea / cellArea >= 1.0) {
-                // The geometry is only interesting if does not cover the complete cell
-                intersectGeometry.reset();
-            }
-
-            result.emplace_back(cell, intersectArea / cellArea, std::move(intersectGeometry));
+            result.emplace_back(cell, intersectArea / cellArea);
         }
     }
 
     return result;
 }
 
-static void process_country_borders(std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>>& cellCoverages)
+static std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> process_country_borders(std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>>& cellCoverages, GeoMetadata extent)
 {
+    std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> result;
+    result.reserve(cellCoverages.size());
+
     for (auto& [country, cells] : cellCoverages) {
+        std::vector<CellCoverageInfo> modifiedCoverages;
+        modifiedCoverages.reserve(cells.size());
+
+        std::vector<IntersectionInfo> intersectInfo;
+
         for (auto& cell : cells) {
+            auto modifiedCoverage = cell;
+
             if (cell.coverage < 1.0) {
                 // country border, check if there are other countries in this cell
                 double otherCountryCoverages = 0;
 
                 for (const auto& [testCountry, testCells] : cellCoverages) {
-                    if (testCountry == country) {
+                    if (testCountry == country || Country(testCountry).is_sea() != Country(country).is_sea()) {
                         continue;
                     }
 
+                    // Locate the current cell in the coverage of the other country
                     auto cellIter = std::lower_bound(testCells.begin(), testCells.end(), cell.cell, [](const CellCoverageInfo& cov, Cell c) {
                         return cov.cell < c;
                     });
 
                     if (cellIter != testCells.end() && cellIter->cell == cell.cell) {
+                        // the other country covers the cell
                         otherCountryCoverages += cellIter->coverage;
                     }
                 }
 
                 if (otherCountryCoverages == 0.0) {
-                    // Cell partially covers the country, but no other countries are in this cell,
-                    // so the rest must be ocean or sea. In that case the cell receives all the emission
-                    cell.coverage = 1.0;
+                    // This is the only (sea or land) country in the cell, so we get all the emissions
+                    modifiedCoverage.coverage = 1.0;
                 } else {
-                    cell.coverage = cell.coverage / (cell.coverage + otherCountryCoverages);
+                    modifiedCoverage.coverage = cell.coverage / (cell.coverage + otherCountryCoverages);
                 }
 
-                //cell.coverageSeaSector = 1.0 - (cell.coverageLandSector + otherCountryCoverages);
+                IntersectionInfo intersect;
+                intersect.cell             = cell.cell;
+                intersect.percentage       = modifiedCoverage.coverage;
+                intersect.cellArea         = extent.cell_size_x() * extent.cell_size_x();
+                intersect.overlapArea      = cell.coverage;
+                intersect.rect.topLeft     = extent.convert_cell_ll_to_xy(cell.cell);
+                intersect.rect.bottomRight = intersect.rect.topLeft;
+                intersect.rect.topLeft.y -= extent.cell_size_y();
+                intersect.rect.bottomRight.x += extent.cell_size_x();
+
+                intersectInfo.push_back(intersect);
             }
+
+            modifiedCoverages.push_back(modifiedCoverage);
         }
+
+        file::write_as_text(fmt::format("c:/temp/em/{}_cells.geojson", Country(country).code()), rects_to_geojson(intersectInfo, extent.cellSize));
+
+        result.emplace_back(country, std::move(modifiedCoverages));
     }
+
+    return result;
 }
 
 size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
@@ -308,14 +329,15 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     std::sort(result.begin(), result.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
         return lhs.first < rhs.first;
     });
-    process_country_borders(result);
+
+    result = process_country_borders(result, extent);
 
     return result;
 }
 
 static GnfrSector detect_gnfr_sector_from_filename(const fs::path& filePath)
 {
-    // co_A_PublicPower
+    // format: co_A_PublicPower
 
     const auto filename = filePath.stem().u8string();
     if (const auto pos = filename.find_first_of('_'); pos != std::string::npos && (pos + 1) < filename.size()) {
@@ -325,25 +347,23 @@ static GnfrSector detect_gnfr_sector_from_filename(const fs::path& filePath)
     throw RuntimeError("Could not determine sector from filename: {}", filename);
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb)
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras       = read_raster_north_up(rasterInput);
     const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, progressCb);
-    return extract_countries_from_raster(rasterInput, coverages, outputDir, progressCb);
+    return extract_countries_from_raster(rasterInput, gnfrSector, coverages, outputDir, filenameFormat, progressCb);
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb)
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
 {
-    const auto ras        = read_raster_north_up(rasterInput);
-    const auto gnfrSector = detect_gnfr_sector_from_filename(rasterInput);
-
+    const auto ras = read_raster_north_up(rasterInput);
     fs::create_directories(outputDir);
 
     GridProcessingProgress progress(countries.size(), progressCb);
 
     for (const auto& [countryId, coverages] : countries) {
         Country country(countryId);
-        const auto countryOutputPath = outputDir / fs::u8path(fmt::format("{}_{}.tif", rasterInput.stem().u8string(), country.code()));
+        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.code(), EmissionSector(gnfrSector)));
         gdx::write_raster(cutout_country(ras, coverages, gnfrSector), countryOutputPath);
 
         progress.set_payload(countryId);

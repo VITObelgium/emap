@@ -2,6 +2,7 @@
 
 #include "emap/country.h"
 #include "emap/griddefinition.h"
+#include "emap/sector.h"
 #include "infra/filesystem.h"
 #include "infra/geometadata.h"
 #include "infra/progressinfo.h"
@@ -31,20 +32,15 @@ struct GridProcessingProgressInfo
 struct CellCoverageInfo
 {
     constexpr CellCoverageInfo() noexcept;
-    CellCoverageInfo(Cell c, double cov, std::unique_ptr<geos::geom::Geometry> geom) noexcept;
-    ~CellCoverageInfo() noexcept;
-
-    CellCoverageInfo(const CellCoverageInfo&) = delete;
-    CellCoverageInfo(CellCoverageInfo&&) noexcept;
+    CellCoverageInfo(Cell c, double cov) noexcept;
 
     constexpr bool operator==(const CellCoverageInfo& other) const noexcept
     {
-        return cell == other.cell && coverage == other.coverage && geometry.get() == other.geometry.get();
+        return cell == other.cell && coverage == other.coverage;
     }
 
     Cell cell;
     double coverage = 0.0;
-    std::unique_ptr<geos::geom::Geometry> geometry; // contains the geometry if the coverage is less than 1.0
 };
 
 using GridProcessingProgress = inf::ProgressTracker<Country::Id>;
@@ -55,8 +51,8 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput);
 
 size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb);
-void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb);
-void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, const GridProcessingProgress::Callback& progressCb);
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 
 }
 

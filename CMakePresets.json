@@ -41,29 +41,29 @@
                 "VCPKG_TARGET_ARCHITECTURE": "x64",
                 "VCPKG_CRT_LINKAGE": "static",
                 "VCPKG_LIBRARY_LINKAGE": "static",
-                "VCPKG_PLATFORM_TOOLSET": "v142",
+                "VCPKG_PLATFORM_TOOLSET": "v143",
                 "VCPKG_SET_CHARSET_FLAG": "ON"
             }
         },
         {
-          "name": "x64-windows-static-vs2019 debug",
+          "name": "x64-windows-static-vs2022 debug",
           "inherits": "windows-base",
           "displayName": "Windows x64 Debug",
           "description": "Vcpkg debug build for x64 on windows",
           "cacheVariables": {
-            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
-            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2019",
+            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
+            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
             "CMAKE_BUILD_TYPE": "Debug"
           }
         },
         {
-          "name": "x64-windows-static-vs2019 release",
+          "name": "x64-windows-static-vs2022 release",
           "inherits": "windows-base",
           "displayName": "Windows x64 Release",
           "description": "Vcpkg release build for x64 on windows",
           "cacheVariables": {
-            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2019",
-            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2019",
+            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
+            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
             "CMAKE_BUILD_TYPE": "Release"
           }
         },
@@ -94,18 +94,18 @@
         {
             "name": "Ninja debug",
             "displayName": "Debug",
-            "configurePreset": "x64-windows-static-vs2019 debug"
+            "configurePreset": "x64-windows-static-vs2022 debug"
         },
         {
             "name": "Ninja release",
             "displayName": "Release",
-            "configurePreset": "x64-windows-static-vs2019 release"
+            "configurePreset": "x64-windows-static-vs2022 release"
         }
     ],
     "testPresets": [
         {
             "name": "default",
-            "configurePreset": "x64-windows-static-vs2019 release",
+            "configurePreset": "x64-windows-static-vs2022 release",
             "output": {
                 "outputOnFailure": true
             },

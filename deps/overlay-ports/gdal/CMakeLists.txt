@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 include(CMakeDependentOption)
 
 project(gdal
-    VERSION 3.3.1
+    VERSION 3.4.0
     LANGUAGES C CXX
 )
 
@@ -435,6 +435,7 @@ endif ()
 add_library(port OBJECT
     port/cpl_aws_win32.cpp
     port/cpl_conv.cpp
+    port/cpl_compressor.cpp
     port/cpl_error.cpp
     port/cpl_string.cpp
     port/cplstring.cpp
@@ -674,6 +675,7 @@ PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/gnm/gnm_frmts/>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ogr/ogrsf_frmts/geojson>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/alg>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/apps>
 )
 
 target_link_libraries(gcore PUBLIC
@@ -1040,7 +1042,7 @@ target_include_directories(frmts PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/apps>
 )
 
-target_link_libraries(frmts PRIVATE gcore)
+target_link_libraries(frmts PRIVATE gcore PROJ::proj)
 set_target_properties(frmts PROPERTIES PUBLIC_HEADER "${FRMTS_PUBLIC_HEADERS}")
 
 message(STATUS "Supported raster formats:")
@@ -1416,6 +1418,7 @@ PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ogr>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/apps>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/frmts/vrt>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/frmts/mem>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ogr/ogrsf_frmts>
 )
 

@@ -17,7 +17,7 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
     EmissionInventory result;
 
     for (const auto& em : totalEmissions) {
-        double diffuseEmission = em.value().amount();
+        double diffuseEmission  = em.value().amount();
         double pointEmissionSum = 0.0;
         std::vector<EmissionEntry> pointSourceEntries;
 
@@ -26,7 +26,7 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
             // from the total emissions
 
             pointSourceEntries = pointSourceEmissions.emissions_with_id(em.id());
-            pointEmissionSum = std::accumulate(pointSourceEntries.cbegin(), pointSourceEntries.cend(), 0.0, [](double total, const auto& current) {
+            pointEmissionSum   = std::accumulate(pointSourceEntries.cbegin(), pointSourceEntries.cend(), 0.0, [](double total, const auto& current) {
                 return total + current.value().amount();
             });
 
@@ -35,7 +35,7 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
             // TODO: validated results logic
         }
 
-        EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, pointEmissionSum, std::move(pointSourceEntries));
+        EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
         entry.set_diffuse_scaling(diffuseScalings.scaling_for_id(em.id()).value_or(1.0));
         entry.set_point_scaling(pointScalings.scaling_for_id(em.id()).value_or(1.0));
         result.add_emission(std::move(entry));

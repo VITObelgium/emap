@@ -2,9 +2,9 @@
 
 #include "enuminfo.h"
 #include "infra/cast.h"
-#include "infra/string.h"
 #include "infra/enumutils.h"
 #include "infra/exception.h"
+#include "infra/string.h"
 
 #include <algorithm>
 #include <array>
@@ -54,59 +54,61 @@ Pollutant Pollutant::from_string(std::string_view str)
 {
     Pollutant::Id id = Pollutant::Id::Invalid;
 
-    if (str == "CO") {
+    const auto strLowerCase = str::lowercase(str);
+
+    if (strLowerCase == "co") {
         id = Pollutant::Id::CO;
-    } else if (str == "NH3") {
+    } else if (strLowerCase == "nh3") {
         id = Pollutant::Id::NH3;
-    } else if (str == "NMVOC" || str == "NMVOS" || str == "Totaal NMVOS") {
+    } else if (strLowerCase == "nmvoc" || strLowerCase == "nmvos" || strLowerCase == "totaal nmvos") {
         id = Pollutant::Id::NMVOC;
-    } else if (str::starts_with(str, "NOx")) {
+    } else if (str::starts_with(strLowerCase, "nox")) {
         id = Pollutant::Id::NOx;
-    } else if (str == "PM10") {
+    } else if (strLowerCase == "pm10") {
         id = Pollutant::Id::PM10;
-    } else if (str == "PM2.5" || str == "PM2,5") {
+    } else if (strLowerCase == "pm2.5" || strLowerCase == "pm2,5" || strLowerCase == "pm2_5") {
         id = Pollutant::Id::PM2_5;
-    } else if (str == "PMcoarse") {
+    } else if (strLowerCase == "pmcoarse") {
         id = Pollutant::Id::PMcoarse;
-    } else if (str::starts_with(str, "SOx")) {
+    } else if (str::starts_with(strLowerCase, "sox") || strLowerCase == "so2") {
         id = Pollutant::Id::SOx;
-    } else if (str == "TSP") {
+    } else if (strLowerCase == "tsp") {
         id = Pollutant::Id::TSP;
-    } else if (str == "BC") {
+    } else if (strLowerCase == "bc") {
         id = Pollutant::Id::BC;
-    } else if (str == "Pb") {
+    } else if (strLowerCase == "pb") {
         id = Pollutant::Id::Pb;
-    } else if (str == "Cd") {
+    } else if (strLowerCase == "cd") {
         id = Pollutant::Id::Cd;
-    } else if (str == "Hg") {
+    } else if (strLowerCase == "hg") {
         id = Pollutant::Id::Hg;
-    } else if (str == "As") {
+    } else if (strLowerCase == "as") {
         id = Pollutant::Id::As;
-    } else if (str == "Cr") {
+    } else if (strLowerCase == "cr") {
         id = Pollutant::Id::Cr;
-    } else if (str == "Cu") {
+    } else if (strLowerCase == "cu") {
         id = Pollutant::Id::Cu;
-    } else if (str == "Ni") {
+    } else if (strLowerCase == "ni") {
         id = Pollutant::Id::Ni;
-    } else if (str == "Se") {
+    } else if (strLowerCase == "se") {
         id = Pollutant::Id::Se;
-    } else if (str == "Zn") {
+    } else if (strLowerCase == "zn") {
         id = Pollutant::Id::Zn;
-    } else if (str == "PCDD-PCDF" || str::starts_with(str, "PCDD/ PCDF")) {
+    } else if (strLowerCase == "pcdd-pcdf" || str::starts_with(str, "u")) {
         id = Pollutant::Id::PCDD_PCDF;
-    } else if (str == "BaP" || str == "benzo(a) pyrene") {
+    } else if (strLowerCase == "bap" || strLowerCase == "benzo(a) pyrene") {
         id = Pollutant::Id::BaP;
-    } else if (str == "BbF" || str == "benzo(b) fluoranthene") {
+    } else if (strLowerCase == "bbf" || strLowerCase == "benzo(b) fluoranthene") {
         id = Pollutant::Id::BbF;
-    } else if (str == "BkF" || str == "benzo(k) fluoranthene") {
+    } else if (strLowerCase == "bkf" || strLowerCase == "benzo(k) fluoranthene") {
         id = Pollutant::Id::BkF;
-    } else if (str == "Indeno" || str == "Indeno (1,2,3-cd) pyrene") {
+    } else if (strLowerCase == "indeno" || strLowerCase == "Indeno (1,2,3-cd) pyrene") {
         id = Pollutant::Id::Indeno;
-    } else if (str == "PAHs" || str == "Total 1-4" || str == "PAK 4") {
+    } else if (strLowerCase == "pahs" || strLowerCase == "Total 1-4" || strLowerCase == "PAK 4") {
         id = Pollutant::Id::PAHs;
-    } else if (str == "HCB") {
+    } else if (strLowerCase == "hcb") {
         id = Pollutant::Id::HCB;
-    } else if (str == "PCBs") {
+    } else if (strLowerCase == "pcbs") {
         id = Pollutant::Id::PCBs;
     }
 

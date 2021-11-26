@@ -17,6 +17,7 @@
 #include <string>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace emap {
 
@@ -169,12 +170,55 @@ SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData)
     auto ds    = gdal::VectorDataSet::open(emissionsData);
     auto layer = ds.layer(0);
 
-    auto colX         = layer.layer_definition().required_field_index("Emissiepunt X Coördinaat (Lambert)");
-    auto colY         = layer.layer_definition().required_field_index("Emissiepunt Y Coördinaat (Lambert)");
-    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
-    auto colUnit      = layer.layer_definition().required_field_index("Eenheid emissie");
+    auto colX           = layer.layer_definition().required_field_index("Emissiepunt X Coördinaat (Lambert)");
+    auto colY           = layer.layer_definition().required_field_index("Emissiepunt Y Coördinaat (Lambert)");
+    auto colEmission    = layer.layer_definition().required_field_index("Emissie");
+    auto colUnit        = layer.layer_definition().required_field_index("Eenheid emissie");
+    auto colHeight      = layer.layer_definition().required_field_index("Emissiepunt Hoogte      (m)");
+    auto colDiameter    = layer.layer_definition().required_field_index("Emissiepunt Diameter (m)");
+    auto colTemperature = layer.layer_definition().required_field_index("Temperatuur (°C)");
+    auto colWarmth      = layer.layer_definition().required_field_index("Warmte inhoud    (MW)");
+    auto colFlowRate    = layer.layer_definition().required_field_index("Debiet");
+
     auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
     auto colPollutant = layer.layer_definition().required_field_index("Verontreinigende stof");
+
+    /*struct PmPointEmissionId
+    {
+        bool operator==(const PmPointEmissionId& other) const noexcept
+        {
+            return sector == other.sector &&
+                   coordinate == other.coordinate &&
+                   height == other.height &&
+                   diameter == other.diameter &&
+                   temperature == other.temperature &&
+                   warmthContents == other.warmthContents &&
+                   flowRate == other.flowRate;
+        }
+
+        EmissionSector sector;
+        std::optional<Coordinate> coordinate;
+        double height         = 0.0;
+        double diameter       = 0.0;
+        double temperature    = 0.0;
+        double warmthContents = 0.0;
+        double flowRate       = 0.0;
+    };
+
+    struct PmPointEmissionValue
+    {
+        PmPointEmissionValue() = default;
+        PmPointEmissionValue(PmPointEmissionId id_)
+        : id(id_)
+        {
+        }
+
+        PmPointEmissionId id;
+        std::optional<EmissionEntry> pm10;
+        std::optional<EmissionEntry> pm25;
+    };
+
+    std::vector<PmPointEmissionValue> pmEmissions;*/
 
     for (auto& feature : layer) {
         if (feature.field_as<std::string_view>(colPollutant).empty()) {
@@ -188,8 +232,72 @@ SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData)
             EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
 
         info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
+        info.set_height(feature.field_as<double>(colHeight));
+        info.set_diameter(feature.field_as<double>(colDiameter));
+        info.set_temperature(feature.field_as<double>(colTemperature));
+        info.set_warmth_contents(feature.field_as<double>(colWarmth));
+        info.set_flow_rate(feature.field_as<double>(colFlowRate));
+
+        /*if (info.pollutant() == Pollutant::Id::PM10 || info.pollutant() == Pollutant::Id::PM2_5) {
+            PmPointEmissionId pointId;
+            pointId.sector         = info.id().sector;
+            pointId.coordinate     = info.coordinate();
+            pointId.height         = info.height();
+            pointId.diameter       = info.diameter();
+            pointId.temperature    = info.temperature();
+            pointId.warmthContents = info.warmth_contents();
+            pointId.flowRate       = info.flow_rate();
+
+            bool inserted = false;
+
+            auto* iter = find_in_container(pmEmissions, [&pointId](const PmPointEmissionValue& val) {
+                return val.id == pointId;
+            });
+
+            if (iter) {
+                if (info.pollutant() == Pollutant::Id::PM10) {
+                    if (iter->pm10.has_value()) {
+                        throw RuntimeError("Point emission id pm10 unique check failed");
+                    }
+
+                    iter->pm10 = info;
+                } else {
+                    if (iter->pm25.has_value()) {
+                        throw RuntimeError("Point emission id pm2.5 unique check failed");
+                    }
+
+                    iter->pm25 = info;
+                }
+            }
+        }*/
+
         result.add_emission(std::move(info));
     }
+
+    //// Add PmCoarse entries if Pm10 and Pm2.5 are available
+    //for (auto& emission : pmEmissions) {
+    //    if (emission.pm10.has_value() && emission.pm25.has_value()) {
+    //        if (emission.pm10->value().amount() < emission.pm25->value().amount()) {
+    //            throw RuntimeError("Invalid PM data for point source id (Sector {} (PM10: {}, PM2.5 {})", emission.id.sector, emission.pm10->value().amount(), emission.pm25->value().amount());
+    //        }
+
+    //        EmissionEntry pmc(
+    //            EmissionIdentifier(Country::Id::BEF, emission.id.sector, Pollutant::Id::PMcoarse),
+    //            EmissionValue(EmissionValue(emission.pm10->value().amount() - emission.pm25->value().amount())));
+
+    //        if (emission.id.coordinate.has_value()) {
+    //            pmc.set_coordinate(*emission.id.coordinate);
+    //        }
+
+    //        pmc.set_height(emission.pm10->height());
+    //        pmc.set_diameter(emission.pm10->diameter());
+    //        pmc.set_temperature(emission.pm10->temperature());
+    //        pmc.set_warmth_contents(emission.pm10->warmth_contents());
+    //        pmc.set_flow_rate(emission.pm10->flow_rate());
+
+    //        result.add_emission(std::move(pmc));
+    //    }
+    //}
 
     return result;
 }
@@ -207,51 +315,6 @@ Country detect_belgian_region_from_filename(const fs::path& path)
 
     throw RuntimeError("Could not detect region from filename: {}", filename);
 }
-
-//SingleEmissions parse_emissions_flanders(const fs::path& emissionsData)
-//{
-//    SingleEmissions result;
-//
-//    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
-//    auto ds    = gdal::VectorDataSet::open(emissionsData);
-//    auto layer = ds.layer(0);
-//
-//    auto colX         = layer.layer_definition().required_field_index("KM2 Grid Lambert X Coördinaat");
-//    auto colY         = layer.layer_definition().required_field_index("KM2 Grid Lambert Y Coördinaat");
-//    auto colEmission  = layer.layer_definition().required_field_index("Emissie");
-//    auto colUnit      = layer.layer_definition().required_field_index("Eenheid Symbool");
-//    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
-//    auto colPollutant = layer.layer_definition().required_field_index("Parameter Symbool");
-//
-//    static const std::unordered_set<std::string_view> memoSectors{{
-//        "1A3ai(ii)",
-//        "1A3aii(ii)",
-//        "1A3di(i)",
-//        "1A5c"
-//        "6B",
-//        "11A",
-//        "11B",
-//        "11C",
-//    }};
-//
-//    for (auto& feature : layer) {
-//        auto sectorName = feature.field_as<std::string_view>(colSector);
-//        if (sectorName.empty() || memoSectors.count(sectorName) > 0) {
-//            continue;
-//        }
-//
-//        EmissionEntry info(
-//            EmissionIdentifier(Country::Id::BEF,
-//                               to_sector(EmissionSector::Type::Nfr, sectorName),
-//                               to_pollutant(feature.field_as<std::string_view>(colPollutant))),
-//            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
-//
-//        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
-//        result.add_emission(std::move(info));
-//    }
-//
-//    return result;
-//}
 
 std::optional<Pollutant> detect_pollutant_name_from_header(std::string_view hdr)
 {
@@ -312,7 +375,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
             std::optional<NfrSector> sectorOverride;
 
             try {
-                nfrSector            = EmissionSector(nfr_sector_from_string(nfrSectorName));
+                nfrSector      = EmissionSector(nfr_sector_from_string(nfrSectorName));
                 sectorOverride = nfrSector.is_sector_override();
                 if (sectorOverride.has_value()) {
                     // this sector overrides the value of another sector
@@ -401,7 +464,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     id.country = Country::Id::BEF;
 
     auto colYear      = layer.layer_definition().required_field_index("year");
-    auto colSector    = layer.layer_definition().required_field_index("nfr-sector");
+    auto colSector    = layer.layer_definition().required_field_index("nfr_sector");
     auto colPollutant = layer.layer_definition().required_field_index("pollutant");
     auto colX         = layer.layer_definition().required_field_index("x_lambert");
     auto colY         = layer.layer_definition().required_field_index("y_lambert");
