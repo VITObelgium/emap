@@ -104,62 +104,64 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, date::ye
     }
 
     if (pathsToProcessBef.empty()) {
-        throw RuntimeError("No spatial patter info available for flanders for year {}", static_cast<int>(year));
+        throw RuntimeError("No spatial pattern info available for flanders for year {}", static_cast<int>(year));
     }
 
-    int64_t progressTicks = 0;
+    if (pathsToProcessNotBef.empty()) {
+        throw RuntimeError("No spatial pattern info available for year {}", static_cast<int>(year));
+    }
 
-    PreprocessingProgress progress(progressCb);
+    static const char* fieldId = "Code3";
 
-    if (!pathsToProcessNotBef.empty()) {
-        static const char* fieldId = "Code3";
+    auto extent = gdal::io::read_metadata(pathsToProcessNotBef.front().path);
+    if (!extent.is_north_up()) {
+        extent = read_raster_north_up(pathsToProcessNotBef.front().path).metadata();
+    }
 
-        auto extent = gdal::io::read_metadata(pathsToProcessNotBef.front().path);
-        if (!extent.is_north_up()) {
-            extent = read_raster_north_up(pathsToProcessNotBef.front().path).metadata();
-        }
+    PreprocessingProgress progress(known_countries_in_extent(extent, countriesVector, fieldId) + pathsToProcessNotBef.size() + pathsToProcessBef.size(), progressCb);
 
-        progress.reset(known_countries_in_extent(extent, countriesVector, fieldId));
+    const std::string filenamePrefix = fmt::format("spatial_pattern_{}", static_cast<int>(year));
 
-        const std::string filenamePrefix = fmt::format("spatial_pattern_{}", static_cast<int>(year));
+    const auto countryCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
+        PreprocessingProgressInfo info;
+        info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
+        info.country = status.payload();
+        progress.set_payload(info);
+        progress.tick();
+        return ProgressStatusResult::Continue;
+    });
 
-        const auto countyCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
+    fs::create_directories(outputDir);
+
+    tbb::parallel_for_each(pathsToProcessNotBef.begin(), pathsToProcessNotBef.end(), [&](const ProcessData& processData) {
+        Log::info(processData.path.u8string());
+        extract_countries_from_raster(
+            processData.path, processData.sector, countryCoverages, outputDir, fmt::format("{}_{{}}_{}_{}.tif", filenamePrefix, processData.sector, processData.pollutant), [](const GridProcessingProgress::Status& /*status*/) {
+                return ProgressStatusResult::Continue;
+            });
+
+        PreprocessingProgressInfo info;
+        info.step = PreprocessingProgressInfo::Step::CountryExtraction;
+        info.file = &processData.path;
+        progress.set_payload(info);
+        progress.tick_throw_on_cancel();
+    });
+
+    tbb::parallel_for_each(pathsToProcessBef.begin(), pathsToProcessBef.end(), [&](const ProcessDataBEF& processData) {
+        const auto spatialPatternDataFlanders = parse_spatial_pattern_flanders(processData.path);
+        for (const auto& spatData : spatialPatternDataFlanders) {
+            assert(spatData.year == year);
             PreprocessingProgressInfo info;
             info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
-            info.country = status.payload();
-            progress.set_payload(info);
-            progress.tick();
-            return ProgressStatusResult::Continue;
-        });
-
-        tbb::parallel_for_each(pathsToProcessNotBef.begin(), pathsToProcessNotBef.end(), [&](const ProcessData& processData) {
-            extract_countries_from_raster(
-                processData.path, processData.sector, countyCoverages, outputDir, fmt::format("{}_{{}}_{{}}_{}.tif", filenamePrefix, processData.pollutant), [](const GridProcessingProgress::Status& /*status*/) {
-                    return ProgressStatusResult::Continue;
-                });
-
-            PreprocessingProgressInfo info;
-            info.step = PreprocessingProgressInfo::Step::CountryExtraction;
-            info.file = &processData.path;
+            info.country = Country(Country::Id::BEF).id();
             progress.set_payload(info);
             progress.tick_throw_on_cancel();
-        });
 
-        tbb::parallel_for_each(pathsToProcessBef.begin(), pathsToProcessBef.end(), [&](const ProcessDataBEF& processData) {
-            const auto spatialPatternDataFlanders = parse_spatial_pattern_flanders(processData.path);
-            for (const auto& spatData : spatialPatternDataFlanders) {
-                assert(spatData.year == year);
-
-                gdx::DenseRaster<double> result(copy_metadata_replace_nodata(extent, math::nan<double>()), math::nan<float>());
-                inf::gdal::io::warp_raster<double, double>(spatData.raster, spatData.raster.metadata(), result, result.metadata(), gdal::ResampleAlgorithm::Sum);
-                gdx::write_raster(result, outputDir / fmt::format("{}_{}_{}_{}.tif", filenamePrefix, Country(Country::Id::BEF).code(), spatData.id.sector, processData.pollutant));
-            }
-        });
-    }
-
-    if (!pathsToProcessBef.empty()) {
-        progress.reset(pathsToProcessNotBef.size());
-    }
+            gdx::DenseRaster<double> result(copy_metadata_replace_nodata(extent, math::nan<double>()), math::nan<float>());
+            inf::gdal::io::warp_raster<double, double>(spatData.raster, spatData.raster.metadata(), result, result.metadata(), gdal::ResampleAlgorithm::Sum);
+            gdx::write_raster(result, outputDir / fmt::format("{}_{}_{}_{}.tif", filenamePrefix, Country(Country::Id::BEF).code(), spatData.id.sector, processData.pollutant));
+        }
+    });
 }
 
 void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb)

@@ -357,13 +357,13 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
 void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras = read_raster_north_up(rasterInput);
-    fs::create_directories(outputDir);
 
     GridProcessingProgress progress(countries.size(), progressCb);
 
     for (const auto& [countryId, coverages] : countries) {
         Country country(countryId);
-        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.code(), EmissionSector(gnfrSector)));
+        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.code()));
+
         gdx::write_raster(cutout_country(ras, coverages, gnfrSector), countryOutputPath);
 
         progress.set_payload(countryId);
