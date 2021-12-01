@@ -11,8 +11,9 @@ namespace emap {
 
 class ScalingFactors;
 
-SingleEmissions parse_emissions(const fs::path& emissionsCsv);
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv);
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year);
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv); // TODO: still using this?
 SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData);
 ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv);
 

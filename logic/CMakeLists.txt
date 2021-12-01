@@ -1,8 +1,8 @@
 find_package(TBB CONFIG REQUIRED)
 find_package(oneDPL CONFIG REQUIRED)
-#find_package(Typesafe REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
+find_package(FastCppCsvParser REQUIRED)
 
 add_library(emaplogic
     include/emap/country.h country.cpp
@@ -42,7 +42,7 @@ PUBLIC
 PRIVATE
     TBB::tbb
     oneDPL
-    #Typesafe::Typesafe
+    FastCppCsvParser::csv
     GEOS::geos
     tomlplusplus::tomlplusplus
 )

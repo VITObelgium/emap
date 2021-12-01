@@ -134,7 +134,6 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, date::ye
     fs::create_directories(outputDir);
 
     tbb::parallel_for_each(pathsToProcessNotBef.begin(), pathsToProcessNotBef.end(), [&](const ProcessData& processData) {
-        Log::info(processData.path.u8string());
         extract_countries_from_raster(
             processData.path, processData.sector, countryCoverages, outputDir, fmt::format("{}_{{}}_{}_{}.tif", filenamePrefix, processData.sector, processData.pollutant), [](const GridProcessingProgress::Status& /*status*/) {
                 return ProgressStatusResult::Continue;

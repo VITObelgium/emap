@@ -4,6 +4,7 @@
     "version": "0.1.0",
     "dependencies": [
         "cryptopp",
+        "fast-cpp-csv-parser",
         "doctest",
         "eigen3",
         "tiff",

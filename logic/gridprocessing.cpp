@@ -129,11 +129,7 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
             continue;
         }
 
-        if (emissionSector.is_land_sector()) {
-            result[cell] = ras[cell] * coverage;
-        } else {
-            // TODO: sea sector logic
-        }
+        result[cell] = ras[cell] * coverage;
     }
 
     // normalize the raster so the sum is 1
@@ -330,6 +326,9 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         return lhs.first < rhs.first;
     });
 
+    // Update the coverages on the country borders to get appropriate spreading of the emissions
+    // e.g.: if one cell contains 25% water from ocean1 and 25% water from ocean2 and 50% land the coverage of
+    // both oceans will be modified to 50% each, as they will both receive half of the emission for sea sectors
     result = process_country_borders(result, extent);
 
     return result;

@@ -17,7 +17,7 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
     EmissionInventory result;
 
     for (const auto& em : totalEmissions) {
-        double diffuseEmission  = em.value().amount();
+        double diffuseEmission  = em.value().amount().value_or(0.0);
         double pointEmissionSum = 0.0;
         std::vector<EmissionEntry> pointSourceEntries;
 
@@ -27,12 +27,16 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
 
             pointSourceEntries = pointSourceEmissions.emissions_with_id(em.id());
             pointEmissionSum   = std::accumulate(pointSourceEntries.cbegin(), pointSourceEntries.cend(), 0.0, [](double total, const auto& current) {
-                return total + current.value().amount();
+                return total + current.value().amount().value_or(0.0);
             });
 
         } else {
             // Rest of Europe
             // TODO: validated results logic
+        }
+
+        if (pointEmissionSum > diffuseEmission) {
+            throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
         }
 
         EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));

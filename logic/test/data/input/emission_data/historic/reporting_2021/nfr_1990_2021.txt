@@ -1,0 +1,11 @@
+# WebDab output on Thu Aug  5 08:44:57 2021
+# Datasource: EMEP/CEIP 2021, Officially reported emission data
+# Terms of reference: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/deed.en)
+# Emission category: NFR14/NFR19
+# Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
+DE;1990;1A1a;PCB;Gg;0.0003408784
+DE;1990;1A1b;PCB;Gg;NE
+EE;1990;1A3biii;PCB;Gg;1.7e-11
+AT;1990;3Da2a;benzo(b);Gg;NA
+DE;1990;1A3bi(fu);benzo(b);Gg;NR
+DE;1990;1A3bvi(fu);benzo(b);Gg;NR

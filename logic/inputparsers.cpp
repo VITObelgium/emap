@@ -12,6 +12,7 @@
 
 #include <cassert>
 #include <cpl_port.h>
+#include <csv.h>
 #include <exception>
 #include <limits>
 #include <string>
@@ -81,7 +82,7 @@ static double to_double(std::string_view valueString, size_t lineNr)
     throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
-SingleEmissions parse_emissions(const fs::path& emissionsCsv)
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv)
 {
     // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
     // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
@@ -120,6 +121,49 @@ SingleEmissions parse_emissions(const fs::path& emissionsCsv)
 
             result.add_emission(std::move(info));
             ++lineNr;
+        }
+
+        return result;
+    } catch (const std::exception& e) {
+        throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
+    }
+}
+
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv)
+{
+    // First lines are comments
+    // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
+
+    try {
+        SingleEmissions result;
+        Log::debug("Parse emissions: {}", emissionsCsv);
+
+        using namespace io;
+        CSVReader<6, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(emissionsCsv.u8string());
+
+        int year;
+        char *countryStr, *sector, *pollutant, *unit, *value;
+        while (in.read_row(countryStr, year, sector, pollutant, unit, value)) {
+            auto emissionValue = str::to_double(value);
+            if (emissionValue.has_value()) {
+                *emissionValue = to_giga_gram(*emissionValue, unit);
+            }
+
+            const auto country = Country::try_from_string(countryStr);
+            if (!country.has_value()) {
+                // not interested in this country, no need to report this
+                continue;
+            }
+
+            try {
+                EmissionEntry info(
+                    EmissionIdentifier(*country, to_sector(sectorType, sector), to_pollutant(pollutant)),
+                    EmissionValue(emissionValue));
+
+                result.add_emission(std::move(info));
+            } catch (const std::exception& e) {
+                Log::warn("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());
+            }
         }
 
         return result;
@@ -525,5 +569,4 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
 
     return result;
 }
-
 }

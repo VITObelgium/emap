@@ -29,12 +29,12 @@ class EmissionValue
 {
 public:
     constexpr EmissionValue() noexcept = default;
-    constexpr explicit EmissionValue(double amount)
+    constexpr explicit EmissionValue(std::optional<double> amount)
     : _amount(amount)
     {
     }
 
-    constexpr double amount() const noexcept
+    constexpr std::optional<double> amount() const noexcept
     {
         return _amount;
     }
@@ -46,17 +46,22 @@ public:
 
     constexpr EmissionValue operator+(const EmissionValue& other) const noexcept
     {
-        return EmissionValue(_amount + other._amount);
+        return EmissionValue(_amount.value_or(0.0) + other._amount.value_or(0.0));
     }
 
     constexpr EmissionValue& operator+=(const EmissionValue& other) noexcept
     {
-        _amount += other._amount;
+        if (_amount.has_value()) {
+            *_amount += other._amount.value_or(0.0);
+        } else {
+            _amount = other._amount;
+        }
+
         return *this;
     }
 
 private:
-    double _amount = 0.0;
+    std::optional<double> _amount;
 };
 
 struct EmissionIdentifier
@@ -208,7 +213,6 @@ public:
     EmissionInventoryEntry(EmissionIdentifier id, double diffuseEmissions) noexcept
     : _id(id)
     , _diffuseEmission(diffuseEmissions)
-    , _pointEmission(0.0)
     {
     }
 
@@ -226,7 +230,7 @@ public:
 
     double total_emissions() const noexcept
     {
-        return _pointEmission + _diffuseEmission;
+        return point_emission_sum() + _diffuseEmission;
     }
 
     double diffuse_emissions() const noexcept
@@ -237,7 +241,7 @@ public:
     double point_emission_sum() const noexcept
     {
         return std::accumulate(_pointEmissionEntries.cbegin(), _pointEmissionEntries.cend(), 0.0, [](double total, const auto& current) {
-            return total + current.value().amount();
+            return total + current.value().amount().value_or(0.0);
         });
     }
 
@@ -258,7 +262,7 @@ public:
 
     double scaled_point_emissions() const noexcept
     {
-        return _pointEmission * _pointScaling;
+        return point_emission_sum() * _pointScaling;
     }
 
     void set_point_scaling(double factor) noexcept
@@ -274,7 +278,6 @@ public:
 private:
     EmissionIdentifier _id;
     double _diffuseEmission = 0.0;
-    double _pointEmission   = 0.0;
     std::vector<EmissionEntry> _pointEmissionEntries;
     double _pointScaling   = 1.0;
     double _diffuseScaling = 1.0;

@@ -11,24 +11,22 @@
 namespace emap {
 
 using namespace inf;
+using namespace std::string_view_literals;
 
-static constexpr std::array<EnumInfo<GnfrSector>, enum_count<GnfrSector>() + 3> s_gnfrSectors = {{
-    {GnfrSector::PublicPower, "A_PublicPower", "Public power"},
-    {GnfrSector::Industry, "B_Industry", "Industry"},
-    {GnfrSector::OtherStationaryComb, "C_OtherStatComb", "Other stationary combustion"},
-    {GnfrSector::OtherStationaryComb, "C_OtherStationaryComb", "Other stationary combustion"},
-    {GnfrSector::Fugitive, "D_Fugitive", "Fugitive"},
-    {GnfrSector::Fugitive, "D_Fugitives", "Fugitive"},
-    {GnfrSector::Solvents, "E_Solvents", "Solvents"},
-    {GnfrSector::RoadTransport, "F_RoadTransport", "Road transport"},
-    {GnfrSector::Shipping, "G_Shipping", "Shipping"},
-    {GnfrSector::Aviation, "H_Aviation", "Aviation"},
-    {GnfrSector::Offroad, "I_Offroad", "Offroad"},
-    {GnfrSector::Offroad, "I_OffRoad", "Offroad"},
-    {GnfrSector::Waste, "J_Waste", "Waste"},
-    {GnfrSector::AgriLivestock, "K_AgriLivestock", "Agriculture: live stock"},
-    {GnfrSector::AgriOther, "L_AgriOther", "Agriculture: other"},
-    {GnfrSector::Other, "M_Other", "Other"},
+static const std::array<MultiEnumInfo<GnfrSector>, enum_count<GnfrSector>()> s_gnfrSectors = {{
+    {GnfrSector::PublicPower, {"A_PublicPower"sv}, "Public power"},
+    {GnfrSector::Industry, {"B_Industry"sv}, "Industry"},
+    {GnfrSector::OtherStationaryComb, {"C_OtherStatComb"sv, "C_OtherStationaryComb"sv}, "Other stationary combustion"},
+    {GnfrSector::Fugitive, {"D_Fugitive"sv, "D_Fugitives"sv}, "Fugitive"},
+    {GnfrSector::Solvents, {"E_Solvents"sv}, "Solvents"},
+    {GnfrSector::RoadTransport, {"F_RoadTransport"sv}, "Road transport"},
+    {GnfrSector::Shipping, {"G_Shipping"sv}, "Shipping"},
+    {GnfrSector::Aviation, {"H_Aviation"sv}, "Aviation"},
+    {GnfrSector::Offroad, {"I_Offroad"sv, "I_OffRoad"}, "Offroad"},
+    {GnfrSector::Waste, {"J_Waste"sv}, "Waste"},
+    {GnfrSector::AgriLivestock, {"K_AgriLivestock"sv}, "Agriculture: live stock"},
+    {GnfrSector::AgriOther, {"L_AgriOther"sv}, "Agriculture: other"},
+    {GnfrSector::Other, {"M_Other"sv}, "Other"},
 }};
 
 static constexpr std::array<EnumInfo<NfrSector>, enum_count<NfrSector>()> s_nfrSectors = {{
@@ -305,9 +303,9 @@ static constexpr std::array<GnfrSector, enum_count<NfrSector>()> s_nfrToGnfrMapp
     GnfrSector::RoadTransport,       //1A3bvii(fu)
 }};
 
-constexpr std::string_view sector_name(GnfrSector sector) noexcept
+std::string_view sector_name(GnfrSector sector) noexcept
 {
-    return s_gnfrSectors[enum_value(sector)].serializedName;
+    return s_gnfrSectors[enum_value(sector)].serialized_name();
 }
 
 constexpr std::string_view sector_name(NfrSector sector) noexcept
@@ -433,7 +431,7 @@ template <typename SectorInfo>
 static auto find_sector(std::string_view str, const SectorInfo& sectors)
 {
     return std::find_if(sectors.begin(), sectors.end(), [str](const auto& sector) {
-        return sector.serializedName == str;
+        return sector.is_serialized_name(str);
     });
 }
 

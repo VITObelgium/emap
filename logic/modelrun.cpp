@@ -138,8 +138,8 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 {
     const auto pointSourcesFlanders = parse_point_sources_flanders(throw_if_not_exists(cfg.point_source_emissions_path()));
 
-    const auto nfrTotalEmissions   = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr)));
-    const auto gnfrTotalEmissions  = parse_emissions(throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr)));
+    const auto nfrTotalEmissions   = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Nfr)));
+    const auto gnfrTotalEmissions  = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path(EmissionSector::Type::Gnfr)));
     const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
     const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 

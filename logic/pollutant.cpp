@@ -94,13 +94,13 @@ Pollutant Pollutant::from_string(std::string_view str)
         id = Pollutant::Id::Se;
     } else if (strLowerCase == "zn") {
         id = Pollutant::Id::Zn;
-    } else if (strLowerCase == "pcdd-pcdf" || str::starts_with(str, "u")) {
+    } else if (strLowerCase == "pcdd-pcdf" || str::starts_with(strLowerCase, "pcdd/ pcdf")) {
         id = Pollutant::Id::PCDD_PCDF;
-    } else if (strLowerCase == "bap" || strLowerCase == "benzo(a) pyrene") {
+    } else if (strLowerCase == "bap" || strLowerCase == "benzo(a) pyrene" || strLowerCase == "benzo(a)") {
         id = Pollutant::Id::BaP;
-    } else if (strLowerCase == "bbf" || strLowerCase == "benzo(b) fluoranthene") {
+    } else if (strLowerCase == "bbf" || strLowerCase == "benzo(b) fluoranthene" || strLowerCase == "benzo(b)") {
         id = Pollutant::Id::BbF;
-    } else if (strLowerCase == "bkf" || strLowerCase == "benzo(k) fluoranthene") {
+    } else if (strLowerCase == "bkf" || strLowerCase == "benzo(k) fluoranthene" || strLowerCase == "benzo(k)") {
         id = Pollutant::Id::BkF;
     } else if (strLowerCase == "indeno" || strLowerCase == "Indeno (1,2,3-cd) pyrene") {
         id = Pollutant::Id::Indeno;
@@ -108,7 +108,7 @@ Pollutant Pollutant::from_string(std::string_view str)
         id = Pollutant::Id::PAHs;
     } else if (strLowerCase == "hcb") {
         id = Pollutant::Id::HCB;
-    } else if (strLowerCase == "pcbs") {
+    } else if (strLowerCase == "pcbs" || strLowerCase == "pcb") {
         id = Pollutant::Id::PCBs;
     }
 
