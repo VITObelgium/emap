@@ -129,6 +129,7 @@ public:
     std::string_view to_string() const noexcept;
     std::string_view code() const noexcept;
     std::string_view full_name() const noexcept;
+    bool included() const noexcept;
 
 private:
     Id _id = Id::Invalid;

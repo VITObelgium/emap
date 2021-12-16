@@ -4,6 +4,7 @@
 #include "emap/griddefinition.h"
 #include "emap/sector.h"
 #include "infra/filesystem.h"
+#include "infra/generator.h"
 #include "infra/geometadata.h"
 #include "infra/progressinfo.h"
 #include "infra/span.h"
@@ -53,6 +54,7 @@ size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path&
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb);
 void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
+generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries);
 
 }
 

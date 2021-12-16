@@ -1,5 +1,6 @@
 #include "emap/runconfiguration.h"
 
+#include "configurationutil.h"
 #include "infra/exception.h"
 #include "infra/string.h"
 
@@ -45,24 +46,42 @@ RunConfiguration::RunConfiguration(
 
 fs::path RunConfiguration::emissions_dir_path() const
 {
-    return _dataPath / "emission data" / run_type_name(_runType) / std::to_string(static_cast<int>(_year));
+    const auto dirName = _reportYear.has_value() ? fmt::format("reporting_{}", static_cast<int>(*_reportYear)) : std::to_string(static_cast<int>(_year));
+    return _dataPath / "emissions" / run_type_name(_runType) / fs::u8path(dirName);
 }
 
 fs::path RunConfiguration::point_source_emissions_path() const
 {
-    auto year = _reportYear.value_or(_year);
-    return emissions_dir_path() / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(year));
+    const auto year = _reportYear.value_or(_year);
+    return emissions_dir_path() / "pointsources" / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(year));
 }
 
-fs::path RunConfiguration::total_emissions_path(EmissionSector::Type sectorType) const
+fs::path RunConfiguration::total_emissions_path_nfr() const
 {
-    auto year = _reportYear.value_or(_year);
-    return emissions_dir_path() / fmt::format("total_emissions_{}_{}.csv", sectorType, static_cast<int>(year));
+    const auto reportYear = static_cast<int>(_reportYear.value_or(_year));
+    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(_year), reportYear);
 }
 
-fs::path RunConfiguration::spatial_pattern_path(const EmissionIdentifier& emissionId) const
+fs::path RunConfiguration::total_emissions_path_gnfr() const
 {
-    return _spatialPatternsPath / fs::u8path(fmt::format("{}_{}_{}.tif", str::lowercase(emissionId.pollutant.code()), emissionId.sector.gnfr_name(), emissionId.country.code()));
+    const auto year = static_cast<int>(_reportYear.value_or(_year));
+    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(year));
+}
+
+fs::path RunConfiguration::spatial_pattern_path(date::year year, const EmissionIdentifier& emissionId) const
+{
+    return _spatialPatternsPath / spatial_pattern_filename(year, emissionId);
+}
+
+fs::path RunConfiguration::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
+{
+    return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.code()));
+}
+
+fs::path RunConfiguration::emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const
+{
+    const int yearInt = static_cast<int>(year);
+    return output_path() / std::to_string(yearInt) / fs::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
 }
 
 fs::path RunConfiguration::diffuse_scalings_path() const
@@ -129,5 +148,4 @@ std::optional<int32_t> RunConfiguration::max_concurrency() const noexcept
 {
     return _concurrency;
 }
-
 }

@@ -2,7 +2,4 @@
 year = 2015
 spatial_patterns = "./input/spatial patterns"
 countries_vector = "./input/spatial patterns/boundaries.gpkg"
-
-[output]
-path = "./output/spreiding"
-
+output = "./output/spreiding"

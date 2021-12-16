@@ -17,11 +17,14 @@ add_library(emaplogic
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
+    include/emap/runsummary.h runsummary.cpp
     include/emap/preprocessingconfiguration.h preprocessingconfiguration.cpp
+    include/emap/outputwriters.h outputwriters.cpp
     enuminfo.h
     emissioninventory.h
     unitconversion.h
     geometry.h geometry.cpp
+    configurationutil.h
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 

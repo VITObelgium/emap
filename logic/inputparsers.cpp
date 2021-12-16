@@ -12,13 +12,21 @@
 
 #include <cassert>
 #include <cpl_port.h>
-#include <csv.h>
 #include <exception>
 #include <limits>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4267 4244)
+#endif
+#include <csv.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 namespace emap {
 
@@ -150,7 +158,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             const auto country = Country::try_from_string(countryStr);
-            if (!country.has_value()) {
+            if (!country.has_value() || !country->included()) {
                 // not interested in this country, no need to report this
                 continue;
             }
@@ -162,7 +170,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
 
                 result.add_emission(std::move(info));
             } catch (const std::exception& e) {
-                Log::warn("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());
+                Log::debug("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());
             }
         }
 

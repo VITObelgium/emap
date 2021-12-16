@@ -13,19 +13,21 @@
 # 2010 / emissions.csv
 # 2011 / emissions.csv
 
-[input]
-grid = "beleuros"
+# [preprocess]
+# year = 2015
+# spatial_patterns = "./input/spatial patterns"
+# countries_vector = "./input/spatial patterns/boundaries.gpkg"
+# output = "./output/spreiding"
+
+[model]
+grid = "vlops1km"
 datapath = "./input"
 type = "emep" # of gains
-year = 1990
-report_year = 2015 # empty for latest
+year = 2015
+report_year = 2021 # empty for latest
 scenario = "test"
 spatial_patterns = "./output/spreiding"
-
-[output]
-path = "./output"
-
-# rasters or shapefiles?
+emissions_output = "./output/emissies"
 
 [options]
 validation = false

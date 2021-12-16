@@ -48,6 +48,7 @@ if (WIN32)
         $<$<CXX_COMPILER_ID:MSVC>:/w34265>
         $<$<CXX_COMPILER_ID:MSVC>:/w34287>
         $<$<CXX_COMPILER_ID:MSVC>:/w35038>
+        $<$<CXX_COMPILER_ID:MSVC>:/await>
     )
 
     if (MSVC)
@@ -100,7 +101,7 @@ endif ()
 add_subdirectory(logic)
 add_subdirectory(cli)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/legionellaconfig.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/emapconfig.h)
 if (WIN32)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
 endif ()

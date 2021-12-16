@@ -329,6 +329,30 @@ public:
         return result;
     }
 
+    std::vector<const TEmission*> emissions_for_pollutant(Pollutant pol) const
+    {
+        std::vector<const TEmission*> result;
+        for (auto& emission : _emissions) {
+            if (emission.id().pollutant == pol) {
+                result.push_back(&emission);
+            }
+        }
+
+        return result;
+    }
+
+    std::vector<const TEmission*> emissions_for_pollutant_for_sector(Pollutant pol, EmissionSector sector) const
+    {
+        std::vector<const TEmission*> result;
+        for (auto& emission : _emissions) {
+            if (emission.id().pollutant == pol && emission.id().sector == sector) {
+                result.push_back(&emission);
+            }
+        }
+
+        return result;
+    }
+
     size_t size() const noexcept
     {
         return _emissions.size();

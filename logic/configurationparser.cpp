@@ -35,6 +35,22 @@ static GridDefinition grid_from_string(std::string_view grid)
         return GridDefinition::Chimere1;
     }
 
+    if (grid == "vlops1km") {
+        return GridDefinition::Vlops1km;
+    }
+
+    if (grid == "vlops250m") {
+        return GridDefinition::Vlops250m;
+    }
+
+    if (grid == "rio4x4") {
+        return GridDefinition::Rio4x4;
+    }
+
+    if (grid == "rio4x4extended") {
+        return GridDefinition::Rio4x4Extended;
+    }
+
     throw RuntimeError("Invalid grid type: '{}'", grid);
 }
 
@@ -168,15 +184,12 @@ static std::optional<PreprocessingConfiguration> parse_preprocessing_configurati
             return {};
         }
 
-        throw_on_missing_section(table, "output");
-
         NamedSection preprocessing("preprocess", table["preprocess"]);
-        NamedSection output("output", table["output"]);
 
         date::year year                = read_year(preprocessing.section["year"]);
         const auto spatialPatternsPath = read_path(preprocessing, "spatial_patterns", basePath);
         const auto countriesPath       = read_path(preprocessing, "countries_vector", basePath);
-        const auto outputPath          = read_path(output, "path", basePath);
+        const auto outputPath          = read_path(preprocessing, "output", basePath);
 
         return PreprocessingConfiguration(year,
                                           spatialPatternsPath,
@@ -197,26 +210,21 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto basePath     = tomlPath.parent_path();
         const toml::table table = toml::parse(configContents, tomlPath.u8string());
 
-        if (!table.contains("input")) {
+        if (!table.contains("model")) {
             // No model run configured
             return {};
         }
 
-        throw_on_missing_section(table, "output");
+        NamedSection model("model", table["model"]);
 
-        NamedSection input("input", table["input"]);
-        NamedSection output("output", table["output"]);
-
-        const auto grid                = read_grid(input.section["grid"].value<std::string_view>());
-        const auto dataPath            = read_path(input, "datapath", basePath);
-        const auto spatialPatternsPath = read_path(input, "spatial_patterns", basePath);
-        //const auto countriesVectorPath = read_path(input, "countries_vector", basePath);
-        const auto runType    = read_run_type(input.section["type"].value<std::string_view>());
-        const auto year       = read_year(input.section["year"]);
-        const auto reportYear = read_optional_year(input.section["report_year"]);
-        const auto scenario   = read_string(input, "scenario");
-
-        const auto outputPath = read_path(output, "path", basePath);
+        const auto grid                = read_grid(model.section["grid"].value<std::string_view>());
+        const auto dataPath            = read_path(model, "datapath", basePath);
+        const auto spatialPatternsPath = read_path(model, "spatial_patterns", basePath);
+        const auto runType             = read_run_type(model.section["type"].value<std::string_view>());
+        const auto year                = read_year(model.section["year"]);
+        const auto reportYear          = read_optional_year(model.section["report_year"]);
+        const auto scenario            = read_string(model, "scenario");
+        const auto outputPath          = read_path(model, "emissions_output", basePath);
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);

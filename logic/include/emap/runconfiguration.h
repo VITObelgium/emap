@@ -38,8 +38,12 @@ public:
         const fs::path& outputPath);
 
     fs::path point_source_emissions_path() const;
-    fs::path total_emissions_path(EmissionSector::Type sectorType) const;
-    fs::path spatial_pattern_path(const EmissionIdentifier& emissionId) const;
+    fs::path total_emissions_path_nfr() const;
+    fs::path total_emissions_path_gnfr() const;
+    fs::path spatial_pattern_path(date::year year, const EmissionIdentifier& emissionId) const;
+
+    fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
+    fs::path emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const;
 
     fs::path diffuse_scalings_path() const;
     fs::path point_source_scalings_path() const;

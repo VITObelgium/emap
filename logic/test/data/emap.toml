@@ -13,7 +13,7 @@
 # 2010 / emissions.csv
 # 2011 / emissions.csv
 
-[input]
+[model]
 grid = "beleuros"
 datapath = "C:/emap/emissies/"
 type = "Emep" # of gains
@@ -22,11 +22,7 @@ report_year = 2020 # empty for latest
 scenario = "scenarionaam" # enkel bij gains type
 scalefactors = "file.csv"
 spatial_patterns = "C:/emap/output/spatial"
-
-[output]
-path = ""
-
-# rasters or shapefiles?
+emissions_output = ""
 
 [options]
 validation = true

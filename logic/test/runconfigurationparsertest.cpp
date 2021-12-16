@@ -22,7 +22,7 @@ TEST_CASE("Parse run configuration")
     SUBCASE("valid file")
     {
         std::string_view tomlConfig = R"toml(
-            [input]
+            [model]
                 grid = "beleuros"
                 datapath = "/emap/emissies/"
                 type = "emep"
@@ -31,9 +31,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 spatial_patterns = "/emap/emissies/spatpat"
-
-            [output]
-                path = "/temp"
+                emissions_output = "/temp"
 
             [options]
                 validation = true
@@ -48,7 +46,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config->reporting_year().has_value());
         CHECK(config->reporting_year() == 2018_y);
         CHECK(config->scenario() == "scenarionaam");
-        CHECK(config->spatial_pattern_path(EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::Fugitive), Pollutant::Id::NOx)) == expectedDataRoot / "spatpat" / "nox_D_Fugitive_FR.tif");
+        CHECK(config->spatial_pattern_path(config->year(), EmissionIdentifier(Country::Id::FR, EmissionSector(GnfrSector::Fugitive), Pollutant::Id::NOx)) == expectedDataRoot / "spatpat" / "spatial_pattern_2020_FR_D_Fugitive_nox.tif");
 
         CHECK(config->output_path() == expectedOutput);
         CHECK(config->validation_type() == ValidationType::SumValidation);
@@ -57,7 +55,7 @@ TEST_CASE("Parse run configuration")
     SUBCASE("valid file no report year")
     {
         std::string_view tomlConfig = R"toml(
-            [input]
+            [model]
                 grid = "beleuros"
                 datapath = "/emap/emissies/"
                 type = "gains"
@@ -65,9 +63,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 spatial_patterns = "./spatpat"
-
-            [output]
-                path = "/temp"
+                emissions_output = "/temp"
 
             [options]
                 validation = true
@@ -91,31 +87,10 @@ TEST_CASE("Parse run configuration")
         CHECK(!parse_run_configuration("").has_value());
     }
 
-    SUBCASE("invalid file: missing output section")
-    {
-        std::string_view tomlConfig = R"toml(
-            [input]
-                grid = "beleuros"
-                datapath = "/emap/emissies/"
-                type = "gains"
-                year = 2020
-                scenario = "scenarionaam"
-                scalefactors = "{}"
-                spatial_patterns = "./spatpat"
-
-            [options]
-                validation = true
-        )toml";
-
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())),
-                             "No 'output' section present in configuration",
-                             RuntimeError);
-    }
-
     SUBCASE("invalid file: no path quotes")
     {
         std::string_view tomlConfig = R"toml(
-            [input]
+            [model]
                 grid = "beleuros"
                 datapath = /emap/emissies/
                 type = "gains"
@@ -123,9 +98,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 spatial_patterns = "./spatpat"
-
-            [output]
-                path = "/temp"
+                emissions_output = "/temp"
 
             [options]
                 validation = true
@@ -137,7 +110,7 @@ TEST_CASE("Parse run configuration")
     SUBCASE("invalid file: year as string")
     {
         std::string_view tomlConfig = R"toml(
-            [input]
+            [model]
                 grid = "beleuros"
                 datapath = "/emap/emissies/"
                 type = "gains"
@@ -145,9 +118,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 spatial_patterns = "./spatpat"
-
-            [output]
-                path = "/temp"
+                emissions_output = "/temp"
 
             [options]
                 validation = true
@@ -159,7 +130,7 @@ TEST_CASE("Parse run configuration")
     SUBCASE("invalid file: scenario is integer")
     {
         std::string_view tomlConfig = R"toml(
-            [input]
+            [model]
                 grid = "beleuros"
                 datapath = "/emap/emissies/"
                 type = "gains"
@@ -167,15 +138,13 @@ TEST_CASE("Parse run configuration")
                 scenario = 2010
                 scalefactors = "{}"
                 spatial_patterns = "./spatpat"
-
-            [output]
-                path = "/temp"
+                emissions_output = "/temp"
 
             [options]
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "'scenario' key value in 'input' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
     }
 }
 

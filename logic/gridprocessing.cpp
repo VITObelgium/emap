@@ -360,6 +360,11 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
     GridProcessingProgress progress(countries.size(), progressCb);
 
     for (const auto& [countryId, coverages] : countries) {
+        if (countryId == Country::Id::BEF) {
+            progress.tick_throw_on_cancel();
+            continue;
+        }
+
         Country country(countryId);
         const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.code()));
 
@@ -369,4 +374,18 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
         progress.tick_throw_on_cancel();
     }
 }
+
+generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries)
+{
+    const auto ras = read_raster_north_up(rasterInput);
+
+    for (const auto& [countryId, coverages] : countries) {
+        if (countryId == Country::Id::BEF) {
+            continue;
+        }
+
+        co_yield {cutout_country(ras, coverages, gnfrSector), Country(countryId)};
+    }
+}
+
 }

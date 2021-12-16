@@ -1,5 +1,6 @@
 #include "emap/preprocessing.h"
 
+#include "configurationutil.h"
 #include "emap/configurationparser.h"
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
@@ -30,17 +31,20 @@ static fs::file_status throw_if_not_exists(const fs::path& path)
     return status;
 }
 
-static void process_spatial_pattern_directory(const fs::path& inputDir, date::year year, const fs::path& countriesVector, const fs::path& outputDir, const PreprocessingProgress::Callback& progressCb)
+static void process_spatial_pattern_directory(const fs::path& inputDir, const PreprocessingConfiguration& cfg, const PreprocessingProgress::Callback& progressCb)
 {
+    const auto outputDir = cfg.output_path();
     file::create_directory_if_not_exists(outputDir);
 
     if (!fs::is_directory(inputDir)) {
         throw RuntimeError("Spatial patterns path should be a directory: {}", inputDir);
     }
 
-    if (!fs::is_regular_file(throw_if_not_exists(countriesVector))) {
-        throw RuntimeError("Countries vector path should be a path to a file: {}", countriesVector);
+    if (!fs::is_regular_file(throw_if_not_exists(cfg.countries_vector_path()))) {
+        throw RuntimeError("Countries vector path should be a path to a file: {}", cfg.countries_vector_path());
     }
+
+    const auto year = cfg.year();
 
     // Capture groups:
     // [1]: pollutant
@@ -118,11 +122,11 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, date::ye
         extent = read_raster_north_up(pathsToProcessNotBef.front().path).metadata();
     }
 
-    PreprocessingProgress progress(known_countries_in_extent(extent, countriesVector, fieldId) + pathsToProcessNotBef.size() + pathsToProcessBef.size(), progressCb);
+    PreprocessingProgress progress(known_countries_in_extent(extent, cfg.countries_vector_path(), fieldId) + pathsToProcessNotBef.size() + pathsToProcessBef.size(), progressCb);
 
     const std::string filenamePrefix = fmt::format("spatial_pattern_{}", static_cast<int>(year));
 
-    const auto countryCoverages = create_country_coverages(extent, countriesVector, fieldId, [&progress](const GridProcessingProgress::Status& status) {
+    const auto countryCoverages = create_country_coverages(extent, cfg.countries_vector_path(), fieldId, [&progress](const GridProcessingProgress::Status& status) {
         PreprocessingProgressInfo info;
         info.step    = PreprocessingProgressInfo::Step::CellBoundaries;
         info.country = status.payload();
@@ -131,13 +135,15 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, date::ye
         return ProgressStatusResult::Continue;
     });
 
+    fs::remove_all(outputDir);
     fs::create_directories(outputDir);
 
     tbb::parallel_for_each(pathsToProcessNotBef.begin(), pathsToProcessNotBef.end(), [&](const ProcessData& processData) {
-        extract_countries_from_raster(
-            processData.path, processData.sector, countryCoverages, outputDir, fmt::format("{}_{{}}_{}_{}.tif", filenamePrefix, processData.sector, processData.pollutant), [](const GridProcessingProgress::Status& /*status*/) {
-                return ProgressStatusResult::Continue;
-            });
+        for (auto& [raster, country] : extract_countries_from_raster(processData.path, processData.sector, countryCoverages)) {
+            if (country.included()) {
+                gdx::write_raster(std::move(raster), outputDir / spatial_pattern_filename(year, EmissionIdentifier(country, EmissionSector(processData.sector), processData.pollutant)));
+            }
+        }
 
         PreprocessingProgressInfo info;
         info.step = PreprocessingProgressInfo::Step::CountryExtraction;
@@ -156,9 +162,7 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, date::ye
             progress.set_payload(info);
             progress.tick_throw_on_cancel();
 
-            gdx::DenseRaster<double> result(copy_metadata_replace_nodata(extent, math::nan<double>()), math::nan<float>());
-            inf::gdal::io::warp_raster<double, double>(spatData.raster, spatData.raster.metadata(), result, result.metadata(), gdal::ResampleAlgorithm::Sum);
-            gdx::write_raster(result, outputDir / fmt::format("{}_{}_{}_{}.tif", filenamePrefix, Country(Country::Id::BEF).code(), spatData.id.sector, processData.pollutant));
+            gdx::write_raster(spatData.raster, outputDir / spatial_pattern_filename(year, EmissionIdentifier(Country(Country::Id::BEF), spatData.id.sector, processData.pollutant)));
         }
     });
 }
@@ -176,7 +180,7 @@ void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, con
     }
 
     if (auto spatialPatternsDir = cfg->spatial_patterns_path(); !spatialPatternsDir.empty()) {
-        process_spatial_pattern_directory(spatialPatternsDir, cfg->year(), cfg->countries_vector_path(), cfg->output_path(), progressCb);
+        process_spatial_pattern_directory(spatialPatternsDir, *cfg, progressCb);
     }
 }
 }

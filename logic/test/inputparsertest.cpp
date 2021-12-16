@@ -17,7 +17,7 @@ TEST_CASE("Load emissions")
 {
     SUBCASE("nfr sectors")
     {
-        auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "nfr_1990_2021.txt");
+        auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt");
         REQUIRE(emissions.size() == 6);
 
         for (auto& em : emissions) {
@@ -35,8 +35,8 @@ TEST_CASE("Load emissions")
 
     SUBCASE("gnfr sectors")
     {
-        auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "gnfr_allyears_2021.txt");
-        REQUIRE(emissions.size() == 6);
+        auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt");
+        REQUIRE(emissions.size() == 4);
 
         for (auto& em : emissions) {
             CHECK(em.sector().type() == EmissionSector::Type::Gnfr);
@@ -44,16 +44,16 @@ TEST_CASE("Load emissions")
 
         const auto& firstEmission = *emissions.begin();
         //TJ;1990;A_PublicPower;CO;Gg;1.82364
-        CHECK(firstEmission.country().id() == Country::Id::TJ);
+        CHECK(firstEmission.country().id() == Country::Id::LI);
         CHECK(firstEmission.sector().name() == "A_PublicPower");
         CHECK(firstEmission.pollutant().id() == Pollutant::Id::CO);
-        CHECK(firstEmission.value().amount().value() == Approx(1.82364));
+        CHECK(firstEmission.value().amount().value() == Approx(0.001773375));
         CHECK(firstEmission.value().unit() == "Gg");
     }
 
     SUBCASE("Belgian emissions xlsx (Brussels)")
     {
-        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "BEB_2021.xlsx", date::year(2019));
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019));
         REQUIRE(emissions.size() == 490);
 
         for (auto& em : emissions) {
@@ -68,7 +68,7 @@ TEST_CASE("Load emissions")
 
     SUBCASE("Belgian emissions xlsx (Flanders)")
     {
-        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "BEF_2021.xlsx", date::year(2019));
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019));
         REQUIRE(emissions.size() == 950);
 
         for (auto& em : emissions) {
@@ -105,7 +105,7 @@ TEST_CASE("Load emissions")
 
     SUBCASE("Belgian emissions xlsx (Wallonia)")
     {
-        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "reporting_2021" / "BEW_2021.xlsx", date::year(2019));
+        auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019));
         REQUIRE(emissions.size() == 975);
 
         for (auto& em : emissions) {
@@ -123,7 +123,7 @@ TEST_CASE("Load point source emissions")
 {
     SUBCASE("nfr sectors")
     {
-        const auto emissions = parse_point_sources(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "pointsource_emissions_2021.csv");
+        const auto emissions = parse_point_sources(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "pointsource_emissions_2021.csv");
         REQUIRE(emissions.size() == 4);
 
         int lineNr = 1;
@@ -144,7 +144,7 @@ TEST_CASE("Load point source emissions")
 
     SUBCASE("flanders point sources")
     {
-        const auto emissions = parse_point_sources_flanders(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "2019" / "E-MAP_puntbrongegevens_2019_CO.xlsx");
+        const auto emissions = parse_point_sources_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "E-MAP_puntbrongegevens_2019_CO.xlsx");
         REQUIRE(emissions.size() == 2);
 
         int lineNr = 1;
@@ -167,7 +167,7 @@ TEST_CASE("Load point source emissions")
 
 TEST_CASE("Load scaling factors")
 {
-    const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv");
+    const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "scaling_diffuse.csv");
     REQUIRE(scalings.size() == 4);
 
     auto iter = scalings.begin();
@@ -203,7 +203,7 @@ TEST_CASE("Load spatial pattern")
 {
     SUBCASE("Flanders")
     {
-        const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "input" / "spatial_patterns" / "bef" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx");
+        const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx");
         CHECK(spatialPatterns.size() == 25);
 
         {
