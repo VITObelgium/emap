@@ -28,7 +28,7 @@ RunConfiguration::RunConfiguration(
     RunType runType,
     ValidationType validation,
     date::year year,
-    std::optional<date::year> reportYear,
+    date::year reportYear,
     std::string_view scenario,
     const fs::path& outputPath)
 : _dataPath(dataPath)
@@ -46,31 +46,29 @@ RunConfiguration::RunConfiguration(
 
 fs::path RunConfiguration::emissions_dir_path() const
 {
-    const auto dirName = _reportYear.has_value() ? fmt::format("reporting_{}", static_cast<int>(*_reportYear)) : std::to_string(static_cast<int>(_year));
+    const auto dirName = fmt::format("reporting_{}", static_cast<int>(_reportYear));
     return _dataPath / "emissions" / run_type_name(_runType) / fs::u8path(dirName);
 }
 
 fs::path RunConfiguration::point_source_emissions_path() const
 {
-    const auto year = _reportYear.value_or(_year);
+    const auto year = _reportYear;
     return emissions_dir_path() / "pointsources" / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(year));
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr() const
 {
-    const auto reportYear = static_cast<int>(_reportYear.value_or(_year));
-    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(_year), reportYear);
+    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(_year), static_cast<int>(_reportYear));
 }
 
 fs::path RunConfiguration::total_emissions_path_gnfr() const
 {
-    const auto year = static_cast<int>(_reportYear.value_or(_year));
-    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(year));
+    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(_reportYear));
 }
 
-fs::path RunConfiguration::spatial_pattern_path(date::year year, const EmissionIdentifier& emissionId) const
+fs::path RunConfiguration::spatial_pattern_path() const
 {
-    return _spatialPatternsPath / spatial_pattern_filename(year, emissionId);
+    return _dataPath / "03_spatial_disaggregation";
 }
 
 fs::path RunConfiguration::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
@@ -129,7 +127,7 @@ date::year RunConfiguration::year() const noexcept
     return _year;
 }
 
-std::optional<date::year> RunConfiguration::reporting_year() const noexcept
+date::year RunConfiguration::reporting_year() const noexcept
 {
     return _reportYear;
 }

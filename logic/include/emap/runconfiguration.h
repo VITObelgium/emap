@@ -33,14 +33,14 @@ public:
         RunType runType,
         ValidationType validation,
         date::year year,
-        std::optional<date::year> reportYear,
+        date::year reportYear,
         std::string_view scenario,
         const fs::path& outputPath);
 
     fs::path point_source_emissions_path() const;
     fs::path total_emissions_path_nfr() const;
     fs::path total_emissions_path_gnfr() const;
-    fs::path spatial_pattern_path(date::year year, const EmissionIdentifier& emissionId) const;
+    fs::path spatial_pattern_path() const;
 
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
     fs::path emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const;
@@ -57,7 +57,7 @@ public:
     ValidationType validation_type() const noexcept;
 
     date::year year() const noexcept;
-    std::optional<date::year> reporting_year() const noexcept;
+    date::year reporting_year() const noexcept;
 
     std::string_view scenario() const noexcept;
 
@@ -75,7 +75,7 @@ private:
     RunType _runType;
     ValidationType _validation;
     date::year _year;
-    std::optional<date::year> _reportYear;
+    date::year _reportYear;
     std::string _scenario;
 
     std::optional<int32_t> _concurrency;

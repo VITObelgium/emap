@@ -140,15 +140,6 @@ static date::year read_year(toml::node_view<const toml::node> nodeValue)
     return parse_year(nodeValue);
 }
 
-static std::optional<date::year> read_optional_year(toml::node_view<const toml::node> nodeValue)
-{
-    if (!nodeValue) {
-        return {};
-    }
-
-    return parse_year(nodeValue);
-}
-
 static std::string read_string(const NamedSection& ns, std::string_view name)
 {
     assert(ns.section.is_table());
@@ -222,7 +213,7 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto spatialPatternsPath = read_path(model, "spatial_patterns", basePath);
         const auto runType             = read_run_type(model.section["type"].value<std::string_view>());
         const auto year                = read_year(model.section["year"]);
-        const auto reportYear          = read_optional_year(model.section["report_year"]);
+        const auto reportYear          = read_year(model.section["report_year"]);
         const auto scenario            = read_string(model, "scenario");
         const auto outputPath          = read_path(model, "emissions_output", basePath);
 

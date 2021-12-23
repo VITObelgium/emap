@@ -7,6 +7,7 @@
 #include "emap/preprocessing.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
+#include "spatialpatterninventory.h"
 
 #include "infra/chrono.h"
 #include "infra/exception.h"
@@ -111,6 +112,7 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
             for (auto country : inf::enum_entries<Country::Id>()) {
                 progress.tick();
 
+                /*
                 EmissionIdentifier emissionId(Country(country), EmissionSector(sector), pollutant);
 
                 const auto emissions = inventory.emissions_with_id(emissionId);
@@ -136,52 +138,6 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
                     }
                 }
 
-                /*auto iter = emissions.begin();
-                tbb::filter<void, EmissionInputMsg> source(tbb::filter_mode::serial_in_order, [&](tbb::flow_control& fc) {
-                    if (iter == emissions.end() || progress.cancel_requested()) {
-                        fc.stop();
-                        return EmissionInputMsg();
-                    }
-
-                    EmissionInputMsg msg;
-                    msg.emissions = **iter;
-                    if (auto spatialPatternPath = cfg.spatial_pattern_path(cfg.year(), (*iter)->id()); fs::is_regular_file(spatialPatternPath)) {
-                        msg.spatialPattern = spatialPatternPath;
-                    }
-
-                    ++iter;
-                    return msg;
-                });
-
-                tbb::filter<EmissionInputMsg, EmissionSpreadResultMsg> spread(tbb::filter_mode::parallel, [&](EmissionInputMsg msg) {
-                    EmissionSpreadResultMsg outMsg;
-                    if (!progress.cancel_requested() && !msg.spatialPattern.empty()) {
-                        auto raster = gdx::read_dense_raster<double>(msg.spatialPattern);
-                        raster *= msg.emissions.diffuse_emissions();
-
-                        const auto gridMeta = grid_data(cfg.grid_definition()).meta;
-                        outMsg.raster       = std::make_shared<gdx::DenseRaster<double>>(gdx::warp_raster(raster, gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum));
-                        Log::info("Warped: {}", msg.spatialPattern);
-                    }
-
-                    return outMsg;
-                });
-
-                tbb::filter<EmissionSpreadResultMsg, void> add(tbb::filter_mode::serial_in_order, [&](EmissionSpreadResultMsg msg) {
-                    if (!progress.cancel_requested() && msg.raster) {
-                        if (resultRaster.empty()) {
-                            resultRaster = std::move(*msg.raster);
-                        } else {
-                            resultRaster += *msg.raster;
-                        }
-                    }
-
-                    progress.tick();
-                });
-
-                tbb::filter<void, void> chain = source & spread & add;
-                tbb::parallel_pipeline(maxRasters, chain);*/
-
                 const auto& meta = resultRaster.metadata();
 
                 std::vector<BrnOutputEntry> brnEntries;
@@ -204,6 +160,8 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
                 if (!brnEntries.empty()) {
                     write_brn_output(brnEntries, cfg.emission_brn_output_path(cfg.year(), pollutant, EmissionSector(sector)));
                 }
+
+                */
             }
         }
     }
@@ -228,6 +186,9 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     //const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 
     auto gridData = grid_data(cfg.grid_definition());
+
+    SpatialPatternInventory spatPatInv;
+    spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
