@@ -137,6 +137,19 @@ private:
 
 }
 
+namespace std {
+template <>
+struct hash<emap::Country>
+{
+    size_t operator()(const emap::Country& country) const
+    {
+        using EnumType = std::underlying_type_t<emap::Country::Id>;
+
+        return hash<EnumType>()(static_cast<EnumType>(country.id()));
+    }
+};
+}
+
 namespace fmt {
 template <>
 struct formatter<emap::Country>

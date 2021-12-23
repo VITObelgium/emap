@@ -162,6 +162,7 @@ enum class NfrSector
     Nfr1A3bvi_fu,
     Nfr1A3bvii_fu,
     EnumCount,
+    Invalid,
 };
 
 class EmissionSector

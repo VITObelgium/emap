@@ -6,6 +6,7 @@
 #include <date/date.h>
 #include <optional>
 #include <regex>
+#include <unordered_map>
 
 namespace emap {
 
@@ -13,17 +14,30 @@ struct SpatialPatternSource
 {
     enum class Type
     {
-        SpatialPattern,
-        UnfiformSpread,
+        SpatialPatternRaster, // Tiff containing the spatial pattern
+        SpatialPatternTable,  // Excel file containing information per cell
+        UnfiformSpread,       // No data available, use a uniform spread
     };
 
-    static SpatialPatternSource create(const fs::path& path, Pollutant pol, EmissionSector sector, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_raster(const fs::path& path, Pollutant pol, EmissionSector sector, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
-        source.type        = Type::SpatialPattern;
+        source.type        = Type::SpatialPatternRaster;
         source.path        = path;
-        source.sector      = sector;
         source.pollutant   = pol;
+        source.sector      = sector;
+        source.year        = year;
+        source.sectorLevel = secLevel;
+        return source;
+    }
+
+    static SpatialPatternSource create_from_table(const fs::path& path, Pollutant pol, EmissionSector sector, date::year year, EmissionSector::Type secLevel)
+    {
+        SpatialPatternSource source;
+        source.type        = Type::SpatialPatternTable;
+        source.path        = path;
+        source.pollutant   = pol;
+        source.sector      = sector;
         source.year        = year;
         source.sectorLevel = secLevel;
         return source;
@@ -38,7 +52,7 @@ struct SpatialPatternSource
         return source;
     }
 
-    Type type = Type::SpatialPattern;
+    Type type = Type::SpatialPatternRaster;
     fs::path path;
     Pollutant pollutant;
     EmissionSector sector;
@@ -53,7 +67,7 @@ public:
     SpatialPatternInventory();
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
-    SpatialPatternSource get_spatial_pattern(Pollutant pol, EmissionSector sector) const;
+    SpatialPatternSource get_spatial_pattern(Country country, Pollutant pol, EmissionSector sector) const;
 
 private:
     struct SpatialPatternFile
@@ -69,11 +83,16 @@ private:
         std::vector<SpatialPatternFile> spatialPatterns;
     };
 
-    std::optional<SpatialPatternFile> identify_spatial_pattern_file(const fs::path& path) const;
+    std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
+    std::optional<SpatialPatternFile> identify_spatial_pattern_excel(const fs::path& path) const;
+    std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
+    std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
-    std::regex _spatialPatternRegex;
+    std::regex _spatialPatternCamsRegex;
+    std::regex _spatialPatternExcelRegex;
     // Contains all the available patterns, sorted by year of preference
-    std::vector<SpatialPatterns> _spatialPatterns;
+    std::vector<SpatialPatterns> _spatialPatternsRest;
+    std::unordered_map<Country, std::vector<SpatialPatterns>> _countrySpecificSpatialPatterns;
 };
 
 }
