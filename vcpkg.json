@@ -24,6 +24,7 @@
         "indicators",
         "onedpl",
         "spdlog",
+        "tabulate",
         "tbb",
         "tomlplusplus",
         "vc"

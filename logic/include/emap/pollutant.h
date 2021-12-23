@@ -50,6 +50,11 @@ public:
     std::string_view code() const noexcept;
     std::string_view full_name() const noexcept;
 
+    constexpr bool operator<(const Pollutant& other) const noexcept
+    {
+        return _id < other._id;
+    }
+
     constexpr bool operator==(const Pollutant& other) const noexcept
     {
         return _id == other._id;

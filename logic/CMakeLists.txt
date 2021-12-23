@@ -25,6 +25,7 @@ add_library(emaplogic
     unitconversion.h
     geometry.h geometry.cpp
     configurationutil.h
+    spatialpatterninventory.h spatialpatterninventory.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
 

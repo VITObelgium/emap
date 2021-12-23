@@ -1,9 +1,9 @@
 #pragma once
 
 #include <fmt/core.h>
+#include <optional>
 #include <string_view>
 #include <variant>
-#include <optional>
 
 namespace emap {
 
@@ -177,17 +177,29 @@ public:
     explicit EmissionSector(GnfrSector sector);
     explicit EmissionSector(NfrSector sector);
 
+    static EmissionSector from_string(std::string_view str);
+
     Type type() const;
     std::string_view name() const noexcept;
     std::string_view description() const noexcept;
     /*! If it is a gnfr sector: returns the name
-     *  If it is s nfr sector: returns the corresponding nfr sector name
+     *  If it is s nfr sector: returns the corresponding gnfr sector name
      */
     std::string_view gnfr_name() const noexcept;
+
+    /*! If it is a gnfr sector: returns it
+     *  If it is s nfr sector: returns the corresponding gnfr sector
+     */
+    GnfrSector gnfr_sector() const noexcept;
 
     bool is_land_sector() const noexcept;
     /* Returns the nfr sector this sector overrides if it is applicable */
     std::optional<NfrSector> is_sector_override() const noexcept;
+
+    bool operator<(const EmissionSector& other) const noexcept
+    {
+        return name() < other.name();
+    }
 
     constexpr bool operator==(const EmissionSector& other) const noexcept
     {
@@ -200,8 +212,8 @@ public:
     }
 
 private:
-    NfrSector nfr_sector() const noexcept;
-    GnfrSector gnfr_sector() const noexcept;
+    NfrSector get_nfr_sector() const noexcept;
+    GnfrSector get_gnfr_sector() const noexcept;
 
     std::variant<NfrSector, GnfrSector> _sector;
 };
