@@ -1,4 +1,4 @@
-#include "emap/runsummary.h"
+#include "runsummary.h"
 
 #include "enuminfo.h"
 #include "infra/enumutils.h"
@@ -6,28 +6,50 @@
 
 #include <algorithm>
 #include <array>
+#include <tabulate/table.hpp>
 
 namespace emap {
 
 using namespace inf;
 
-void RunSummary::use_spatial_pattern_for_id(EmissionIdentifier id, const fs::path& grid)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
 {
-    UsedSpatialPattern pattern;
-    pattern.emissionId = id;
-    pattern.type       = UsedSpatialPattern::Type::Grid;
-    //pattern.year =
-
-    _spatialPatterns.push_back(pattern);
+    _spatialPatterns.push_back(source);
 }
 
-void RunSummary::use_uniform_distribution_for_id(EmissionIdentifier id)
+static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::Type type)
 {
-    UsedSpatialPattern pattern;
-    pattern.emissionId = id;
-    pattern.type       = UsedSpatialPattern::Type::UniformDistribution;
+    switch (type) {
+    case emap::SpatialPatternSource::Type::SpatialPatternRaster:
+        return "Raster";
+    case emap::SpatialPatternSource::Type::SpatialPatternTable:
+        return "Excel";
+    case emap::SpatialPatternSource::Type::UnfiformSpread:
+        return "Uniform spread";
+    }
 
-    _spatialPatterns.push_back(pattern);
+    return "";
+}
+
+std::string RunSummary::spatial_pattern_usage_table() const
+{
+    using namespace tabulate;
+
+    Table table;
+    table.add_row({"Sector", "Pollutant", "Type", "Year", "Path"});
+
+    for (const auto& sp : _spatialPatterns) {
+        std::string sector(sp.sector.name());
+        std::string pollutant(sp.pollutant.code());
+        std::string type = spatial_pattern_source_type_to_string(sp.type);
+        std::string year = sp.year.ok() ? std::to_string(static_cast<int>(sp.year)) : "-";
+
+        table.add_row({sector, pollutant, type, year, sp.path.filename().generic_u8string()});
+    }
+
+    std::stringstream result;
+    result << table;
+    return result.str();
 }
 
 }

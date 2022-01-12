@@ -7,6 +7,7 @@
 #include "emap/preprocessing.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
+#include "runsummary.h"
 #include "spatialpatterninventory.h"
 
 #include "infra/chrono.h"
@@ -38,15 +39,6 @@ void run_model(const fs::path& runConfigPath, const ModelProgress::Callback& pro
 {
     Log::debug("Process configuration: {}", runConfigPath);
 
-    // Check if there is a preprocessing step defined
-    run_preprocessing(runConfigPath, [&progressCb](const PreprocessingProgress::Status& status) {
-        if (progressCb) {
-            return progressCb(ModelProgress::Status(status.current(), status.total(), status.payload()));
-        }
-
-        return ProgressStatusResult::Continue;
-    });
-
     if (auto runConfig = parse_run_configuration_file(runConfigPath); runConfig.has_value()) {
         return run_model(*runConfig, progressCb);
     } else {
@@ -69,7 +61,7 @@ struct ModelResult
 
 void spread_emissions(const EmissionInventory& inventory, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
-    ModelProgress progress(enum_count<Pollutant::Id>() * enum_count<NfrSector>() * enum_count<Country::Id>(), progressCb);
+    ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * enum_count<Country::Id>(), progressCb);
     progress.set_payload(ModelRunProgressInfo());
 
     // TODO: smarter splitting to avoid huge memory consumption
@@ -107,8 +99,8 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
     const int maxRasters = cfg.max_concurrency().value_or(tbb::this_task_arena::max_concurrency() + 4);
 
     // Run a pipeline for each pollutant
-    for (auto pollutant : inf::enum_entries<Pollutant::Id>()) {
-        for (auto sector : inf::enum_entries<NfrSector>()) {
+    for (auto pollutant : cfg.pollutants().pollutants()) {
+        for (auto& sector : cfg.sectors().nfr_sectors()) {
             for (auto country : inf::enum_entries<Country::Id>()) {
                 progress.tick();
 
@@ -169,14 +161,33 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
 
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
+    RunSummary summary;
+
+    SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());
+    spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
+    for (auto& nfr : cfg.sectors().nfr_sectors()) {
+        // TODO: check override logic
+        /*if (EmissionSector(nfr).is_sector_override()) {
+            continue;
+        }*/
+
+        for (auto pol : cfg.pollutants().pollutants()) {
+            // Take any european country, except for a Belgian region
+            summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(Country::Id::NL, pol, EmissionSector(nfr)));
+        }
+    }
+
+    fmt::print(summary.spatial_pattern_usage_table());
+    return;
+
     //const auto pointSourcesFlanders = parse_point_sources_flanders(throw_if_not_exists(cfg.point_source_emissions_path()));
     SingleEmissions pointSourcesFlanders;
 
     chrono::DurationRecorder duration;
-    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()));
+    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg.sectors(), cfg.pollutants());
     Log::info("Parse nfr emissions took: {}", duration.elapsed_time_string());
     duration.reset();
-    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()));
+    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg.sectors(), cfg.pollutants());
     Log::info("Parse gnfr emissions took: {}", duration.elapsed_time_string());
 
     const ScalingFactors scalingsDiffuse;
@@ -186,9 +197,6 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     //const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
 
     auto gridData = grid_data(cfg.grid_definition());
-
-    SpatialPatternInventory spatPatInv;
-    spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;

@@ -21,9 +21,9 @@
 
 [model]
 grid = "vlops1km"
-datapath = "./input"
+datapath = "./_input"
 type = "emep" # of gains
-year = 2015
+year = 2016
 report_year = 2021 # empty for latest
 scenario = "test"
 spatial_patterns = "./output/spreiding"

@@ -8,6 +8,8 @@ namespace emap {
 
 using namespace inf;
 
+class SectorInventory;
+class PollutantInventory;
 class PreprocessingConfiguration;
 
 struct PreprocessingProgressInfo
@@ -39,7 +41,6 @@ struct PreprocessingProgressInfo
 
 using PreprocessingProgress = inf::ProgressTracker<PreprocessingProgressInfo>;
 
-void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb);
-void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, const PreprocessingProgress::Callback& progressCb);
+void process_spatial_pattern_directory(const fs::path& inputDir, const PreprocessingConfiguration& cfg, const SectorInventory& sectorInventory, const PollutantInventory& polluantInventory, const PreprocessingProgress::Callback& progressCb);
 
 }

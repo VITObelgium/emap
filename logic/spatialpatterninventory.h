@@ -10,6 +10,9 @@
 
 namespace emap {
 
+class SectorInventory;
+class PollutantInventory;
+
 struct SpatialPatternSource
 {
     enum class Type
@@ -64,7 +67,7 @@ struct SpatialPatternSource
 class SpatialPatternInventory
 {
 public:
-    SpatialPatternInventory();
+    SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
     SpatialPatternSource get_spatial_pattern(Country country, Pollutant pol, EmissionSector sector) const;
@@ -88,6 +91,8 @@ private:
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
+    const SectorInventory& _sectorInventory;
+    const PollutantInventory& _pollutantInventory;
     std::regex _spatialPatternCamsRegex;
     std::regex _spatialPatternExcelRegex;
     // Contains all the available patterns, sorted by year of preference

@@ -1,5 +1,7 @@
 #include "spatialpatterninventory.h"
 
+#include "emap/pollutant.h"
+
 #include "infra/enumutils.h"
 #include "infra/log.h"
 #include "infra/string.h"
@@ -65,8 +67,10 @@ static std::deque<date::year> create_years_sequence(date::year startYear, std::s
     return years;
 }
 
-SpatialPatternInventory::SpatialPatternInventory()
-: _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
+SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory)
+: _sectorInventory(sectorInventory)
+, _pollutantInventory(pollutantInventory)
+, _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
 , _spatialPatternExcelRegex("Emissies per km2 excl puntbrongegevens_(\\d{4})_(\\w+)")
 {
 }
@@ -79,8 +83,8 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
             const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
-            const auto pollutant = Pollutant::from_string(baseMatch[2].str());
-            const auto sector    = EmissionSector::from_string(baseMatch[3].str());
+            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
+            const auto sector    = _sectorInventory.sector_from_string(baseMatch[3].str());
 
             return SpatialPatternFile{
                 path,
@@ -102,7 +106,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     if (std::regex_match(filename, baseMatch, _spatialPatternExcelRegex)) {
         try {
             const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
-            const auto pollutant = Pollutant::from_string(baseMatch[2].str());
+            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
 
             return SpatialPatternFile{path, pollutant, {}};
         } catch (const std::exception& e) {

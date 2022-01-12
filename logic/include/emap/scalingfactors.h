@@ -16,27 +16,27 @@ public:
     {
     }
 
-    constexpr const EmissionIdentifier& id() const noexcept
+    const EmissionIdentifier& id() const noexcept
     {
         return _id;
     }
 
-    constexpr EmissionSector sector() const noexcept
+    EmissionSector sector() const noexcept
     {
         return _id.sector;
     }
 
-    constexpr Country country() const noexcept
+    Country country() const noexcept
     {
         return _id.country;
     }
 
-    constexpr Pollutant pollutant() const noexcept
+    Pollutant pollutant() const noexcept
     {
         return _id.pollutant;
     }
 
-    constexpr double factor() const noexcept
+    double factor() const noexcept
     {
         return _factor;
     }

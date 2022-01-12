@@ -27,6 +27,7 @@
         "tabulate",
         "tbb",
         "tomlplusplus",
+        "type-safe",
         "vc"
    ]
 }

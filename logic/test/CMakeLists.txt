@@ -1,5 +1,6 @@
 add_executable(emaplogictest
     testconfig.h.in
+    testconstants.h
     emissioninventorytest.cpp
     gridprocessingtest.cpp
     gridtest.cpp

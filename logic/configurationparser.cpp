@@ -217,6 +217,9 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto scenario            = read_string(model, "scenario");
         const auto outputPath          = read_path(model, "emissions_output", basePath);
 
+        auto sectorInventory    = parse_sectors(dataPath / "05_model_parameters" / "Numbers_output.xlsx");
+        auto pollutantInventory = parse_pollutants(dataPath / "05_model_parameters" / "Numbers_output.xlsx");
+
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);
 
@@ -229,6 +232,8 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
                                 year,
                                 reportYear,
                                 scenario,
+                                std::move(sectorInventory),
+                                std::move(pollutantInventory),
                                 outputPath);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {

@@ -35,6 +35,8 @@ public:
         date::year year,
         date::year reportYear,
         std::string_view scenario,
+        SectorInventory sectors,
+        PollutantInventory pollutants,
         const fs::path& outputPath);
 
     fs::path point_source_emissions_path() const;
@@ -64,6 +66,9 @@ public:
     void set_max_concurrency(int32_t concurrency) noexcept;
     std::optional<int32_t> max_concurrency() const noexcept;
 
+    const SectorInventory& sectors() const noexcept;
+    const PollutantInventory& pollutants() const noexcept;
+
 private:
     fs::path emissions_dir_path() const;
 
@@ -77,6 +82,8 @@ private:
     date::year _year;
     date::year _reportYear;
     std::string _scenario;
+    SectorInventory _sectorInventory;
+    PollutantInventory _pollutantInventory;
 
     std::optional<int32_t> _concurrency;
 };

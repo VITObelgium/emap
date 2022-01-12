@@ -3,10 +3,12 @@ find_package(oneDPL CONFIG REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
+find_package(type_safe CONFIG REQUIRED)
 
 add_library(emaplogic
-    include/emap/country.h country.cpp
+    include/emap/constants.h
     include/emap/configurationparser.h configurationparser.cpp
+    include/emap/country.h country.cpp
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h griddefinition.cpp
     include/emap/gridprocessing.h gridprocessing.cpp
@@ -17,14 +19,14 @@ add_library(emaplogic
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
-    include/emap/runsummary.h runsummary.cpp
     include/emap/preprocessingconfiguration.h preprocessingconfiguration.cpp
     include/emap/outputwriters.h outputwriters.cpp
+    configurationutil.h
     enuminfo.h
     emissioninventory.h
     unitconversion.h
     geometry.h geometry.cpp
-    configurationutil.h
+    runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
 )
@@ -43,6 +45,7 @@ target_link_libraries(emaplogic
 PUBLIC
     Infra::infra
     geodynamix::gdxcore
+    type_safe
 PRIVATE
     TBB::tbb
     oneDPL

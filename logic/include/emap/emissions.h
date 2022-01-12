@@ -28,28 +28,28 @@ enum class EmissionType
 class EmissionValue
 {
 public:
-    constexpr EmissionValue() noexcept = default;
-    constexpr explicit EmissionValue(std::optional<double> amount)
+    EmissionValue() noexcept = default;
+    explicit EmissionValue(std::optional<double> amount)
     : _amount(amount)
     {
     }
 
-    constexpr std::optional<double> amount() const noexcept
+    std::optional<double> amount() const noexcept
     {
         return _amount;
     }
 
-    constexpr std::string_view unit() const noexcept
+    std::string_view unit() const noexcept
     {
         return "Gg";
     }
 
-    constexpr EmissionValue operator+(const EmissionValue& other) const noexcept
+    EmissionValue operator+(const EmissionValue& other) const noexcept
     {
         return EmissionValue(_amount.value_or(0.0) + other._amount.value_or(0.0));
     }
 
-    constexpr EmissionValue& operator+=(const EmissionValue& other) noexcept
+    EmissionValue& operator+=(const EmissionValue& other) noexcept
     {
         if (_amount.has_value()) {
             *_amount += other._amount.value_or(0.0);
@@ -92,45 +92,45 @@ struct EmissionIdentifier
 class EmissionEntry
 {
 public:
-    constexpr EmissionEntry() noexcept = default;
-    constexpr EmissionEntry(EmissionIdentifier id, EmissionValue value) noexcept
+    EmissionEntry() noexcept = default;
+    EmissionEntry(EmissionIdentifier id, EmissionValue value) noexcept
     : EmissionEntry(id, value, {})
     {
     }
 
-    constexpr EmissionEntry(EmissionIdentifier id, EmissionValue value, Coordinate coordinate) noexcept
+    EmissionEntry(EmissionIdentifier id, EmissionValue value, Coordinate coordinate) noexcept
     : _id(id)
     , _value(value)
     , _coordinate(coordinate)
     {
     }
 
-    constexpr const EmissionIdentifier& id() const noexcept
+    const EmissionIdentifier& id() const noexcept
     {
         return _id;
     }
 
-    constexpr void set_coordinate(Coordinate coordinate) noexcept
+    void set_coordinate(Coordinate coordinate) noexcept
     {
         _coordinate = std::optional<Coordinate>(coordinate);
     }
 
-    constexpr EmissionSector sector() const noexcept
+    EmissionSector sector() const noexcept
     {
         return _id.sector;
     }
 
-    constexpr Country country() const noexcept
+    Country country() const noexcept
     {
         return _id.country;
     }
 
-    constexpr Pollutant pollutant() const noexcept
+    Pollutant pollutant() const noexcept
     {
         return _id.pollutant;
     }
 
-    constexpr const EmissionValue& value() const noexcept
+    const EmissionValue& value() const noexcept
     {
         return _value;
     }
@@ -140,7 +140,7 @@ public:
         _value = value;
     }
 
-    constexpr std::optional<Coordinate> coordinate() const noexcept
+    std::optional<Coordinate> coordinate() const noexcept
     {
         return _coordinate;
     }

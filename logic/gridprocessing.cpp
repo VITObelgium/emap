@@ -334,18 +334,6 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     return result;
 }
 
-static GnfrSector detect_gnfr_sector_from_filename(const fs::path& filePath)
-{
-    // format: co_A_PublicPower
-
-    const auto filename = filePath.stem().u8string();
-    if (const auto pos = filename.find_first_of('_'); pos != std::string::npos && (pos + 1) < filename.size()) {
-        return gnfr_sector_from_string(filename.substr(pos + 1));
-    }
-
-    throw RuntimeError("Could not determine sector from filename: {}", filename);
-}
-
 void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras       = read_raster_north_up(rasterInput);

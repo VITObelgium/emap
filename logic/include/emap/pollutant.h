@@ -1,72 +1,57 @@
 #pragma once
 
+#include "infra/span.h"
+
 #include <fmt/core.h>
+#include <optional>
 #include <string_view>
+#include <vector>
 
 namespace emap {
 
 class Pollutant
 {
 public:
-    enum class Id
+    Pollutant() = default;
+    Pollutant(std::string_view code, std::string_view name)
+    : _code(code)
+    , _name(name)
     {
-        CO,
-        NH3,
-        NMVOC,
-        NOx,
-        PM10,
-        PM2_5,
-        PMcoarse,
-        SOx,
-        TSP,
-        BC,
-        Pb,
-        Cd,
-        Hg,
-        As,
-        Cr,
-        Cu,
-        Ni,
-        Se,
-        Zn,
-        PCDD_PCDF,
-        BaP,
-        BbF,
-        BkF,
-        Indeno,
-        PAHs,
-        HCB,
-        PCBs,
-        EnumCount,
-        Invalid,
-    };
-
-    static Pollutant from_string(std::string_view str);
-
-    Pollutant() noexcept = default;
-    Pollutant(Id id) noexcept;
-
-    Pollutant::Id id() const noexcept;
-    std::string_view code() const noexcept;
-    std::string_view full_name() const noexcept;
-
-    constexpr bool operator<(const Pollutant& other) const noexcept
-    {
-        return _id < other._id;
     }
 
-    constexpr bool operator==(const Pollutant& other) const noexcept
+    std::string_view code() const noexcept
     {
-        return _id == other._id;
+        return _code;
     }
 
-    constexpr bool operator!=(const Pollutant& other) const noexcept
+    std::string_view full_name() const noexcept
     {
-        return !(*this == other);
+        return _name;
+    }
+
+    bool operator==(const Pollutant& other) const noexcept
+    {
+        return _code == other._code;
     }
 
 private:
-    Id _id = Id::Invalid;
+    std::string _code;
+    std::string _name;
+};
+
+class PollutantInventory
+{
+public:
+    PollutantInventory(std::vector<Pollutant> pollutants);
+
+    Pollutant pollutant_from_string(std::string_view str) const;
+    std::optional<Pollutant> try_pollutant_from_string(std::string_view str) const noexcept;
+    size_t pollutant_count() const noexcept;
+
+    std::span<const Pollutant> pollutants() const noexcept;
+
+private:
+    std::vector<Pollutant> _pollutants;
 };
 
 }

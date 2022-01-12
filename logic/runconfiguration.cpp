@@ -30,6 +30,8 @@ RunConfiguration::RunConfiguration(
     date::year year,
     date::year reportYear,
     std::string_view scenario,
+    SectorInventory sectors,
+    PollutantInventory pollutants,
     const fs::path& outputPath)
 : _dataPath(dataPath)
 , _spatialPatternsPath(spatialPatternsPath)
@@ -41,6 +43,8 @@ RunConfiguration::RunConfiguration(
 , _year(year)
 , _reportYear(reportYear)
 , _scenario(scenario)
+, _sectorInventory(std::move(sectors))
+, _pollutantInventory(std::move(pollutants))
 {
 }
 
@@ -145,5 +149,13 @@ void RunConfiguration::set_max_concurrency(int32_t concurrency) noexcept
 std::optional<int32_t> RunConfiguration::max_concurrency() const noexcept
 {
     return _concurrency;
+}
+const SectorInventory& RunConfiguration::sectors() const noexcept
+{
+    return _sectorInventory;
+}
+const PollutantInventory& RunConfiguration::pollutants() const noexcept
+{
+    return _pollutantInventory;
 }
 }

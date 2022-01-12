@@ -12,19 +12,6 @@ public:
     void use_uniform_distribution_for_id(EmissionIdentifier id);
 
 private:
-    struct UsedSpatialPattern
-    {
-        enum class Type
-        {
-            Grid,
-            UniformDistribution,
-        };
-
-        EmissionIdentifier emissionId;
-        Type type;
-        std::optional<date::year> year;
-    };
-
     std::vector<UsedSpatialPattern> _spatialPatterns;
 };
 

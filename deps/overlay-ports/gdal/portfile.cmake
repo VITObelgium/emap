@@ -1,6 +1,6 @@
 set(MAJOR 3)
 set(MINOR 4)
-set(REVISION 0)
+set(REVISION 1)
 set(VERSION ${MAJOR}.${MINOR}.${REVISION})
 set(PACKAGE_NAME ${PORT}-${VERSION})
 set(PACKAGE ${PACKAGE_NAME}.tar.xz)
@@ -8,7 +8,7 @@ set(PACKAGE ${PACKAGE_NAME}.tar.xz)
 vcpkg_download_distfile(ARCHIVE
     URLS "http://download.osgeo.org/${PORT}/${VERSION}/${PACKAGE}"
     FILENAME "${PACKAGE}"
-    SHA512 82c5f889f12aaee2f21feb71352c01bf8904dd91949d892b6557a24b4fbadfad8558abb552f6f3e4966aadc1ff4d73513daf2585cec786045be03b15d3c9ec5d
+    SHA512 a66362996f255cb75116693b4ee398337ec8b9699b5cd7fed90105f72832faa20750b77ebbc3e8d59ab72a23b35c4e4e78513cc803bd93e1b7846711ccfb5bff
 )
 
 vcpkg_extract_source_archive_ex(

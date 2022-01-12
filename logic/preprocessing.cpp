@@ -31,7 +31,7 @@ static fs::file_status throw_if_not_exists(const fs::path& path)
     return status;
 }
 
-static void process_spatial_pattern_directory(const fs::path& inputDir, const PreprocessingConfiguration& cfg, const PreprocessingProgress::Callback& progressCb)
+void process_spatial_pattern_directory(const fs::path& inputDir, const PreprocessingConfiguration& cfg, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const PreprocessingProgress::Callback& progressCb)
 {
     const auto outputDir = cfg.output_path();
     file::create_directory_if_not_exists(outputDir);
@@ -89,8 +89,8 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const Pr
         if (fileEntry.is_regular_file() && fileEntry.path().extension() == ".tif") {
             const auto filename = fileEntry.path().stem().u8string();
             if (std::regex_match(filename, baseMatch, notBefRegex)) {
-                const auto pollutant = Pollutant::from_string(baseMatch[1].str());
-                const auto gnfr      = gnfr_sector_from_string(baseMatch[2].str());
+                const auto pollutant = pollutantInv.pollutant_from_string(baseMatch[1].str());
+                const auto gnfr      = sectorInv.gnfr_sector_from_string(baseMatch[2].str());
                 pathsToProcessNotBef.emplace_back(fileEntry.path(), pollutant, gnfr);
             }
         }
@@ -101,7 +101,7 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const Pr
         if (fileEntry.is_regular_file() && fileEntry.path().extension() == ".xlsx") {
             const auto filename = fileEntry.path().stem().u8string();
             if (std::regex_match(filename, baseMatch, befRegex)) {
-                const auto pollutant = Pollutant::from_string(baseMatch[1].str());
+                const auto pollutant = pollutantInv.pollutant_from_string(baseMatch[1].str());
                 pathsToProcessBef.emplace_back(fileEntry.path(), pollutant);
             }
         }
@@ -153,7 +153,7 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const Pr
     });
 
     tbb::parallel_for_each(pathsToProcessBef.begin(), pathsToProcessBef.end(), [&](const ProcessDataBEF& processData) {
-        const auto spatialPatternDataFlanders = parse_spatial_pattern_flanders(processData.path);
+        const auto spatialPatternDataFlanders = parse_spatial_pattern_flanders(processData.path, sectorInv, pollutantInv);
         for (const auto& spatData : spatialPatternDataFlanders) {
             assert(spatData.year == year);
             PreprocessingProgressInfo info;
@@ -167,20 +167,4 @@ static void process_spatial_pattern_directory(const fs::path& inputDir, const Pr
     });
 }
 
-void run_preprocessing(const fs::path& configPath, const PreprocessingProgress::Callback& progressCb)
-{
-    return run_preprocessing(parse_preprocessing_configuration_file(configPath), progressCb);
-}
-
-void run_preprocessing(const std::optional<PreprocessingConfiguration>& cfg, const PreprocessingProgress::Callback& progressCb)
-{
-    if (!cfg.has_value()) {
-        Log::debug("No preprocessing requested");
-        return;
-    }
-
-    if (auto spatialPatternsDir = cfg->spatial_patterns_path(); !spatialPatternsDir.empty()) {
-        process_spatial_pattern_directory(spatialPatternsDir, *cfg, progressCb);
-    }
-}
 }
