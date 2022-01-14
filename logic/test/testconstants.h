@@ -61,4 +61,17 @@ const Pollutant Hg("Hg", "Mercury");
 
 }
 
+namespace countries {
+const Country FR("FR", "France", true);
+const Country ES("ES", "Spain", true);
+const Country LI("LI", "Lituania", true);
+const Country DE("DE", "Germany", true);
+const Country AL("AL", "Albania", true);
+const Country AM("AM", "Armenia", true);
+const Country NL("NL", "Netherlands", true);
+const Country BEF = country::BEF;
+const Country BEW = country::BEW;
+const Country BEB = country::BEB;
+}
+
 }

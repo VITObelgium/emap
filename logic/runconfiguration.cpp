@@ -32,6 +32,7 @@ RunConfiguration::RunConfiguration(
     std::string_view scenario,
     SectorInventory sectors,
     PollutantInventory pollutants,
+    CountryInventory countries,
     const fs::path& outputPath)
 : _dataPath(dataPath)
 , _spatialPatternsPath(spatialPatternsPath)
@@ -45,6 +46,7 @@ RunConfiguration::RunConfiguration(
 , _scenario(scenario)
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
+, _countryInventory(std::move(countries))
 {
 }
 
@@ -77,7 +79,7 @@ fs::path RunConfiguration::spatial_pattern_path() const
 
 fs::path RunConfiguration::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
 {
-    return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.code()));
+    return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));
 }
 
 fs::path RunConfiguration::emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const
@@ -150,12 +152,20 @@ std::optional<int32_t> RunConfiguration::max_concurrency() const noexcept
 {
     return _concurrency;
 }
+
 const SectorInventory& RunConfiguration::sectors() const noexcept
 {
     return _sectorInventory;
 }
+
 const PollutantInventory& RunConfiguration::pollutants() const noexcept
 {
     return _pollutantInventory;
 }
+
+const CountryInventory& RunConfiguration::countries() const noexcept
+{
+    return _countryInventory;
+}
+
 }

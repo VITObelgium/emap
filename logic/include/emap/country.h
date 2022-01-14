@@ -1,5 +1,8 @@
 #pragma once
 
+#include "emap/inputconversion.h"
+#include "infra/span.h"
+
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
@@ -9,130 +12,72 @@ namespace emap {
 class Country
 {
 public:
-    enum class Id
-    {
-        AL,
-        AM,
-        ARE,
-        ARO,
-        ASE,
-        ASM,
-        AT,
-        ATL,
-        AZ,
-        BA,
-        BAS,
-        BEB,
-        BEF,
-        BEW,
-        BG,
-        BLS,
-        BY,
-        CAS,
-        CH,
-        CY,
-        CZ,
-        DE,
-        DK,
-        EE,
-        ES,
-        FI,
-        FR,
-        GB,
-        GE,
-        GL,
-        GR,
-        HR,
-        HU,
-        IE,
-        IS,
-        IT,
-        KG,
-        KZ,
-        KZE,
-        LI,
-        LT,
-        LU,
-        LV,
-        MC,
-        MD,
-        ME,
-        MED,
-        MK,
-        MT,
-        NL,
-        NO,
-        NOA,
-        NOS,
-        PL,
-        PT,
-        RFE,
-        RO,
-        RS,
-        RU,
-        RUX,
-        SE,
-        SI,
-        SK,
-        TJ,
-        TME,
-        TMO,
-        TR,
-        UA,
-        UZE,
-        UZO,
-        EnumCount,
-        Invalid,
-    };
-
-    static Country from_string(std::string_view str);
-    static std::optional<Country> try_from_string(std::string_view str) noexcept;
-
-    constexpr Country() noexcept = default;
-    constexpr Country(Id id)
-    : _id(id)
+    Country() noexcept = default;
+    Country(std::string_view isoCode, std::string_view label, bool isLand)
+    : _isoCode(isoCode)
+    , _label(label)
+    , _isLand(isLand)
     {
     }
 
-    constexpr bool is_belgium() const noexcept
+    bool is_belgium() const noexcept
     {
-        return _id == Id::BEF || _id == Id::BEB || _id == Id::BEW;
+        return _isoCode == "BEF" || _isoCode == "BEB" || _isoCode == "BEW";
     }
 
-    constexpr bool is_sea() const noexcept
+    bool is_sea() const noexcept
     {
-        return _id == Id::ARE ||
-               _id == Id::ARO ||
-               _id == Id::ATL ||
-               _id == Id::BAS ||
-               _id == Id::BLS ||
-               _id == Id::CAS ||
-               _id == Id::MED ||
-               _id == Id::NOS;
+        return !_isLand;
     }
 
-    constexpr Id id() const noexcept
+    std::string_view iso_code() const noexcept
     {
-        return _id;
+        return _isoCode;
     }
 
-    constexpr bool operator==(const Country& other) const noexcept
+    std::string_view full_name() const noexcept
     {
-        return _id == other._id;
+        return _label;
     }
 
-    constexpr bool operator!=(const Country& other) const noexcept
+    bool operator==(const Country& other) const noexcept
+    {
+        return _isoCode == other._isoCode;
+    }
+
+    bool operator!=(const Country& other) const noexcept
     {
         return !(*this == other);
     }
 
     std::string_view to_string() const noexcept;
-    std::string_view code() const noexcept;
-    std::string_view full_name() const noexcept;
-    bool included() const noexcept;
 
 private:
-    Id _id = Id::Invalid;
+    std::string _isoCode;
+    std::string _label;
+    bool _isLand = true;
+};
+
+namespace country {
+const Country BEB("BEB", "Brussels", true);
+const Country BEF("BEF", "Flanders", true);
+const Country BEW("BEW", "Wallonia", true);
+}
+
+class CountryInventory
+{
+public:
+    CountryInventory(std::vector<Country> countries);
+
+    Country country_from_string(std::string_view str) const;
+    std::optional<Country> try_country_from_string(std::string_view str) const noexcept;
+    size_t country_count() const noexcept;
+
+    std::span<const Country> countries() const noexcept;
+    Country non_belgian_country() const;
+
+private:
+    std::vector<Country> _countries;
 };
 
 }
@@ -143,9 +88,7 @@ struct hash<emap::Country>
 {
     size_t operator()(const emap::Country& country) const
     {
-        using EnumType = std::underlying_type_t<emap::Country::Id>;
-
-        return hash<EnumType>()(static_cast<EnumType>(country.id()));
+        return hash<std::string_view>()(country.iso_code());
     }
 };
 }

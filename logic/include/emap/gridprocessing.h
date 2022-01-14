@@ -18,16 +18,18 @@ class Geometry;
 
 namespace emap {
 
+class CountryInventory;
+
 using namespace inf;
 
 struct GridProcessingProgressInfo
 {
-    GridProcessingProgressInfo(Country::Id country_)
+    GridProcessingProgressInfo(Country country_)
     : country(country_)
     {
     }
 
-    Country::Id country = Country::Id::Invalid;
+    Country country;
 };
 
 struct CellCoverageInfo
@@ -44,15 +46,15 @@ struct CellCoverageInfo
     double coverage = 0.0;
 };
 
-using GridProcessingProgress = inf::ProgressTracker<Country::Id>;
-using CountryCellCoverage    = std::pair<Country::Id, std::vector<CellCoverageInfo>>;
+using GridProcessingProgress = inf::ProgressTracker<Country>;
+using CountryCellCoverage    = std::pair<Country, std::vector<CellCoverageInfo>>;
 
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid);
 gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput);
 
-size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb);
-void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
+size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries);
 

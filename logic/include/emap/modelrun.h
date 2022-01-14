@@ -1,6 +1,5 @@
 #pragma once
 
-#include "emap/preprocessing.h"
 #include "emap/runconfiguration.h"
 #include "infra/filesystem.h"
 #include "infra/progressinfo.h"
@@ -25,20 +24,12 @@ struct ModelProgressInfo
     {
     }
 
-    ModelProgressInfo(PreprocessingProgressInfo i)
-    : info(i)
-    {
-    }
-
     std::string to_string() const
     {
-        return std::visit([](const auto& info) {
-            return info.to_string();
-        },
-                          info);
+        return info.to_string();
     }
 
-    std::variant<PreprocessingProgressInfo, ModelRunProgressInfo> info;
+    ModelRunProgressInfo info;
 };
 
 using ModelProgress = inf::ProgressTracker<ModelProgressInfo>;

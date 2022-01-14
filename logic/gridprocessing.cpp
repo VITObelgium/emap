@@ -180,9 +180,9 @@ static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& ex
     return result;
 }
 
-static std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> process_country_borders(std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>>& cellCoverages, GeoMetadata extent)
+static std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> process_country_borders(std::vector<std::pair<Country, std::vector<CellCoverageInfo>>>& cellCoverages, GeoMetadata extent)
 {
-    std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> result;
+    std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> result;
     result.reserve(cellCoverages.size());
 
     for (auto& [country, cells] : cellCoverages) {
@@ -237,7 +237,7 @@ static std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> proces
             modifiedCoverages.push_back(modifiedCoverage);
         }
 
-        file::write_as_text(fmt::format("c:/temp/em/{}_cells.geojson", Country(country).code()), rects_to_geojson(intersectInfo, extent.cellSize));
+        file::write_as_text(fmt::format("c:/temp/em/{}_cells.geojson", Country(country).iso_code()), rects_to_geojson(intersectInfo, extent.cellSize));
 
         result.emplace_back(country, std::move(modifiedCoverages));
     }
@@ -245,7 +245,7 @@ static std::vector<std::pair<Country::Id, std::vector<CellCoverageInfo>>> proces
     return result;
 }
 
-size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
+size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
 {
     auto countriesDs = gdal::VectorDataSet::open(countriesVector);
 
@@ -257,7 +257,7 @@ size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path&
 
     size_t count = 0;
     for (auto& feature : countriesLayer) {
-        if (Country::try_from_string(feature.field_as<std::string_view>(colCountryId)).has_value() && feature.has_geometry()) {
+        if (inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)).has_value() && feature.has_geometry()) {
             ++count;
         }
     }
@@ -265,7 +265,7 @@ size_t known_countries_in_extent(const inf::GeoMetadata& extent, const fs::path&
     return count;
 }
 
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const GridProcessingProgress::Callback& progressCb)
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
 {
     std::vector<CountryCellCoverage> result;
 
@@ -277,19 +277,19 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     const auto bbox = extent.bounding_box();
     countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
 
-    std::vector<std::pair<Country::Id, geos::geom::Geometry::Ptr>> geometries;
+    std::vector<std::pair<Country, geos::geom::Geometry::Ptr>> geometries;
 
     for (auto& feature : countriesLayer) {
-        if (const auto country = Country::try_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
+        if (const auto country = inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
             // known country
             auto geom = feature.geometry();
-            geometries.emplace_back(country->id(), geom::gdal_to_geos(geom));
+            geometries.emplace_back(*country, geom::gdal_to_geos(geom));
         }
     }
 
     // sort on geometry complexity, so we always start processing the most complex geometries
     // this avoids processing the most complext geometry in the end on a single core
-    std::sort(geometries.begin(), geometries.end(), [](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& lhs, const std::pair<Country::Id, geos::geom::Geometry::Ptr>& rhs) {
+    std::sort(geometries.begin(), geometries.end(), [](const std::pair<Country, geos::geom::Geometry::Ptr>& lhs, const std::pair<Country, geos::geom::Geometry::Ptr>& rhs) {
         return lhs.second->getNumPoints() >= rhs.second->getNumPoints();
     });
 
@@ -299,7 +299,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 
         std::mutex mut;
         GridProcessingProgress progress(geometries.size(), progressCb);
-        tbb::parallel_for_each(geometries, [&](const std::pair<Country::Id, geos::geom::Geometry::Ptr>& idGeom) {
+        tbb::parallel_for_each(geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
             auto coverages = create_cell_coverages(extent, *idGeom.second);
 #ifndef NDEBUG
             if (!coverages.empty()) {
@@ -320,10 +320,10 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         Log::debug("Create cell coverages took: {}", rec.elapsed_time_string());
     }
 
-    // sort the result on country id to get reproducible results in the process country borders function
+    // sort the result on country code to get reproducible results in the process country borders function
     // as the cell coverages (double) of the neigboring countries are added, different order causes minor floating point additions differences
     std::sort(result.begin(), result.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
-        return lhs.first < rhs.first;
+        return lhs.first.iso_code() < rhs.first.iso_code();
     });
 
     // Update the coverages on the country borders to get appropriate spreading of the emissions
@@ -334,10 +334,10 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     return result;
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
+void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras       = read_raster_north_up(rasterInput);
-    const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, progressCb);
+    const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, inv, progressCb);
     return extract_countries_from_raster(rasterInput, gnfrSector, coverages, outputDir, filenameFormat, progressCb);
 }
 
@@ -348,13 +348,13 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
     GridProcessingProgress progress(countries.size(), progressCb);
 
     for (const auto& [countryId, coverages] : countries) {
-        if (countryId == Country::Id::BEF) {
+        if (countryId == country::BEF) {
             progress.tick_throw_on_cancel();
             continue;
         }
 
         Country country(countryId);
-        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.code()));
+        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.iso_code()));
 
         gdx::write_raster(cutout_country(ras, coverages, gnfrSector), countryOutputPath);
 
@@ -368,7 +368,7 @@ generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_r
     const auto ras = read_raster_north_up(rasterInput);
 
     for (const auto& [countryId, coverages] : countries) {
-        if (countryId == Country::Id::BEF) {
+        if (countryId == country::BEF) {
             continue;
         }
 

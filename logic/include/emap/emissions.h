@@ -84,7 +84,7 @@ struct EmissionIdentifier
         return !(*this == other);
     }
 
-    Country country = Country::Id::Invalid;
+    Country country;
     EmissionSector sector;
     Pollutant pollutant;
 };

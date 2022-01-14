@@ -164,37 +164,6 @@ static void throw_on_missing_section(const toml::table& table, std::string_view 
     }
 }
 
-static std::optional<PreprocessingConfiguration> parse_preprocessing_configuration(std::string_view configContents, const fs::path& tomlPath)
-{
-    try {
-        const auto basePath     = tomlPath.parent_path();
-        const toml::table table = toml::parse(configContents, tomlPath.u8string());
-
-        if (!table.contains("preprocess")) {
-            // No preprocessing configured
-            return {};
-        }
-
-        NamedSection preprocessing("preprocess", table["preprocess"]);
-
-        date::year year                = read_year(preprocessing.section["year"]);
-        const auto spatialPatternsPath = read_path(preprocessing, "spatial_patterns", basePath);
-        const auto countriesPath       = read_path(preprocessing, "countries_vector", basePath);
-        const auto outputPath          = read_path(preprocessing, "output", basePath);
-
-        return PreprocessingConfiguration(year,
-                                          spatialPatternsPath,
-                                          countriesPath,
-                                          outputPath);
-    } catch (const toml::parse_error& e) {
-        if (const auto& errorBegin = e.source().begin; errorBegin) {
-            throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);
-        }
-
-        throw RuntimeError("Failed to parse run configuration: {}", e.description());
-    }
-}
-
 static std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
@@ -219,6 +188,7 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
 
         auto sectorInventory    = parse_sectors(dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto countryInventory   = parse_countries(dataPath / "05_model_parameters" / "id_nummers.xlsx");
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);
@@ -234,6 +204,7 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
                                 scenario,
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),
+                                std::move(countryInventory),
                                 outputPath);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
@@ -242,16 +213,6 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
 
         throw RuntimeError("Failed to parse run configuration: {}", e.description());
     }
-}
-
-std::optional<PreprocessingConfiguration> parse_preprocessing_configuration_file(const fs::path& config)
-{
-    return parse_preprocessing_configuration(file::read_as_text(config), config);
-}
-
-std::optional<PreprocessingConfiguration> parse_preprocessing_configuration(std::string_view configContents)
-{
-    return parse_preprocessing_configuration(configContents, fs::path());
 }
 
 std::optional<RunConfiguration> parse_run_configuration_file(const fs::path& config)

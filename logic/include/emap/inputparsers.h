@@ -13,11 +13,11 @@ class ScalingFactors;
 class SectorInventory;
 class PollutantInventory;
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv); // TODO: still using this?
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv); // TODO: still using this?
 SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 
 struct SpatialPatternData
 {
@@ -27,6 +27,7 @@ struct SpatialPatternData
 };
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
+CountryInventory parse_countries(const fs::path& countrySpec);
 SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec);
 PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec);
 

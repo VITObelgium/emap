@@ -4,7 +4,6 @@
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
 #include "emap/outputwriters.h"
-#include "emap/preprocessing.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
 #include "runsummary.h"
@@ -61,7 +60,7 @@ struct ModelResult
 
 void spread_emissions(const EmissionInventory& inventory, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
-    ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * enum_count<Country::Id>(), progressCb);
+    ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * cfg.countries().country_count(), progressCb);
     progress.set_payload(ModelRunProgressInfo());
 
     // TODO: smarter splitting to avoid huge memory consumption
@@ -101,7 +100,7 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
     // Run a pipeline for each pollutant
     for (auto pollutant : cfg.pollutants().pollutants()) {
         for (auto& sector : cfg.sectors().nfr_sectors()) {
-            for (auto country : inf::enum_entries<Country::Id>()) {
+            for (auto country : cfg.countries().countries()) {
                 progress.tick();
 
                 /*
@@ -173,7 +172,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
         for (auto pol : cfg.pollutants().pollutants()) {
             // Take any european country, except for a Belgian region
-            summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(Country::Id::NL, pol, EmissionSector(nfr)));
+            summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(cfg.countries().non_belgian_country(), pol, EmissionSector(nfr)));
         }
     }
 
@@ -184,10 +183,10 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     SingleEmissions pointSourcesFlanders;
 
     chrono::DurationRecorder duration;
-    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg.sectors(), cfg.pollutants());
+    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
     Log::info("Parse nfr emissions took: {}", duration.elapsed_time_string());
     duration.reset();
-    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg.sectors(), cfg.pollutants());
+    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
     Log::info("Parse gnfr emissions took: {}", duration.elapsed_time_string());
 
     const ScalingFactors scalingsDiffuse;

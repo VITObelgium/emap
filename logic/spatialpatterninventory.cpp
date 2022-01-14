@@ -189,9 +189,9 @@ void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year star
     std::vector<SpatialPatternSource> result;
 
     _spatialPatternsRest = scan_dir_rest(startYear, spatialPatternPath / "rest" / reporing_dir(reportingYear));
-    _countrySpecificSpatialPatterns.emplace(Country::Id::BEB, scan_dir_belgium(startYear, spatialPatternPath / "beb" / reporing_dir(reportingYear)));
-    _countrySpecificSpatialPatterns.emplace(Country::Id::BEF, scan_dir_belgium(startYear, spatialPatternPath / "bef" / reporing_dir(reportingYear)));
-    _countrySpecificSpatialPatterns.emplace(Country::Id::BEW, scan_dir_belgium(startYear, spatialPatternPath / "bew" / reporing_dir(reportingYear)));
+    _countrySpecificSpatialPatterns.emplace(country::BEB, scan_dir_belgium(startYear, spatialPatternPath / "beb" / reporing_dir(reportingYear)));
+    _countrySpecificSpatialPatterns.emplace(country::BEF, scan_dir_belgium(startYear, spatialPatternPath / "bef" / reporing_dir(reportingYear)));
+    _countrySpecificSpatialPatterns.emplace(country::BEW, scan_dir_belgium(startYear, spatialPatternPath / "bew" / reporing_dir(reportingYear)));
 }
 
 SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(Country country, Pollutant pol, EmissionSector sector) const

@@ -56,11 +56,6 @@ static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const in
     throw RuntimeError("Missing nfr_sector or gnfr_sector column");
 }
 
-static Country to_country(std::string_view name)
-{
-    return Country::from_string(name);
-}
-
 static double to_double(std::string_view valueString, size_t lineNr)
 {
     if (auto value = str::to_double(valueString); value.has_value()) {
@@ -75,7 +70,7 @@ static double to_double(std::string_view valueString, size_t lineNr)
     throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
-SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
 {
     // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
     // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
@@ -99,7 +94,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const SectorIn
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
 
             EmissionEntry info(
-                EmissionIdentifier(to_country(line.get_string(colCountry)), sectorInv.sector_from_string(sectorType, line.get_string(colSector)), pollutantInv.pollutant_from_string(line.get_string(colPollutant))),
+                EmissionIdentifier(countryInv.country_from_string(line.get_string(colCountry)), sectorInv.sector_from_string(sectorType, line.get_string(colSector)), pollutantInv.pollutant_from_string(line.get_string(colPollutant))),
                 EmissionValue(emissionValue));
 
             if (colX.has_value() && colY.has_value()) {
@@ -122,7 +117,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const SectorIn
     }
 }
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
 {
     // First lines are comments
     // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
@@ -142,8 +137,8 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
                 *emissionValue = to_giga_gram(*emissionValue, unit);
             }
 
-            const auto country = Country::try_from_string(countryStr);
-            if (!country.has_value() || !country->included()) {
+            const auto country = countryInv.try_country_from_string(countryStr);
+            if (!country.has_value()) {
                 // not interested in this country, no need to report this
                 continue;
             }
@@ -164,7 +159,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
     }
 }
 
-ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
 {
     // csv columns: country;nfr_sector;pollutant;factor
 
@@ -181,7 +176,7 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const Se
 
         size_t lineNr = 2;
         for (auto& line : csv) {
-            const auto country   = to_country(line.get_string(colCountry));
+            const auto country   = countryInv.country_from_string(line.get_string(colCountry));
             const auto sector    = sectorInv.sector_from_string(sectorType, line.get_string(colSector));
             const auto pollutant = pollutantInv.pollutant_from_string(line.get_string(colPollutant));
             const auto factor    = to_double(line.get_string(colFactor), lineNr);
@@ -262,7 +257,7 @@ SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData, cons
         }
 
         EmissionEntry info(
-            EmissionIdentifier(Country::Id::BEF,
+            EmissionIdentifier(country::BEF,
                                sectorInv.sector_from_string(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colSector)),
                                pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant))),
             EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
@@ -342,11 +337,11 @@ static Country detect_belgian_region_from_filename(const fs::path& path)
 {
     auto filename = path.stem().u8string();
     if (str::starts_with(filename, "BEB")) {
-        return Country(Country::Id::BEB); // Brussels
+        return country::BEB; // Brussels
     } else if (str::starts_with(filename, "BEF")) {
-        return Country(Country::Id::BEF); // Flanders
+        return country::BEF; // Flanders
     } else if (str::starts_with(filename, "BEW")) {
-        return Country(Country::Id::BEW); // Wallonia
+        return country::BEW; // Wallonia
     }
 
     throw RuntimeError("Could not detect region from filename: {}", filename);
@@ -503,7 +498,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     const auto gridData  = grid_data(GridDefinition::Flanders1km);
 
     EmissionIdentifier id;
-    id.country = Country::Id::BEF;
+    id.country = country::BEF;
 
     auto colYear      = layer.layer_definition().required_field_index("year");
     auto colSector    = layer.layer_definition().required_field_index("nfr_sector");
@@ -579,6 +574,35 @@ static EmissionDestination emission_destination_from_string(std::string_view str
     }
 
     throw RuntimeError("Invalid emission destination type: {}", str);
+}
+
+CountryInventory parse_countries(const fs::path& countriesSpec)
+{
+    std::vector<Country> countries;
+    InputConversions conversions;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds = gdal::VectorDataSet::open(countriesSpec);
+
+    {
+        auto layer = ds.layer("country");
+
+        const auto colIsoCode = layer.layer_definition().required_field_index("country_iso_code");
+        const auto colLabel   = layer.layer_definition().required_field_index("country_label");
+        const auto colType    = layer.layer_definition().required_field_index("type");
+
+        for (const auto& feature : layer) {
+            if (!feature.field_is_valid(0)) {
+                continue; // skip empty lines
+            }
+
+            countries.emplace_back(feature.field_as<std::string_view>(colIsoCode),
+                                   feature.field_as<std::string_view>(colLabel),
+                                   feature.field_as<std::string_view>(colType) == "land");
+        }
+    }
+
+    return CountryInventory(std::move(countries));
 }
 
 SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec)

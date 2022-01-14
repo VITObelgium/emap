@@ -16,11 +16,9 @@ add_library(emaplogic
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
     include/emap/pollutant.h pollutant.cpp
-    include/emap/preprocessing.h preprocessing.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
-    include/emap/preprocessingconfiguration.h preprocessingconfiguration.cpp
     include/emap/outputwriters.h outputwriters.cpp
     configurationutil.h
     enuminfo.h

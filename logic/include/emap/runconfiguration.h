@@ -37,6 +37,7 @@ public:
         std::string_view scenario,
         SectorInventory sectors,
         PollutantInventory pollutants,
+        CountryInventory countries,
         const fs::path& outputPath);
 
     fs::path point_source_emissions_path() const;
@@ -68,6 +69,7 @@ public:
 
     const SectorInventory& sectors() const noexcept;
     const PollutantInventory& pollutants() const noexcept;
+    const CountryInventory& countries() const noexcept;
 
 private:
     fs::path emissions_dir_path() const;
@@ -84,6 +86,7 @@ private:
     std::string _scenario;
     SectorInventory _sectorInventory;
     PollutantInventory _pollutantInventory;
+    CountryInventory _countryInventory;
 
     std::optional<int32_t> _concurrency;
 };

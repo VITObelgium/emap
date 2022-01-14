@@ -24,7 +24,7 @@ PollutantInventory::PollutantInventory(std::vector<Pollutant> pollutants, InputC
 
 Pollutant PollutantInventory::pollutant_from_string(std::string_view str) const
 {
-    if (const auto pollutant = try_pollutant_from_string(_conversions.lookup(str)); pollutant.has_value()) {
+    if (const auto pollutant = try_pollutant_from_string(str); pollutant.has_value()) {
         return *pollutant;
     }
 
@@ -33,8 +33,9 @@ Pollutant PollutantInventory::pollutant_from_string(std::string_view str) const
 
 std::optional<Pollutant> PollutantInventory::try_pollutant_from_string(std::string_view str) const noexcept
 {
-    const auto* pollutant = find_in_container(_pollutants, [str](const Pollutant& pol) {
-        return pol.code() == str;
+    auto pollutantCode    = _conversions.lookup(str);
+    const auto* pollutant = find_in_container(_pollutants, [pollutantCode](const Pollutant& pol) {
+        return pol.code() == pollutantCode;
     });
 
     return pollutant ? *pollutant : std::optional<Pollutant>();
