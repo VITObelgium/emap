@@ -1,6 +1,7 @@
 #pragma once
 
-#include <infra/span.h>
+#include "emap/inputconversion.h"
+#include "infra/span.h"
 
 #include <fmt/core.h>
 #include <optional>
@@ -200,7 +201,12 @@ public:
     {
     }
 
-    GnfrSector(std::string_view name, GnfrId id, std::string_view description, EmissionDestination destination);
+    GnfrSector(std::string_view name, GnfrId id, std::string_view code, std::string_view description, EmissionDestination destination);
+
+    std::string_view code() const noexcept
+    {
+        return _code;
+    }
 
     std::string_view name() const noexcept
     {
@@ -234,8 +240,9 @@ public:
 
 private:
     GnfrId _id;
-    std::string _name;
     EmissionDestination _destination = EmissionDestination::Invalid;
+    std::string _code;
+    std::string _name;
     std::string _description;
 };
 
@@ -246,9 +253,14 @@ public:
     {
     }
 
-    NfrSector(std::string_view name, NfrId id, GnfrSector gnfr, std::string_view description);
+    NfrSector(std::string_view name, NfrId id, GnfrSector gnfr, std::string_view description, EmissionDestination destination);
 
     std::string_view name() const noexcept
+    {
+        return _name;
+    }
+
+    std::string_view code() const noexcept
     {
         return _name;
     }
@@ -280,10 +292,10 @@ public:
 
 private:
     NfrId _id;
+    EmissionDestination _destination = EmissionDestination::Invalid;
     GnfrSector _gnfr;
     std::string _name;
     std::string _description;
-    std::unordered_set<std::string> _inputNames;
 };
 
 class EmissionSector
@@ -341,7 +353,7 @@ private:
 class SectorInventory
 {
 public:
-    SectorInventory(std::vector<GnfrSector> gnfrSectors, std::vector<NfrSector> nfrSectors);
+    SectorInventory(std::vector<GnfrSector> gnfrSectors, std::vector<NfrSector> nfrSectors, InputConversions gnfrSectorConversions, InputConversions nfrSectorConversions);
 
     EmissionSector sector_from_string(std::string_view name) const;
     EmissionSector sector_from_string(EmissionSector::Type type, std::string_view name) const;
@@ -363,6 +375,8 @@ private:
 
     std::vector<GnfrSector> _gnfrSectors;
     std::vector<NfrSector> _nfrSectors;
+    InputConversions _gnfrConversions;
+    InputConversions _nfrConversions;
 };
 
 }

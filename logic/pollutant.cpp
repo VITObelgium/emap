@@ -16,14 +16,15 @@ namespace emap {
 
 using namespace inf;
 
-PollutantInventory::PollutantInventory(std::vector<Pollutant> pollutants)
+PollutantInventory::PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions)
 : _pollutants(std::move(pollutants))
+, _conversions(std::move(conversions))
 {
 }
 
 Pollutant PollutantInventory::pollutant_from_string(std::string_view str) const
 {
-    if (const auto pollutant = try_pollutant_from_string(str); pollutant.has_value()) {
+    if (const auto pollutant = try_pollutant_from_string(_conversions.lookup(str)); pollutant.has_value()) {
         return *pollutant;
     }
 

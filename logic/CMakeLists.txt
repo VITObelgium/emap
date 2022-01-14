@@ -12,6 +12,7 @@ add_library(emaplogic
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h griddefinition.cpp
     include/emap/gridprocessing.h gridprocessing.cpp
+    include/emap/inputconversion.h
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
     include/emap/pollutant.h pollutant.cpp

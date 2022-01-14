@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emap/inputconversion.h"
 #include "infra/span.h"
 
 #include <fmt/core.h>
@@ -42,7 +43,7 @@ private:
 class PollutantInventory
 {
 public:
-    PollutantInventory(std::vector<Pollutant> pollutants);
+    PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions);
 
     Pollutant pollutant_from_string(std::string_view str) const;
     std::optional<Pollutant> try_pollutant_from_string(std::string_view str) const noexcept;
@@ -52,6 +53,7 @@ public:
 
 private:
     std::vector<Pollutant> _pollutants;
+    InputConversions _conversions;
 };
 
 }

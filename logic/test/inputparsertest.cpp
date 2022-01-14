@@ -16,8 +16,8 @@ using namespace doctest;
 
 TEST_CASE("Load emissions")
 {
-    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
+    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
     SUBCASE("nfr sectors")
     {
@@ -125,8 +125,8 @@ TEST_CASE("Load emissions")
 
 TEST_CASE("Load point source emissions")
 {
-    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
+    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
     SUBCASE("nfr sectors")
     {
@@ -174,8 +174,8 @@ TEST_CASE("Load point source emissions")
 
 TEST_CASE("Load scaling factors")
 {
-    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
+    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
     const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "scaling_diffuse.csv", sectorInventory, pollutantInventory);
     REQUIRE(scalings.size() == 4);
@@ -211,8 +211,8 @@ TEST_CASE("Load scaling factors")
 
 TEST_CASE("Load spatial pattern")
 {
-    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
+    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
     SUBCASE("Flanders")
     {

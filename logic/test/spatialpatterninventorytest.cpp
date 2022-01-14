@@ -13,8 +13,11 @@ using namespace date;
 
 TEST_CASE("Spatial pattern selection test")
 {
-    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "Numbers_output.xlsx");
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters.xlsx");
+    const auto sectorInventory = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
+                                               fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
+                                                     fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
     SpatialPatternInventory inv(sectorInventory, pollutantInventory);
     inv.scan_dir(2021_y, 2016_y, fs::u8path(TEST_DATA_DIR) / "spatialinventory");
