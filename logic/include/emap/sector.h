@@ -196,6 +196,7 @@ public:
 
     GnfrSector gnfr_sector_from_string(std::string_view str) const;
     NfrSector nfr_sector_from_string(std::string_view str) const;
+    std::pair<NfrSector, int32_t> nfr_sector_with_priority_from_string(std::string_view str) const;
 
     GnfrSector gnfr_sector_from_id(GnfrId id) const;
 
@@ -208,6 +209,7 @@ public:
 private:
     std::optional<GnfrSector> try_gnfr_sector_from_string(std::string_view str) const noexcept;
     std::optional<NfrSector> try_nfr_sector_from_string(std::string_view str) const noexcept;
+    std::optional<std::pair<NfrSector, int32_t>> try_nfr_sector_with_priority_from_string(std::string_view str) const noexcept;
 
     std::vector<GnfrSector> _gnfrSectors;
     std::vector<NfrSector> _nfrSectors;

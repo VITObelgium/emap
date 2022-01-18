@@ -359,6 +359,16 @@ static std::optional<Pollutant> detect_pollutant_name_from_header(std::string_vi
     return pol;
 }
 
+static std::string_view strip_newline(std::string_view str)
+{
+    auto iter = str.find_first_of('\n');
+    if (iter != std::string::npos) {
+        return str::trimmed_view(str.substr(0, iter));
+    }
+
+    return str;
+}
+
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
 {
     SingleEmissions result;
@@ -384,6 +394,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
     };
 
     std::unordered_map<int, PollutantData> pollutantColumns;
+    std::unordered_map<NfrId, int32_t> usedSectorPriories;
 
     int lineNr = 0;
     for (const auto& feature : layer) {
@@ -391,7 +402,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
 
         if (lineNr == pollutantLineNr) {
             for (int i = 0; i < feature.field_count(); ++i) {
-                if (auto pol = detect_pollutant_name_from_header(feature.field_as<std::string_view>(i), pollutantInv); pol.has_value()) {
+                if (auto pol = detect_pollutant_name_from_header(strip_newline(feature.field_as<std::string_view>(i)), pollutantInv); pol.has_value()) {
                     pollutantColumns.emplace(i, *pol);
                 }
             }
@@ -403,16 +414,25 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
 
         if (auto nfrSectorName = feature.field_as<std::string_view>(1); !nfrSectorName.empty()) {
             EmissionSector nfrSector;
-
-            // TODO: Sector overrides
-            std::optional<NfrSector> sectorOverride;
+            bool sectorOverride = false;
 
             try {
-                nfrSector = EmissionSector(sectorInv.nfr_sector_from_string(nfrSectorName));
-                //sectorOverride = nfrSector.is_sector_override();
-                if (sectorOverride.has_value()) {
-                    // this sector overrides the value of another sector
-                    nfrSector = EmissionSector(*sectorOverride);
+                auto [sector, priority] = sectorInv.nfr_sector_with_priority_from_string(nfrSectorName);
+                nfrSector               = EmissionSector(sector);
+
+                if (auto iter = usedSectorPriories.find(sector.id()); iter != usedSectorPriories.end()) {
+                    // Sector was already processed, check if the current priority is higher
+                    if (priority > iter->second) {
+                        // the current entry has a higher priority, update the map
+                        iter->second   = priority;
+                        sectorOverride = true;
+                    } else {
+                        // the current entry has a lower priority priority, skip it
+                        continue;
+                    }
+                } else {
+                    // first time we encounter this sector, add the current priority
+                    usedSectorPriories.emplace(sector.id(), priority);
                 }
             } catch (const std::exception&) {
                 // not an nfr value line, skipping
@@ -444,8 +464,8 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                         pm2_5 = emissionValue;
                     }
 
-                    if (sectorOverride.has_value()) {
-                        // update the existing emission with the override
+                    if (sectorOverride) {
+                        // update the existing emission with the higher priority version
                         result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue)));
                     } else {
                         result.add_emission(EmissionEntry(
@@ -454,7 +474,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                     }
                 } else {
                     const auto value = feature.field_as<std::string>(index);
-                    if (!value.empty() && value != "NO" && value != "IE" && value != "NA" && value != "NE" && value != "NR") {
+                    if (!value.empty() && value != "NO" && value != "IE" && value != "NA" && value != "NE" && value != "NR" && value != "C") {
                         Log::error("Failed to obtain emission value from {}", value);
                     }
                 }
@@ -466,18 +486,18 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 if (pm2_5.has_value() && pm10.has_value()) {
                     if (pm10 >= pm2_5) {
                         auto pmcVal = EmissionValue(*pm10 - *pm2_5);
-                        if (sectorOverride.has_value()) {
-                            // update the existing emission with the override
+                        if (sectorOverride) {
+                            // update the existing emission with the higher priority version
                             result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal));
                         } else {
                             result.add_emission(EmissionEntry(
                                 EmissionIdentifier(country, nfrSector, *pmCoarse),
                                 pmcVal));
                         }
+                    } else {
+                        throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, *pm2_5);
                     }
-                } else {
-                    throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, *pm2_5);
-                }
+                } 
             }
         }
     }
@@ -682,7 +702,7 @@ SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conver
                     continue; // skip empty lines
                 }
 
-                gnfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName));
+                gnfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), {});
             }
         }
     }
@@ -693,16 +713,16 @@ SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conver
         {
             auto layer = ds.layer("nfr");
 
-            const auto colCode = layer.layer_definition().required_field_index("NFR_code");
-            const auto colName = layer.layer_definition().required_field_index("NFR_names");
-            //const auto colPriority = layer.layer_definition().required_field_index("prioriteit");
+            const auto colCode     = layer.layer_definition().required_field_index("NFR_code");
+            const auto colName     = layer.layer_definition().required_field_index("NFR_names");
+            const auto colPriority = layer.layer_definition().required_field_index("NFR_priority");
 
             for (const auto& feature : layer) {
                 if (!feature.field_is_valid(0)) {
                     continue; // skip empty lines
                 }
 
-                nfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName));
+                nfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), feature.field_as<int32_t>(colPriority));
             }
         }
     }
@@ -750,7 +770,7 @@ PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::pat
                     continue; // skip empty lines
                 }
 
-                conversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName));
+                conversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), {});
             }
         }
     }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="emap::GnfrSector">
+        <DisplayString>{_name}</DisplayString>
+    </Type>
+	<Type Name="emap::Country">
+		<DisplayString>{_isoCode}</DisplayString>
+	</Type>
+	<Type Name="emap::Pollutant">
+		<DisplayString>{_code}</DisplayString>
+	</Type>
+	<Type Name="emap::EmissionSector">
+		<DisplayString Condition="_sector.index() == 0">NFR: {_sector._Head._name}</DisplayString>
+		<DisplayString Condition="_sector.index() == 1">GNFR: {_sector._Tail._Head._name}</DisplayString>
+	</Type>
+	<Type Name="emap::EmissionValue">
+		<DisplayString Condition="_amount.has_value() == true">{_amount.value()}</DisplayString>
+		<DisplayString Condition="_amount.has_value() == false">"No value"</DisplayString>
+	</Type>
+	<Type Name="emap::EmissionIdentifier">
+		<DisplayString>{country} {sector} {pollutant}</DisplayString>
+	</Type>
+	<Type Name="emap::EmissionEntry">
+		<DisplayString>{_id} (emission={_value})</DisplayString>
+	</Type>
+</AutoVisualizer>  

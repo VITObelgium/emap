@@ -59,7 +59,7 @@ TEST_CASE("Load emissions")
     SUBCASE("Belgian emissions xlsx (Brussels)")
     {
         auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019), sectorInventory, pollutantInventory);
-        REQUIRE(emissions.size() == 490);
+        REQUIRE(emissions.size() == 517);
 
         for (auto& em : emissions) {
             CHECK(em.sector().type() == EmissionSector::Type::Nfr);
@@ -74,7 +74,7 @@ TEST_CASE("Load emissions")
     SUBCASE("Belgian emissions xlsx (Flanders)")
     {
         auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019), sectorInventory, pollutantInventory);
-        REQUIRE(emissions.size() == 950);
+        REQUIRE(emissions.size() == 985);
 
         for (auto& em : emissions) {
             CHECK(em.sector().type() == EmissionSector::Type::Nfr);
@@ -111,7 +111,7 @@ TEST_CASE("Load emissions")
     SUBCASE("Belgian emissions xlsx (Wallonia)")
     {
         auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), sectorInventory, pollutantInventory);
-        REQUIRE(emissions.size() == 975);
+        REQUIRE(emissions.size() == 1052);
 
         for (auto& em : emissions) {
             CHECK(em.sector().type() == EmissionSector::Type::Nfr);

@@ -14,9 +14,9 @@ using namespace doctest;
 
 TEST_CASE("Parse run configuration")
 {
-    const auto scaleFactors = fs::u8path(TEST_DATA_DIR) / "input" / "emission_data" / "historic" / "1990" / "scaling_diffuse.csv";
+    const auto scaleFactors = fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "historic" / "1990" / "scaling_diffuse.csv";
 
-    const auto expectedDataRoot = fs::absolute("/emap/emissies/");
+    const auto expectedDataRoot = fs::u8path(TEST_DATA_DIR) / "_input";
     const auto expectedOutput   = fs::absolute("/temp");
 
     SUBCASE("valid file")
@@ -24,7 +24,7 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [model]
                 grid = "beleuros"
-                datapath = "/emap/emissies/"
+                datapath = "_input"
                 type = "emep"
                 year = 2020
                 report_year = 2018
@@ -37,7 +37,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR));
 
         CHECK(config->grid_definition() == GridDefinition::Beleuros);
         CHECK(config->data_root() == expectedDataRoot);
@@ -53,7 +53,7 @@ TEST_CASE("Parse run configuration")
 
     SUBCASE("invalid file: empty")
     {
-        CHECK(!parse_run_configuration("").has_value());
+        CHECK(!parse_run_configuration("", fs::u8path(TEST_DATA_DIR)).has_value());
     }
 
     SUBCASE("invalid file: no path quotes")
@@ -61,7 +61,7 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [model]
                 grid = "beleuros"
-                datapath = /emap/emissies/
+                datapath = _input
                 type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
@@ -73,7 +73,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), RuntimeError);
+        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), RuntimeError);
     }
 
     SUBCASE("invalid file: year as string")
@@ -81,7 +81,7 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [model]
                 grid = "beleuros"
-                datapath = "/emap/emissies/"
+                datapath = "_input"
                 type = "gains"
                 year = "2020"
                 scenario = "scenarionaam"
@@ -93,7 +93,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
     }
 
     SUBCASE("invalid file: scenario is integer")
@@ -101,7 +101,7 @@ TEST_CASE("Parse run configuration")
         std::string_view tomlConfig = R"toml(
             [model]
                 grid = "beleuros"
-                datapath = "/emap/emissies/"
+                datapath = "_input"
                 type = "gains"
                 year = 2020
                 report_year = 2020
@@ -114,7 +114,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string())), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
     }
 }
 

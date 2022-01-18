@@ -8,6 +8,6 @@
 namespace emap {
 
 std::optional<RunConfiguration> parse_run_configuration_file(const fs::path& config);
-std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents);
+std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& basePath); // used for testing
 
 }

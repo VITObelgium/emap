@@ -28,7 +28,7 @@ Country CountryInventory::country_from_string(std::string_view str) const
         return *pollutant;
     }
 
-    throw RuntimeError("Invalid pollutant name: {}", str);
+    throw RuntimeError("Invalid country name: {}", str);
 }
 
 std::optional<Country> CountryInventory::try_country_from_string(std::string_view str) const noexcept

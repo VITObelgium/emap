@@ -1,0 +1,6 @@
+country;nfr_sector;pollutant;factor
+AL;1A2a;NOx;0.5
+AL;1A2a;PMcoarse;1
+AL;1A2a;PM10;1.3
+AM;1A1a;NMVOC;0.8
+AM;1A1a;NOx;1.5

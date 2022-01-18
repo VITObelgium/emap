@@ -28,6 +28,7 @@ add_library(emaplogic
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp
     ${CMAKE_SOURCE_DIR}/GSL.natvis
+    $<$<CXX_COMPILER_ID:MSVC>:${CMAKE_SOURCE_DIR}/emap.natvis>
 )
 
 target_include_directories(emaplogic

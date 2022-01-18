@@ -191,10 +191,12 @@ EmissionSector SectorInventory::sector_from_string(EmissionSector::Type type, st
 std::optional<GnfrSector> SectorInventory::try_gnfr_sector_from_string(std::string_view str) const noexcept
 {
     auto gnfrCode = _gnfrConversions.lookup(str);
-    if (!gnfrCode.empty()) {
-        if (auto iter = find_sector_with_code(gnfrCode, _gnfrSectors); iter != _gnfrSectors.end()) {
-            return *iter;
-        }
+    if (gnfrCode.empty()) {
+        gnfrCode = str; // not all valid names have to be present in the conversion table
+    }
+
+    if (auto iter = find_sector_with_code(gnfrCode, _gnfrSectors); iter != _gnfrSectors.end()) {
+        return *iter;
     }
 
     return {};
@@ -203,9 +205,23 @@ std::optional<GnfrSector> SectorInventory::try_gnfr_sector_from_string(std::stri
 std::optional<NfrSector> SectorInventory::try_nfr_sector_from_string(std::string_view str) const noexcept
 {
     auto nfrCode = _nfrConversions.lookup(str);
+    if (nfrCode.empty()) {
+        nfrCode = str; // not all valid names have to be present in the conversion table
+    }
+
+    if (auto iter = find_sector_with_name(nfrCode, _nfrSectors); iter != _nfrSectors.end()) {
+        return *iter;
+    }
+
+    return {};
+}
+
+std::optional<std::pair<NfrSector, int32_t>> SectorInventory::try_nfr_sector_with_priority_from_string(std::string_view str) const noexcept
+{
+    auto [nfrCode, priority] = _nfrConversions.lookup_with_priority(str);
     if (!nfrCode.empty()) {
         if (auto iter = find_sector_with_name(nfrCode, _nfrSectors); iter != _nfrSectors.end()) {
-            return *iter;
+            return std::make_pair(*iter, priority);
         }
     }
 
@@ -224,6 +240,15 @@ GnfrSector SectorInventory::gnfr_sector_from_string(std::string_view str) const
 NfrSector SectorInventory::nfr_sector_from_string(std::string_view str) const
 {
     if (auto sector = try_nfr_sector_from_string(str); sector.has_value()) {
+        return *sector;
+    }
+
+    throw RuntimeError("Invalid nfr sector name: '{}'", str);
+}
+
+std::pair<NfrSector, int32_t> SectorInventory::nfr_sector_with_priority_from_string(std::string_view str) const
+{
+    if (auto sector = try_nfr_sector_with_priority_from_string(str); sector.has_value()) {
         return *sector;
     }
 

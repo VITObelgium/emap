@@ -33,7 +33,11 @@ Pollutant PollutantInventory::pollutant_from_string(std::string_view str) const
 
 std::optional<Pollutant> PollutantInventory::try_pollutant_from_string(std::string_view str) const noexcept
 {
-    auto pollutantCode    = _conversions.lookup(str);
+    auto pollutantCode = _conversions.lookup(str);
+    if (pollutantCode.empty()) {
+        pollutantCode = str; // not all valid names have to be present in the conversion table
+    }
+
     const auto* pollutant = find_in_container(_pollutants, [pollutantCode](const Pollutant& pol) {
         return pol.code() == pollutantCode;
     });

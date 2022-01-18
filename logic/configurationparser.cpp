@@ -164,7 +164,7 @@ static void throw_on_missing_section(const toml::table& table, std::string_view 
     }
 }
 
-static std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& tomlPath)
+static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
         const auto basePath     = tomlPath.parent_path();
@@ -186,9 +186,9 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
         const auto scenario            = read_string(model, "scenario");
         const auto outputPath          = read_path(model, "emissions_output", basePath);
 
-        auto sectorInventory    = parse_sectors(dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto pollutantInventory = parse_pollutants(dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto countryInventory   = parse_countries(dataPath / "05_model_parameters" / "id_nummers.xlsx");
+        auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto countryInventory   = parse_countries(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx");
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);
@@ -217,11 +217,11 @@ static std::optional<RunConfiguration> parse_run_configuration(std::string_view 
 
 std::optional<RunConfiguration> parse_run_configuration_file(const fs::path& config)
 {
-    return parse_run_configuration(file::read_as_text(config), config);
+    return parse_run_configuration_impl(file::read_as_text(config), config);
 }
 
-std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents)
+std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& basePath)
 {
-    return parse_run_configuration(configContents, fs::path());
+    return parse_run_configuration_impl(configContents, basePath / "dummy.toml");
 }
 }
