@@ -1,5 +1,5 @@
 #include "spatialpatterninventory.h"
-#include "emap/inputparsers.h"
+#include "emap/configurationparser.h"
 #include "testconfig.h"
 #include "testconstants.h"
 

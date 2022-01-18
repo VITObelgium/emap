@@ -1,3 +1,4 @@
+#include "emap/configurationparser.h"
 #include "emap/emissions.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"

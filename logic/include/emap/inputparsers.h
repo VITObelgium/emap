@@ -27,8 +27,5 @@ struct SpatialPatternData
 };
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-CountryInventory parse_countries(const fs::path& countrySpec);
-SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec);
-PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec);
 
 }

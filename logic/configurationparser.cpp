@@ -1,8 +1,8 @@
 #include "emap/configurationparser.h"
-#include "emap/inputparsers.h"
 
 #include "infra/cast.h"
 #include "infra/exception.h"
+#include "infra/gdal.h"
 
 #include <cassert>
 #include <filesystem>
@@ -12,6 +12,201 @@ namespace emap {
 
 using namespace inf;
 using namespace std::string_view_literals;
+
+static EmissionDestination emission_destination_from_string(std::string_view str)
+{
+    if (str == "land") {
+        return EmissionDestination::Land;
+    }
+
+    if (str == "sea") {
+        return EmissionDestination::Sea;
+    }
+
+    throw RuntimeError("Invalid emission destination type: {}", str);
+}
+
+CountryInventory parse_countries(const fs::path& countriesSpec)
+{
+    std::vector<Country> countries;
+    InputConversions conversions;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds = gdal::VectorDataSet::open(countriesSpec);
+
+    {
+        auto layer = ds.layer("country");
+
+        const auto colIsoCode = layer.layer_definition().required_field_index("country_iso_code");
+        const auto colLabel   = layer.layer_definition().required_field_index("country_label");
+        const auto colType    = layer.layer_definition().required_field_index("type");
+
+        for (const auto& feature : layer) {
+            if (!feature.field_is_valid(0)) {
+                continue; // skip empty lines
+            }
+
+            countries.emplace_back(feature.field_as<std::string_view>(colIsoCode),
+                                   feature.field_as<std::string_view>(colLabel),
+                                   feature.field_as<std::string_view>(colType) == "land");
+        }
+    }
+
+    return CountryInventory(std::move(countries));
+}
+
+SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec)
+{
+    std::vector<GnfrSector> gnfrSectors;
+    std::vector<NfrSector> nfrSectors;
+
+    InputConversions gnfrConversions;
+    InputConversions nfrConversions;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds = gdal::VectorDataSet::open(sectorSpec);
+
+    {
+        auto layer = ds.layer("GNFR");
+
+        const auto colNumber = layer.layer_definition().required_field_index("GNFR_number");
+        const auto colLabel  = layer.layer_definition().required_field_index("GNFR_label");
+        const auto colCode   = layer.layer_definition().required_field_index("GNFR_code");
+        const auto colType   = layer.layer_definition().required_field_index("type");
+
+        for (const auto& feature : layer) {
+            if (!feature.field_is_valid(0)) {
+                continue; // skip empty lines
+            }
+
+            gnfrSectors.emplace_back(feature.field_as<std::string_view>(colLabel),
+                                     GnfrId(feature.field_as<int64_t>(colNumber)),
+                                     feature.field_as<std::string_view>(colCode),
+                                     "",
+                                     emission_destination_from_string(feature.field_as<std::string_view>(colType)));
+        }
+    }
+
+    {
+        auto layer = ds.layer("NFR");
+
+        const auto colCode        = layer.layer_definition().required_field_index("NFR_code");
+        const auto colNumber      = layer.layer_definition().required_field_index("NFR_number");
+        const auto colDescription = layer.layer_definition().required_field_index("NFR_description");
+        const auto colType        = layer.layer_definition().required_field_index("type");
+        const auto colGnfr        = layer.layer_definition().required_field_index("GNFR");
+
+        for (const auto& feature : layer) {
+            if (!feature.field_is_valid(0)) {
+                continue; // skip empty lines
+            }
+
+            const auto nfrCode  = feature.field_as<std::string_view>(colCode);
+            const auto gnfrName = feature.field_as<std::string_view>(colGnfr);
+
+            const auto* gnfrSector = find_in_container(gnfrSectors, [=](const GnfrSector& sector) {
+                return sector.name() == gnfrName;
+            });
+
+            if (gnfrSector == nullptr) {
+                throw RuntimeError("Invalid GNFR sector ('{}') configured for NFR sector '{}'", feature.field_as<std::string_view>(colGnfr), nfrCode);
+            }
+
+            const auto destination = emission_destination_from_string(feature.field_as<std::string_view>(colType));
+
+            nfrSectors.emplace_back(nfrCode, NfrId(feature.field_as<int64_t>(colNumber)), *gnfrSector, feature.field_as<std::string_view>(colDescription), destination);
+        }
+    }
+
+    {
+        auto ds = gdal::VectorDataSet::open(conversionSpec);
+
+        {
+            auto layer = ds.layer("gnfr");
+
+            const auto colCode = layer.layer_definition().required_field_index("GNFR_code");
+            const auto colName = layer.layer_definition().required_field_index("GNFR_names");
+
+            for (const auto& feature : layer) {
+                if (!feature.field_is_valid(0)) {
+                    continue; // skip empty lines
+                }
+
+                gnfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), {});
+            }
+        }
+    }
+
+    {
+        auto ds = gdal::VectorDataSet::open(conversionSpec);
+
+        {
+            auto layer = ds.layer("nfr");
+
+            const auto colCode     = layer.layer_definition().required_field_index("NFR_code");
+            const auto colName     = layer.layer_definition().required_field_index("NFR_names");
+            const auto colPriority = layer.layer_definition().required_field_index("NFR_priority");
+
+            for (const auto& feature : layer) {
+                if (!feature.field_is_valid(0)) {
+                    continue; // skip empty lines
+                }
+
+                nfrConversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), feature.field_as<int32_t>(colPriority));
+            }
+        }
+    }
+
+    return SectorInventory(std::move(gnfrSectors), std::move(nfrSectors), std::move(gnfrConversions), std::move(nfrConversions));
+}
+
+PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec)
+{
+    std::vector<Pollutant> pollutants;
+    InputConversions conversions;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+
+    {
+        auto ds = gdal::VectorDataSet::open(pollutantSpec);
+
+        {
+            auto layer = ds.layer("pollutant");
+
+            const auto colCode  = layer.layer_definition().required_field_index("pollutant_code");
+            const auto colLabel = layer.layer_definition().required_field_index("pollutant_label");
+
+            for (const auto& feature : layer) {
+                if (!feature.field_is_valid(0)) {
+                    continue; // skip empty lines
+                }
+
+                pollutants.emplace_back(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colLabel));
+            }
+        }
+    }
+
+    {
+        auto ds = gdal::VectorDataSet::open(conversionSpec);
+
+        {
+            auto layer = ds.layer("pollutant");
+
+            const auto colCode = layer.layer_definition().required_field_index("pollutant_code");
+            const auto colName = layer.layer_definition().required_field_index("pollutant_names");
+
+            for (const auto& feature : layer) {
+                if (!feature.field_is_valid(0)) {
+                    continue; // skip empty lines
+                }
+
+                conversions.add_conversion(feature.field_as<std::string_view>(colCode), feature.field_as<std::string_view>(colName), {});
+            }
+        }
+    }
+
+    return PollutantInventory(std::move(pollutants), std::move(conversions));
+}
 
 struct NamedSection
 {
