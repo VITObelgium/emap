@@ -30,8 +30,7 @@ TEST_CASE("Parse run configuration")
                 report_year = 2018
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                spatial_patterns = "/emap/emissies/spatpat"
-                emissions_output = "/temp"
+                output = "/temp"
 
             [options]
                 validation = true
@@ -66,8 +65,7 @@ TEST_CASE("Parse run configuration")
                 year = 2020
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                spatial_patterns = "./spatpat"
-                emissions_output = "/temp"
+                output = "/temp"
 
             [options]
                 validation = true
@@ -86,8 +84,7 @@ TEST_CASE("Parse run configuration")
                 year = "2020"
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                spatial_patterns = "./spatpat"
-                emissions_output = "/temp"
+                output = "/temp"
 
             [options]
                 validation = true
@@ -107,8 +104,7 @@ TEST_CASE("Parse run configuration")
                 report_year = 2020
                 scenario = 2010
                 scalefactors = "{}"
-                spatial_patterns = "./spatpat"
-                emissions_output = "/temp"
+                output = "/temp"
 
             [options]
                 validation = true

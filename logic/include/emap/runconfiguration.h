@@ -27,7 +27,6 @@ class RunConfiguration
 public:
     RunConfiguration(
         const fs::path& dataPath,
-        const fs::path& spatialPatternsPath,
         const fs::path& countriesPath,
         GridDefinition grid,
         RunType runType,
@@ -40,7 +39,7 @@ public:
         CountryInventory countries,
         const fs::path& outputPath);
 
-    fs::path point_source_emissions_path() const;
+    fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
     fs::path total_emissions_path_nfr() const;
     fs::path total_emissions_path_gnfr() const;
     fs::path spatial_pattern_path() const;
@@ -54,6 +53,7 @@ public:
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
     const fs::path& countries_vector_path() const noexcept;
+    fs::path run_summary_path() const;
 
     GridDefinition grid_definition() const noexcept;
     RunType run_type() const noexcept;
@@ -75,7 +75,6 @@ private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
-    fs::path _spatialPatternsPath;
     fs::path _countriesVectorPath;
     fs::path _outputPath;
     GridDefinition _grid;

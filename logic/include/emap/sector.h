@@ -211,8 +211,11 @@ private:
     std::optional<NfrSector> try_nfr_sector_from_string(std::string_view str) const noexcept;
     std::optional<std::pair<NfrSector, int32_t>> try_nfr_sector_with_priority_from_string(std::string_view str) const noexcept;
 
+    // List of sectors used by the emap model
     std::vector<GnfrSector> _gnfrSectors;
     std::vector<NfrSector> _nfrSectors;
+
+    // Mapping from all possible sector names in reported files to the emap names
     InputConversions _gnfrConversions;
     InputConversions _nfrConversions;
 };

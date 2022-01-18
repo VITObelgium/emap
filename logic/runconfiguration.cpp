@@ -22,7 +22,6 @@ std::string run_type_name(RunType type)
 
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
-    const fs::path& spatialPatternsPath,
     const fs::path& countriesPath,
     GridDefinition grid,
     RunType runType,
@@ -35,7 +34,6 @@ RunConfiguration::RunConfiguration(
     CountryInventory countries,
     const fs::path& outputPath)
 : _dataPath(dataPath)
-, _spatialPatternsPath(spatialPatternsPath)
 , _countriesVectorPath(countriesPath)
 , _outputPath(outputPath)
 , _grid(grid)
@@ -52,14 +50,12 @@ RunConfiguration::RunConfiguration(
 
 fs::path RunConfiguration::emissions_dir_path() const
 {
-    const auto dirName = fmt::format("reporting_{}", static_cast<int>(_reportYear));
-    return _dataPath / "emissions" / run_type_name(_runType) / fs::u8path(dirName);
+    return _dataPath / "01_data_emissions" / "inventory" / fs::u8path(fmt::format("reporting_{}", static_cast<int>(_reportYear)));
 }
 
-fs::path RunConfiguration::point_source_emissions_path() const
+fs::path RunConfiguration::point_source_emissions_path(const Country& country, const Pollutant& pol) const
 {
-    const auto year = _reportYear;
-    return emissions_dir_path() / "pointsources" / fmt::format("pointsource_emissions_{}.csv", static_cast<int>(year));
+    return emissions_dir_path() / "pointsources" / country.iso_code() / fmt::format("emap_{}_{}_{}_aangevuld.csv", pol.code(), static_cast<int>(_year), static_cast<int>(_reportYear));
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr() const
@@ -111,6 +107,11 @@ const fs::path& RunConfiguration::output_path() const noexcept
 const fs::path& RunConfiguration::countries_vector_path() const noexcept
 {
     return _countriesVectorPath;
+}
+
+fs::path RunConfiguration::run_summary_path() const
+{
+    return output_path() / "summary.txt";
 }
 
 GridDefinition RunConfiguration::grid_definition() const noexcept

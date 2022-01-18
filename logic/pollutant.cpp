@@ -50,7 +50,7 @@ size_t PollutantInventory::pollutant_count() const noexcept
     return _pollutants.size();
 }
 
-std::span<const Pollutant> PollutantInventory::pollutants() const noexcept
+std::span<const Pollutant> PollutantInventory::list() const noexcept
 {
     return _pollutants;
 }

@@ -26,8 +26,7 @@ type = "emep" # of gains
 year = 2016
 report_year = 2021 # empty for latest
 scenario = "test"
-spatial_patterns = "./output/spreiding"
-emissions_output = "./output/emissies"
+output = "./_input/06_output"
 
 [options]
 validation = false

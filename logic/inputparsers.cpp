@@ -72,8 +72,8 @@ static double to_double(std::string_view valueString, size_t lineNr)
 
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
 {
-    // csv columns: type;scenario;year;reporting;country;nfr_sector|gnfr_sector;pollutant;emission;unit
-    // pointsource csv columns: type;scenario;year;reporting;country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
+    // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
+    // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
@@ -81,7 +81,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryI
         SingleEmissions result;
         inf::CsvReader csv(emissionsCsv);
 
-        auto colCountry              = required_csv_column(csv, "country");
+        auto colCountry              = required_csv_column(csv, "reporting_country");
         auto colPollutant            = required_csv_column(csv, "pollutant");
         auto colEmission             = required_csv_column(csv, "emission");
         auto colUnit                 = required_csv_column(csv, "unit");

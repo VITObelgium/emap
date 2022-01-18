@@ -372,14 +372,13 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
 
         NamedSection model("model", table["model"]);
 
-        const auto grid                = read_grid(model.section["grid"].value<std::string_view>());
-        const auto dataPath            = read_path(model, "datapath", basePath);
-        const auto spatialPatternsPath = read_path(model, "spatial_patterns", basePath);
-        const auto runType             = read_run_type(model.section["type"].value<std::string_view>());
-        const auto year                = read_year(model.section["year"]);
-        const auto reportYear          = read_year(model.section["report_year"]);
-        const auto scenario            = read_string(model, "scenario");
-        const auto outputPath          = read_path(model, "emissions_output", basePath);
+        const auto grid       = read_grid(model.section["grid"].value<std::string_view>());
+        const auto dataPath   = read_path(model, "datapath", basePath);
+        const auto runType    = read_run_type(model.section["type"].value<std::string_view>());
+        const auto year       = read_year(model.section["year"]);
+        const auto reportYear = read_year(model.section["report_year"]);
+        const auto scenario   = read_string(model, "scenario");
+        const auto outputPath = read_path(model, "output", basePath);
 
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
@@ -389,7 +388,6 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         bool validate             = optionsSection["validation"].value_or<bool>(false);
 
         return RunConfiguration(dataPath,
-                                spatialPatternsPath,
                                 fs::path(), //countriesVectorPath,
                                 grid,
                                 runType,

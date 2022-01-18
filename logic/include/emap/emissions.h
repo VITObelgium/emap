@@ -353,6 +353,11 @@ public:
         return result;
     }
 
+    size_t empty() const noexcept
+    {
+        return _emissions.empty();
+    }
+
     size_t size() const noexcept
     {
         return _emissions.size();
@@ -387,6 +392,18 @@ using EmissionInventory = EmissionCollection<EmissionInventoryEntry>;
 
 std::string_view emission_type_name(EmissionType type);
 std::string_view emission_sector_type_name(EmissionSector::Type type);
+
+template <typename T>
+void merge_emissions(EmissionCollection<T>& output, EmissionCollection<T>&& toMerge)
+{
+    if (output.empty()) {
+        std::swap(output, toMerge);
+    } else {
+        for (auto& emission : toMerge) {
+            output.add_emission(std::move(emission));
+        }
+    }
+}
 
 }
 

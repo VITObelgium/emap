@@ -21,8 +21,7 @@ year = 2020
 report_year = 2020 # empty for latest
 scenario = "scenarionaam" # enkel bij gains type
 scalefactors = "file.csv"
-spatial_patterns = "C:/emap/output/spatial"
-emissions_output = ""
+output = "C:/emap/output"
 
 [options]
 validation = true

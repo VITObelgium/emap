@@ -15,7 +15,7 @@ class PollutantInventory;
 
 SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv); // TODO: still using this?
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
 

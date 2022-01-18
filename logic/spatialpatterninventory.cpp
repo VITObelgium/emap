@@ -121,12 +121,14 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
 {
     std::vector<SpatialPatterns> result;
 
-    auto yearsSequence = create_years_sequence(startYear, scan_available_years(spatialPatternPath));
+    auto camsPath = spatialPatternPath / "CAMS";
+
+    auto yearsSequence = create_years_sequence(startYear, scan_available_years(camsPath));
     while (!yearsSequence.empty()) {
         SpatialPatterns patternsForYear;
         patternsForYear.year = yearsSequence.front();
 
-        const auto currentPath = spatialPatternPath / std::to_string(static_cast<int>(yearsSequence.front()));
+        const auto currentPath = camsPath / std::to_string(static_cast<int>(yearsSequence.front()));
         if (fs::is_directory(currentPath)) {
             for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
                 if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".tif") {

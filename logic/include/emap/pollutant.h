@@ -49,7 +49,7 @@ public:
     std::optional<Pollutant> try_pollutant_from_string(std::string_view str) const noexcept;
     size_t pollutant_count() const noexcept;
 
-    std::span<const Pollutant> pollutants() const noexcept;
+    std::span<const Pollutant> list() const noexcept;
 
 private:
     std::vector<Pollutant> _pollutants;

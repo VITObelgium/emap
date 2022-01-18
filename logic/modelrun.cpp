@@ -21,6 +21,8 @@
 #include <oneapi/tbb/parallel_pipeline.h>
 #include <oneapi/tbb/task_arena.h>
 
+#include <fmt/printf.h>
+
 namespace emap {
 
 using namespace inf;
@@ -98,7 +100,7 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
     const int maxRasters = cfg.max_concurrency().value_or(tbb::this_task_arena::max_concurrency() + 4);
 
     // Run a pipeline for each pollutant
-    for (auto pollutant : cfg.pollutants().pollutants()) {
+    for (auto pollutant : cfg.pollutants().list()) {
         for (auto& sector : cfg.sectors().nfr_sectors()) {
             for (auto country : cfg.countries().countries()) {
                 progress.tick();
@@ -158,36 +160,48 @@ void spread_emissions(const EmissionInventory& inventory, const RunConfiguration
     }
 }
 
+static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
+{
+    SingleEmissions result;
+
+    if (country == country::BEF) {
+        for (const auto& pollutant : cfg.pollutants().list()) {
+            const auto path = cfg.point_source_emissions_path(country, pollutant);
+            if (fs::is_regular_file(path)) {
+                merge_emissions(result, parse_point_sources(path, cfg.countries(), cfg.sectors(), cfg.pollutants()));
+                runSummary.add_point_source(path);
+            }
+        }
+    }
+
+    return result;
+}
+
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     RunSummary summary;
 
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
-    for (auto& nfr : cfg.sectors().nfr_sectors()) {
-        // TODO: check override logic
-        /*if (EmissionSector(nfr).is_sector_override()) {
-            continue;
-        }*/
 
-        for (auto pol : cfg.pollutants().pollutants()) {
+    // Create the list of spatial patterns that will be used in the model
+    for (auto& nfr : cfg.sectors().nfr_sectors()) {
+        for (auto pol : cfg.pollutants().list()) {
             // Take any european country, except for a Belgian region
             summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(cfg.countries().non_belgian_country(), pol, EmissionSector(nfr)));
         }
     }
 
-    fmt::print(summary.spatial_pattern_usage_table());
-    return;
-
-    //const auto pointSourcesFlanders = parse_point_sources_flanders(throw_if_not_exists(cfg.point_source_emissions_path()));
-    SingleEmissions pointSourcesFlanders;
+    const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
 
     chrono::DurationRecorder duration;
     const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
-    Log::info("Parse nfr emissions took: {}", duration.elapsed_time_string());
+    summary.add_totals_source(cfg.total_emissions_path_nfr());
+    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
     duration.reset();
     const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
-    Log::info("Parse gnfr emissions took: {}", duration.elapsed_time_string());
+    summary.add_totals_source(cfg.total_emissions_path_gnfr());
+    Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
 
     const ScalingFactors scalingsDiffuse;
     const ScalingFactors scalingsPointSource;
@@ -204,7 +218,21 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     Log::debug("Spread emissions");
     dur.reset();
-    spread_emissions(inventory, cfg, progressCb);
+    //spread_emissions(inventory, cfg, progressCb);
     Log::debug("Spread emissions took {}", dur.elapsed_time_string());
+
+    // Write the summary
+    {
+        const auto summaryPath = cfg.run_summary_path();
+        file::create_directory_for_file(summaryPath);
+
+        file::Handle fp(summaryPath, "wt");
+        if (fp.is_open()) {
+            fmt::fprintf(fp, "Used emissions\n");
+            fmt::fprintf(fp, summary.emission_source_usage_table());
+            fmt::fprintf(fp, "\nUsed spatial patterns\n");
+            fmt::fprintf(fp, summary.spatial_pattern_usage_table());
+        }
+    }
 }
 }
