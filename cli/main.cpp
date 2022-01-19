@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
     try {
         inf::gdal::RegistrationConfig gdalCfg;
-        gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path();
+        gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path() / "data";
         inf::gdal::Registration reg(gdalCfg);
         std::unique_ptr<inf::LogRegistration> logReg;
 

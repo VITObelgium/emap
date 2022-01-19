@@ -10,14 +10,15 @@ namespace emap {
 
 using namespace inf;
 
-inline EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissions,
+inline EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
+                                                   const SingleEmissions& /*totalEmissionsGnfr*/,
                                                    const SingleEmissions& pointSourceEmissions,
                                                    const ScalingFactors& diffuseScalings,
                                                    const ScalingFactors& pointScalings)
 {
     EmissionInventory result;
 
-    for (const auto& em : totalEmissions) {
+    for (const auto& em : totalEmissionsNfr) {
         double diffuseEmission  = em.value().amount().value_or(0.0);
         double pointEmissionSum = 0.0;
         std::vector<EmissionEntry> pointSourceEntries;

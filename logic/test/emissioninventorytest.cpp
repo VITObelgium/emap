@@ -42,7 +42,7 @@ TEST_CASE("Emission inventory")
         diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), 0.5));
         pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PMcoarse), 2.0));
 
-        const auto inventory = create_emission_inventory(totalEmissions, pointEmissions, diffuseScalings, pointScalings);
+        const auto inventory = create_emission_inventory(totalEmissions, {}, pointEmissions, diffuseScalings, pointScalings);
 
         auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
             const auto emissions = inventory.emissions_with_id(id);

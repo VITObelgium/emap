@@ -206,14 +206,14 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const ScalingFactors scalingsDiffuse;
     const ScalingFactors scalingsPointSource;
 
-    //const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()));
-    //const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()));
+    //const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()), cfg.countries(), cfg.sectors(), cfg.pollutants());
+    //const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()), cfg.countries(), cfg.sectors(), cfg.pollutants());
 
     auto gridData = grid_data(cfg.grid_definition());
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
-    const auto inventory = create_emission_inventory(nfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource);
+    const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
     Log::debug("Spread emissions");
