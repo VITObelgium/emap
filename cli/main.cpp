@@ -57,7 +57,7 @@ int main(int argc, char** argv)
         bool consoleLog = false;
         std::string preprocessPath;
         std::string config;
-        int32_t logLevel = 2;
+        int32_t logLevel = 1;
         std::optional<int32_t> concurrency;
     } options;
 
@@ -83,13 +83,10 @@ int main(int argc, char** argv)
         inf::gdal::RegistrationConfig gdalCfg;
         gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path() / "data";
         inf::gdal::Registration reg(gdalCfg);
-        std::unique_ptr<inf::LogRegistration> logReg;
+        inf::gdal::set_log_handler();
 
         if (options.consoleLog) {
             inf::Log::add_console_sink(inf::Log::Colored::On);
-            inf::gdal::set_log_handler();
-            logReg = std::make_unique<inf::LogRegistration>("e-map");
-            inf::Log::set_level(log_level_from_value(options.logLevel));
         }
 
         std::unique_ptr<inf::ProgressBar> progressBar;
@@ -97,7 +94,7 @@ int main(int argc, char** argv)
             progressBar = std::make_unique<inf::ProgressBar>(60);
         }
 
-        emap::run_model(fs::u8path(options.config), [&](const emap::ModelProgress::Status& info) {
+        emap::run_model(fs::u8path(options.config), log_level_from_value(options.logLevel), [&](const emap::ModelProgress::Status& info) {
             if (progressBar) {
                 progressBar->set_progress(info.progress());
                 progressBar->set_postfix_text(info.payload().to_string());
@@ -108,7 +105,6 @@ int main(int argc, char** argv)
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
         fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
-        inf::Log::error(e.what());
         return EXIT_FAILURE;
     }
 }

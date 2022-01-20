@@ -13,6 +13,7 @@ enum class GridDefinition
     Rio4x4,
     Rio4x4Extended,
     Flanders1km,
+    CAMS,
     EnumCount,
     Invalid,
 };

@@ -49,8 +49,8 @@ std::string RunSummary::spatial_pattern_usage_table() const
     table.add_row({"Sector", "Pollutant", "Type", "Year", "Path"});
 
     for (const auto& sp : _spatialPatterns) {
-        std::string sector(sp.sector.name());
-        std::string pollutant(sp.pollutant.code());
+        std::string sector(sp.emissionId.sector.name());
+        std::string pollutant(sp.emissionId.pollutant.code());
         std::string type = spatial_pattern_source_type_to_string(sp.type);
         std::string year = sp.type == SpatialPatternSource::Type::UnfiformSpread ? "-" : std::to_string(static_cast<int>(sp.year));
 

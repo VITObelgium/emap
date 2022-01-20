@@ -196,7 +196,12 @@ void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year star
     _countrySpecificSpatialPatterns.emplace(country::BEW, scan_dir_belgium(startYear, spatialPatternPath / "bew" / reporing_dir(reportingYear)));
 }
 
-SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(Country country, Pollutant pol, EmissionSector sector) const
+SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const EmissionIdentifier& emissionId) const
+{
+    return get_spatial_pattern(emissionId.country, emissionId.pollutant, emissionId.sector);
+}
+
+SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country& country, const Pollutant& pol, const EmissionSector& sector) const
 {
     auto sectorLevel = EmissionSector::Type::Nfr;
 
@@ -207,7 +212,7 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(Country countr
             });
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_table(iter->path, pol, sector, year, sectorLevel);
+                return SpatialPatternSource::create_from_table(iter->path, country, sector, pol, year, sectorLevel);
             }
         }
     } else {
@@ -217,7 +222,7 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(Country countr
             });
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_raster(iter->path, pol, sector, year, sectorLevel);
+                return SpatialPatternSource::create_from_raster(iter->path, country, sector, pol, year, sectorLevel);
             }
 
             if (sector.type() == EmissionSector::Type::Nfr) {
@@ -234,11 +239,11 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(Country countr
             }
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_raster(iter->path, pol, sector, year, sectorLevel);
+                return SpatialPatternSource::create_from_raster(iter->path, country, sector, pol, year, sectorLevel);
             }
         }
     }
 
-    return SpatialPatternSource::create_with_uniform_spread(pol, sector);
+    return SpatialPatternSource::create_with_uniform_spread(country, sector, pol);
 }
 }

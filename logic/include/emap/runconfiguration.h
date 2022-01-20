@@ -27,7 +27,6 @@ class RunConfiguration
 public:
     RunConfiguration(
         const fs::path& dataPath,
-        const fs::path& countriesPath,
         GridDefinition grid,
         RunType runType,
         ValidationType validation,
@@ -52,7 +51,8 @@ public:
 
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
-    const fs::path& countries_vector_path() const noexcept;
+    fs::path countries_vector_path() const noexcept;
+    std::string country_field_id() const noexcept;
     fs::path run_summary_path() const;
 
     GridDefinition grid_definition() const noexcept;
@@ -75,7 +75,6 @@ private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
-    fs::path _countriesVectorPath;
     fs::path _outputPath;
     GridDefinition _grid;
     RunType _runType;

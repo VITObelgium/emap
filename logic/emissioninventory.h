@@ -32,7 +32,6 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
                 return total + current.value().amount().value_or(0.0);
             });
 
-            // TODO: diffuseEmission > 0 check to avoid negative values causing errors
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
                 throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
             }

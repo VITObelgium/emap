@@ -2,6 +2,7 @@
 
 #include "emap/runconfiguration.h"
 #include "infra/filesystem.h"
+#include "infra/log.h"
 #include "infra/progressinfo.h"
 
 #include <variant>
@@ -34,7 +35,7 @@ struct ModelProgressInfo
 
 using ModelProgress = inf::ProgressTracker<ModelProgressInfo>;
 
-void run_model(const fs::path& runConfigPath, const ModelProgress::Callback& progressCb);
+void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, const ModelProgress::Callback& progressCb);
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb);
 
 }

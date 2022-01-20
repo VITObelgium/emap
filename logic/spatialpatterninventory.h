@@ -22,43 +22,39 @@ struct SpatialPatternSource
         UnfiformSpread,       // No data available, use a uniform spread
     };
 
-    static SpatialPatternSource create_from_raster(const fs::path& path, Pollutant pol, EmissionSector sector, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_raster(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
         source.type        = Type::SpatialPatternRaster;
         source.path        = path;
-        source.pollutant   = pol;
-        source.sector      = sector;
+        source.emissionId  = EmissionIdentifier(country, sector, pol);
         source.year        = year;
         source.sectorLevel = secLevel;
         return source;
     }
 
-    static SpatialPatternSource create_from_table(const fs::path& path, Pollutant pol, EmissionSector sector, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_table(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
         source.type        = Type::SpatialPatternTable;
         source.path        = path;
-        source.pollutant   = pol;
-        source.sector      = sector;
+        source.emissionId  = EmissionIdentifier(country, sector, pol);
         source.year        = year;
         source.sectorLevel = secLevel;
         return source;
     }
 
-    static SpatialPatternSource create_with_uniform_spread(Pollutant pol, EmissionSector sec)
+    static SpatialPatternSource create_with_uniform_spread(const Country& country, const EmissionSector& sector, const Pollutant& pol)
     {
         SpatialPatternSource source;
-        source.type      = Type::UnfiformSpread;
-        source.sector    = sec;
-        source.pollutant = pol;
+        source.type       = Type::UnfiformSpread;
+        source.emissionId = EmissionIdentifier(country, sector, pol);
         return source;
     }
 
     Type type = Type::SpatialPatternRaster;
     fs::path path;
-    Pollutant pollutant;
-    EmissionSector sector;
+    EmissionIdentifier emissionId;
     // These fields are only relevant when the type is SpatialPattern
     date::year year;
     EmissionSector::Type sectorLevel = EmissionSector::Type::Nfr;
@@ -70,7 +66,8 @@ public:
     SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
-    SpatialPatternSource get_spatial_pattern(Country country, Pollutant pol, EmissionSector sector) const;
+    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId) const;
+    SpatialPatternSource get_spatial_pattern(const Country& country, const Pollutant& pol, const EmissionSector& sector) const;
 
 private:
     struct SpatialPatternFile

@@ -28,7 +28,7 @@ Pollutant PollutantInventory::pollutant_from_string(std::string_view str) const
         return *pollutant;
     }
 
-    throw RuntimeError("Invalid pollutant name: {}", str);
+    throw RuntimeError("Invalid pollutant name: '{}'", str);
 }
 
 std::optional<Pollutant> PollutantInventory::try_pollutant_from_string(std::string_view str) const noexcept

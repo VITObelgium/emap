@@ -117,12 +117,10 @@ static std::string rects_to_geojson(std::span<const IntersectionInfo> intersecti
     return geomStr.str();
 }
 
-static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& ras, std::span<const CellCoverageInfo> coverages, GnfrSector sector)
+static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& ras, std::span<const CellCoverageInfo> coverages)
 {
     constexpr auto nan = math::nan<double>();
     gdx::DenseRaster<double> result(copy_metadata_replace_nodata(ras.metadata(), nan), nan);
-
-    EmissionSector emissionSector(sector);
 
     for (auto& [cell, coverage] : coverages) {
         if (ras.is_nodata(cell)) {
@@ -151,6 +149,17 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput)
     }
 
     return ras;
+}
+
+gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, GridDefinition grid, std::span<const CellCoverageInfo> cellCoverages)
+{
+    const auto totalCoverage = std::accumulate(cellCoverages.begin(), cellCoverages.end(), 0.0, [](double current, const CellCoverageInfo& cov) {
+        return current + cov.coverage;
+    });
+
+    auto raster = cutout_country(gdx::DenseRaster<double>(grid_data(GridDefinition::CAMS).meta, 1.0), cellCoverages);
+    raster *= (valueToSpread / totalCoverage);
+    return raster;
 }
 
 static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& extent, const geos::geom::Geometry& geom)
@@ -271,8 +280,14 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 
     auto countriesDs = gdal::VectorDataSet::open(countriesVector);
 
-    auto countriesLayer     = countriesDs.layer(0);
-    const auto colCountryId = countriesLayer.layer_definition().required_field_index(countryIdField);
+    auto countriesLayer = countriesDs.layer(0);
+    auto colCountryId   = countriesLayer.layer_definition().required_field_index(countryIdField);
+
+    if (extent.projected_epsg() != countriesLayer.projection()->epsg_cs()) {
+        countriesDs    = gdal::warp(countriesDs, extent);
+        countriesLayer = countriesDs.layer(0);
+        colCountryId   = countriesLayer.layer_definition().required_field_index(countryIdField);
+    }
 
     const auto bbox = extent.bounding_box();
     countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
@@ -356,7 +371,7 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
         Country country(countryId);
         const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.iso_code()));
 
-        gdx::write_raster(cutout_country(ras, coverages, gnfrSector), countryOutputPath);
+        gdx::write_raster(cutout_country(ras, coverages), countryOutputPath);
 
         progress.set_payload(countryId);
         progress.tick_throw_on_cancel();
@@ -372,8 +387,7 @@ generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_r
             continue;
         }
 
-        co_yield {cutout_country(ras, coverages, gnfrSector), Country(countryId)};
+        co_yield {cutout_country(ras, coverages), Country(countryId)};
     }
 }
-
 }

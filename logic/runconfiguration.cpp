@@ -22,7 +22,6 @@ std::string run_type_name(RunType type)
 
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
-    const fs::path& countriesPath,
     GridDefinition grid,
     RunType runType,
     ValidationType validation,
@@ -34,7 +33,6 @@ RunConfiguration::RunConfiguration(
     CountryInventory countries,
     const fs::path& outputPath)
 : _dataPath(dataPath)
-, _countriesVectorPath(countriesPath)
 , _outputPath(outputPath)
 , _grid(grid)
 , _runType(runType)
@@ -104,9 +102,14 @@ const fs::path& RunConfiguration::output_path() const noexcept
     return _outputPath;
 }
 
-const fs::path& RunConfiguration::countries_vector_path() const noexcept
+fs::path RunConfiguration::countries_vector_path() const noexcept
 {
-    return _countriesVectorPath;
+    return _dataPath / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+}
+
+std::string RunConfiguration::country_field_id() const noexcept
+{
+    return "Code3";
 }
 
 fs::path RunConfiguration::run_summary_path() const

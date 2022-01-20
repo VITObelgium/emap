@@ -388,7 +388,6 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         bool validate             = optionsSection["validation"].value_or<bool>(false);
 
         return RunConfiguration(dataPath,
-                                fs::path(), //countriesVectorPath,
                                 grid,
                                 runType,
                                 validate ? ValidationType::SumValidation : ValidationType::NoValidation,

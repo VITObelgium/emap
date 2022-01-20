@@ -32,6 +32,20 @@ static const char* s_wgs84 = R"wkt(PROJCS["WGS 84 / Pseudo-Mercator",
     AUTHORITY["EPSG","3857"]]
 )wkt";
 
+static const char* s_wgs84_degrees = R"wkt(
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+            UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AXIS["Latitude",NORTH],
+        AXIS["Longitude",EAST],
+        AUTHORITY["EPSG","4326"]]
+)wkt";
+
 static const char* s_belgianLambert72 = R"wkt(PROJCS["Belge 1972 / Belgian Lambert 72",
     GEOGCS["Belge 1972",
         DATUM["Reseau_National_Belge_1972",
@@ -69,6 +83,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Rio4x4, GeoMetadata(57, 69, 22000.0, 20000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Rio4x4Extended, GeoMetadata(61, 73, 14000.0, 12000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Flanders1km, GeoMetadata(154, 260, 0.0, 142000.0, 1000.0, nan, s_belgianLambert72)},
+    {GridDefinition::CAMS, GeoMetadata(521, 1116, -30.000000763788108, 29.968781890997569, 0.080674120119849368, nan, s_wgs84_degrees)},
 }};
 
 const GridData& grid_data(GridDefinition grid) noexcept

@@ -18,8 +18,8 @@ inline std::optional<double> to_giga_gram_factor(std::string_view unit) noexcept
         return 1.0 / 1000.0;
     }
 
-    if (unit == "g I-TEQ") {
-        return 1.0; // TODO: what unit is this?
+    if (unit == "g I-TEQ" || unit == "g") {
+        return 1.0 / 1e15;
     }
 
     return result;
