@@ -30,8 +30,10 @@ void RunSummary::add_totals_source(const fs::path& totalsSource)
 static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::Type type)
 {
     switch (type) {
-    case emap::SpatialPatternSource::Type::SpatialPatternRaster:
-        return "Raster";
+    case emap::SpatialPatternSource::Type::SpatialPatternCAMS:
+        return "CAMS";
+    case emap::SpatialPatternSource::Type::SpatialPatternCEIP:
+        return "CEIP";
     case emap::SpatialPatternSource::Type::SpatialPatternTable:
         return "Excel";
     case emap::SpatialPatternSource::Type::UnfiformSpread:

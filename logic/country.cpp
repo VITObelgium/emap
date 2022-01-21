@@ -24,8 +24,8 @@ CountryInventory::CountryInventory(std::vector<Country> pollutants)
 
 Country CountryInventory::country_from_string(std::string_view str) const
 {
-    if (const auto pollutant = try_country_from_string(str); pollutant.has_value()) {
-        return *pollutant;
+    if (const auto country = try_country_from_string(str); country.has_value()) {
+        return *country;
     }
 
     throw RuntimeError("Invalid country name: {}", str);
@@ -33,11 +33,11 @@ Country CountryInventory::country_from_string(std::string_view str) const
 
 std::optional<Country> CountryInventory::try_country_from_string(std::string_view str) const noexcept
 {
-    const auto* pollutant = find_in_container(_countries, [str](const Country& pol) {
+    const auto* country = find_in_container(_countries, [str](const Country& pol) {
         return pol.iso_code() == str;
     });
 
-    return pollutant ? *pollutant : std::optional<Country>();
+    return country ? *country : std::optional<Country>();
 }
 
 size_t CountryInventory::country_count() const noexcept

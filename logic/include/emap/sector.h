@@ -203,6 +203,8 @@ public:
     size_t gnfr_sector_count() const noexcept;
     size_t nfr_sector_count() const noexcept;
 
+    bool is_ignored_sector(std::string_view str) const noexcept;
+
     std::span<const GnfrSector> gnfr_sectors() const noexcept;
     std::span<const NfrSector> nfr_sectors() const noexcept;
 

@@ -14,6 +14,7 @@
 #include "infra/progressinfo.h"
 #include "infra/rect.h"
 
+#include <cassert>
 #include <mutex>
 
 #include <oneapi/tbb/parallel_for_each.h>
@@ -283,10 +284,13 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     auto countriesLayer = countriesDs.layer(0);
     auto colCountryId   = countriesLayer.layer_definition().required_field_index(countryIdField);
 
-    if (extent.projected_epsg() != countriesLayer.projection()->epsg_cs()) {
-        countriesDs    = gdal::warp(countriesDs, extent);
-        countriesLayer = countriesDs.layer(0);
-        colCountryId   = countriesLayer.layer_definition().required_field_index(countryIdField);
+    assert(!extent.projection.empty());
+    if (!countriesLayer.projection().has_value()) {
+        throw RuntimeError("Invalid boundaries vector: No projection information available");
+    }
+
+    if (extent.geographic_epsg() != countriesLayer.projection()->epsg_geog_cs()) {
+        throw RuntimeError("Projection mismatch between boundaries vector and spatial pattern grid EPSG:{} <-> EPSG:{}", extent.geographic_epsg().value(), countriesLayer.projection()->epsg_geog_cs().value());
     }
 
     const auto bbox = extent.bounding_box();

@@ -80,6 +80,7 @@ if (INFRA_INSOURCE)
     set(INFRA_HASHING ON)
     set(INFRA_CLI_PROGRESS ON)
     set(INFRA_ENABLE_TEST_UTILS ${BUILD_TESTING})
+    set(INFRA_TESTUTIL_MAIN_PROJDB_PATH ${INFRA_PROJDB_DIR})
 
     add_subdirectory(deps/infra)
 else ()

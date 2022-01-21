@@ -2,6 +2,7 @@
 #include "emap/configurationparser.h"
 #include "testconfig.h"
 #include "testconstants.h"
+#include "testprinters.h"
 
 #include <doctest/doctest.h>
 
@@ -30,7 +31,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2016_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -41,7 +42,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2016_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -52,7 +53,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2016_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -63,7 +64,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C2));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
         CHECK(spSource.year == 2016_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -74,7 +75,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr3Da1));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2015_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -85,7 +86,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr2D3d));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2017_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -96,7 +97,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1B2b));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2018_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -107,7 +108,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A4bi));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2010_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternRaster);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
     {
@@ -128,6 +129,17 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.pollutant == pollutants::NMVOC);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(spSource.type == SpatialPatternSource::Type::UnfiformSpread);
+    }
+
+    {
+        // Available in 2016 at gnfr level: Public power
+        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::BaP, EmissionSector(sectors::nfr::Nfr1A1a));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CEIP" / "2016" / "BaP_A_PublicPower_2018_GRID_2016.txt");
+        CHECK(spSource.emissionId.pollutant == pollutants::BaP);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
+        CHECK(spSource.year == 2016_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCEIP);
     }
 }
 

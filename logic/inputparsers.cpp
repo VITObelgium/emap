@@ -3,6 +3,7 @@
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
 #include "emap/inputconversion.h"
+#include "emap/runconfiguration.h"
 #include "emap/scalingfactors.h"
 #include "infra/csvreader.h"
 #include "infra/enumutils.h"
@@ -70,10 +71,14 @@ static double to_double(std::string_view valueString, size_t lineNr)
     throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
-SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
     // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
+
+    const auto& countryInv   = cfg.countries();
+    const auto& sectorInv    = cfg.sectors();
+    const auto& pollutantInv = cfg.pollutants();
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
@@ -117,10 +122,14 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryI
     }
 }
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // First lines are comments
     // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
+
+    const auto& countryInv   = cfg.countries();
+    const auto& sectorInv    = cfg.sectors();
+    const auto& pollutantInv = cfg.pollutants();
 
     try {
         SingleEmissions result;
@@ -144,10 +153,12 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             try {
-                EmissionEntry info(
-                    EmissionIdentifier(*country, sectorInv.sector_from_string(sectorType, sector), pollutantInv.pollutant_from_string(pollutant)), EmissionValue(emissionValue));
+                if (!sectorInv.is_ignored_sector(sector)) {
+                    EmissionEntry info(
+                        EmissionIdentifier(*country, sectorInv.sector_from_string(sectorType, sector), pollutantInv.pollutant_from_string(pollutant)), EmissionValue(emissionValue));
 
-                result.add_emission(std::move(info));
+                    result.add_emission(std::move(info));
+                }
             } catch (const std::exception& e) {
                 Log::debug("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());
             }
@@ -159,9 +170,13 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
     }
 }
 
-ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const RunConfiguration& cfg)
 {
     // csv columns: country;nfr_sector;pollutant;factor
+
+    const auto& countryInv   = cfg.countries();
+    const auto& sectorInv    = cfg.sectors();
+    const auto& pollutantInv = cfg.pollutants();
 
     try {
         Log::debug("Parse scaling factors: {}", scalingFactorsCsv);
@@ -191,146 +206,6 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const Co
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", scalingFactorsCsv, e.what());
     }
-}
-
-SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
-{
-    SingleEmissions result;
-
-    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
-    auto ds    = gdal::VectorDataSet::open(emissionsData);
-    auto layer = ds.layer(0);
-
-    auto colX           = layer.layer_definition().required_field_index("Emissiepunt X Coördinaat (Lambert)");
-    auto colY           = layer.layer_definition().required_field_index("Emissiepunt Y Coördinaat (Lambert)");
-    auto colEmission    = layer.layer_definition().required_field_index("Emissie");
-    auto colUnit        = layer.layer_definition().required_field_index("Eenheid emissie");
-    auto colHeight      = layer.layer_definition().required_field_index("Emissiepunt Hoogte      (m)");
-    auto colDiameter    = layer.layer_definition().required_field_index("Emissiepunt Diameter (m)");
-    auto colTemperature = layer.layer_definition().required_field_index("Temperatuur (°C)");
-    auto colWarmth      = layer.layer_definition().required_field_index("Warmte inhoud    (MW)");
-    auto colFlowRate    = layer.layer_definition().required_field_index("Debiet");
-
-    auto colSector    = layer.layer_definition().required_field_index("IPCC NFR Code");
-    auto colPollutant = layer.layer_definition().required_field_index("Verontreinigende stof");
-
-    /*struct PmPointEmissionId
-    {
-        bool operator==(const PmPointEmissionId& other) const noexcept
-        {
-            return sector == other.sector &&
-                   coordinate == other.coordinate &&
-                   height == other.height &&
-                   diameter == other.diameter &&
-                   temperature == other.temperature &&
-                   warmthContents == other.warmthContents &&
-                   flowRate == other.flowRate;
-        }
-
-        EmissionSector sector;
-        std::optional<Coordinate> coordinate;
-        double height         = 0.0;
-        double diameter       = 0.0;
-        double temperature    = 0.0;
-        double warmthContents = 0.0;
-        double flowRate       = 0.0;
-    };
-
-    struct PmPointEmissionValue
-    {
-        PmPointEmissionValue() = default;
-        PmPointEmissionValue(PmPointEmissionId id_)
-        : id(id_)
-        {
-        }
-
-        PmPointEmissionId id;
-        std::optional<EmissionEntry> pm10;
-        std::optional<EmissionEntry> pm25;
-    };
-
-    std::vector<PmPointEmissionValue> pmEmissions;*/
-
-    for (auto& feature : layer) {
-        if (feature.field_as<std::string_view>(colPollutant).empty()) {
-            continue; // skip empty rows
-        }
-
-        EmissionEntry info(
-            EmissionIdentifier(country::BEF,
-                               sectorInv.sector_from_string(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colSector)),
-                               pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant))),
-            EmissionValue(to_giga_gram(feature.field_as<double>(colEmission), feature.field_as<std::string_view>(colUnit))));
-
-        info.set_coordinate(Coordinate(feature.field_as<int32_t>(colX), feature.field_as<int32_t>(colY)));
-        info.set_height(feature.field_as<double>(colHeight));
-        info.set_diameter(feature.field_as<double>(colDiameter));
-        info.set_temperature(feature.field_as<double>(colTemperature));
-        info.set_warmth_contents(feature.field_as<double>(colWarmth));
-        info.set_flow_rate(feature.field_as<double>(colFlowRate));
-
-        /*if (info.pollutant() == Pollutant::Id::PM10 || info.pollutant() == Pollutant::Id::PM2_5) {
-            PmPointEmissionId pointId;
-            pointId.sector         = info.id().sector;
-            pointId.coordinate     = info.coordinate();
-            pointId.height         = info.height();
-            pointId.diameter       = info.diameter();
-            pointId.temperature    = info.temperature();
-            pointId.warmthContents = info.warmth_contents();
-            pointId.flowRate       = info.flow_rate();
-
-            bool inserted = false;
-
-            auto* iter = find_in_container(pmEmissions, [&pointId](const PmPointEmissionValue& val) {
-                return val.id == pointId;
-            });
-
-            if (iter) {
-                if (info.pollutant() == Pollutant::Id::PM10) {
-                    if (iter->pm10.has_value()) {
-                        throw RuntimeError("Point emission id pm10 unique check failed");
-                    }
-
-                    iter->pm10 = info;
-                } else {
-                    if (iter->pm25.has_value()) {
-                        throw RuntimeError("Point emission id pm2.5 unique check failed");
-                    }
-
-                    iter->pm25 = info;
-                }
-            }
-        }*/
-
-        result.add_emission(std::move(info));
-    }
-
-    //// Add PmCoarse entries if Pm10 and Pm2.5 are available
-    //for (auto& emission : pmEmissions) {
-    //    if (emission.pm10.has_value() && emission.pm25.has_value()) {
-    //        if (emission.pm10->value().amount() < emission.pm25->value().amount()) {
-    //            throw RuntimeError("Invalid PM data for point source id (Sector {} (PM10: {}, PM2.5 {})", emission.id.sector, emission.pm10->value().amount(), emission.pm25->value().amount());
-    //        }
-
-    //        EmissionEntry pmc(
-    //            EmissionIdentifier(Country::Id::BEF, emission.id.sector, Pollutant::Id::PMcoarse),
-    //            EmissionValue(EmissionValue(emission.pm10->value().amount() - emission.pm25->value().amount())));
-
-    //        if (emission.id.coordinate.has_value()) {
-    //            pmc.set_coordinate(*emission.id.coordinate);
-    //        }
-
-    //        pmc.set_height(emission.pm10->height());
-    //        pmc.set_diameter(emission.pm10->diameter());
-    //        pmc.set_temperature(emission.pm10->temperature());
-    //        pmc.set_warmth_contents(emission.pm10->warmth_contents());
-    //        pmc.set_flow_rate(emission.pm10->flow_rate());
-
-    //        result.add_emission(std::move(pmc));
-    //    }
-    //}
-
-    return result;
 }
 
 static Country detect_belgian_region_from_filename(const fs::path& path)
@@ -369,9 +244,12 @@ static std::string_view strip_newline(std::string_view str)
     return str;
 }
 
-SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg)
 {
     SingleEmissions result;
+
+    const auto& sectorInv    = cfg.sectors();
+    const auto& pollutantInv = cfg.pollutants();
 
     const auto country = detect_belgian_region_from_filename(emissionsData);
 
@@ -446,6 +324,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
             std::optional<double> pm10, pm2_5;
 
             for (const auto& [index, polData] : pollutantColumns) {
+                int i            = index;
                 const auto field = feature.field(index);
                 std::optional<double> emissionValue;
                 if (const auto* emission = std::get_if<double>(&field)) {
@@ -505,9 +384,12 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
     return result;
 }
 
-std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv)
+std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg)
 {
     std::vector<SpatialPatternData> result;
+
+    const auto& sectorInv    = cfg.sectors();
+    const auto& pollutantInv = cfg.pollutants();
 
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
     auto ds    = gdal::VectorDataSet::open(spatialPatternPath);

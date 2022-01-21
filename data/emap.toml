@@ -5,7 +5,7 @@ type = "emep" # of gains
 year = 2016
 report_year = 2021
 scenario = "test"
-output = "./_input/06_output"
+output = "./_output"
 
 [options]
 validation = false

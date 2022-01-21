@@ -272,6 +272,19 @@ size_t SectorInventory::nfr_sector_count() const noexcept
     return _nfrSectors.size();
 }
 
+bool SectorInventory::is_ignored_sector(std::string_view str) const noexcept
+{
+    return str::iequals(str, "1A3ai(ii)") ||
+           str::iequals(str, "1A3aii(ii)") ||
+           str::iequals(str, "1A3di(i)") ||
+           str::iequals(str, "1A5c") ||
+           str::iequals(str, "6B") ||
+           str::iequals(str, "1A3") ||
+           str::iequals(str, "11A") ||
+           str::iequals(str, "11B") ||
+           str::iequals(str, "11C");
+}
+
 std::span<const GnfrSector> SectorInventory::gnfr_sectors() const noexcept
 {
     return _gnfrSectors;

@@ -71,6 +71,7 @@ SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorIn
 : _sectorInventory(sectorInventory)
 , _pollutantInventory(pollutantInventory)
 , _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
+, _spatialPatternCeipRegex("(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)_(\\d{4})_GRID_(\\d{4})")
 , _spatialPatternExcelRegex("Emissies per km2 excl puntbrongegevens_(\\d{4})_(\\w+)")
 {
 }
@@ -82,16 +83,42 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
-            const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
+            //const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
             const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
             const auto sector    = _sectorInventory.sector_from_string(baseMatch[3].str());
 
             return SpatialPatternFile{
+                SpatialPatternFile::Source::Cams,
                 path,
                 pollutant,
                 sector};
         } catch (const std::exception& e) {
-            Log::debug("Unexpected spatial pattern filename: {} ({})", e.what(), path);
+            Log::debug("Unexpected CAMS spatial pattern filename: {} ({})", e.what(), path);
+        }
+    }
+
+    return {};
+}
+
+std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_ceip(const fs::path& path) const
+{
+    std::smatch baseMatch;
+    const std::string filename = path.stem().u8string();
+
+    if (std::regex_match(filename, baseMatch, _spatialPatternCeipRegex)) {
+        try {
+            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[1].str());
+            const auto sector    = _sectorInventory.sector_from_string(baseMatch[2].str());
+            //const auto reportYear = date::year(str::to_int32_value(baseMatch[3].str()));
+            //const auto year = date::year(str::to_int32_value(baseMatch[4].str()));
+
+            return SpatialPatternFile{
+                SpatialPatternFile::Source::Ceip,
+                path,
+                pollutant,
+                sector};
+        } catch (const std::exception& e) {
+            Log::debug("Unexpected CEIP spatial pattern filename: {} ({})", e.what(), path);
         }
     }
 
@@ -108,7 +135,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
             const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
             const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
 
-            return SpatialPatternFile{path, pollutant, {}};
+            return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
         } catch (const std::exception& e) {
             Log::debug("Unexpected spatial pattern filename: {} ({})", e.what(), path);
         }
@@ -121,19 +148,37 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
 {
     std::vector<SpatialPatterns> result;
 
-    auto camsPath = spatialPatternPath / "CAMS";
+    const auto camsPath = spatialPatternPath / "CAMS";
+    const auto ceipPath = spatialPatternPath / "CEIP";
 
     auto yearsSequence = create_years_sequence(startYear, scan_available_years(camsPath));
     while (!yearsSequence.empty()) {
         SpatialPatterns patternsForYear;
         patternsForYear.year = yearsSequence.front();
 
-        const auto currentPath = camsPath / std::to_string(static_cast<int>(yearsSequence.front()));
-        if (fs::is_directory(currentPath)) {
-            for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
-                if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".tif") {
-                    if (const auto source = identify_spatial_pattern_cams(dirEntry.path()); source.has_value()) {
-                        patternsForYear.spatialPatterns.push_back(*source);
+        {
+            // Scan cams files
+            const auto currentPath = camsPath / std::to_string(static_cast<int>(yearsSequence.front()));
+            if (fs::is_directory(currentPath)) {
+                for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
+                    if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".tif") {
+                        if (const auto source = identify_spatial_pattern_cams(dirEntry.path()); source.has_value()) {
+                            patternsForYear.spatialPatterns.push_back(*source);
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            // Scan ceip files
+            const auto currentPath = ceipPath / std::to_string(static_cast<int>(yearsSequence.front()));
+            if (fs::is_directory(currentPath)) {
+                for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
+                    if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".txt") {
+                        if (const auto source = identify_spatial_pattern_ceip(dirEntry.path()); source.has_value()) {
+                            patternsForYear.spatialPatterns.push_back(*source);
+                        }
                     }
                 }
             }
@@ -222,7 +267,13 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country&
             });
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_raster(iter->path, country, sector, pol, year, sectorLevel);
+                if (iter->source == SpatialPatternFile::Source::Cams) {
+                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
+                } else if (iter->source == SpatialPatternFile::Source::Ceip) {
+                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
+                }
+
+                throw std::logic_error("Unhandled spatial pattern source type");
             }
 
             if (sector.type() == EmissionSector::Type::Nfr) {
@@ -239,7 +290,13 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country&
             }
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_raster(iter->path, country, sector, pol, year, sectorLevel);
+                if (iter->source == SpatialPatternFile::Source::Cams) {
+                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
+                } else if (iter->source == SpatialPatternFile::Source::Ceip) {
+                    return SpatialPatternSource::create_from_ceip(iter->path, country, sector, pol, year, sectorLevel);
+                }
+
+                throw std::logic_error("Unhandled spatial pattern source type");
             }
         }
     }

@@ -9,28 +9,20 @@
 
 namespace emap {
 
-struct ModelRunProgressInfo
-{
-    std::string to_string() const
-    {
-        return {};
-    }
-};
-
 struct ModelProgressInfo
 {
     ModelProgressInfo() = default;
-    ModelProgressInfo(ModelRunProgressInfo i)
+    ModelProgressInfo(std::string_view i)
     : info(i)
     {
     }
 
     std::string to_string() const
     {
-        return info.to_string();
+        return info;
     }
 
-    ModelRunProgressInfo info;
+    std::string info;
 };
 
 using ModelProgress = inf::ProgressTracker<ModelProgressInfo>;

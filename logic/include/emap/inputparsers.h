@@ -9,15 +9,15 @@
 
 namespace emap {
 
+class RunConfiguration;
 class ScalingFactors;
 class SectorInventory;
 class PollutantInventory;
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-SingleEmissions parse_point_sources_flanders(const fs::path& emissionsData, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
-ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const CountryInventory& countryInv, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const RunConfiguration& cfg);
+SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg);
+SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg);
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const RunConfiguration& cfg);
 
 struct SpatialPatternData
 {
@@ -26,6 +26,6 @@ struct SpatialPatternData
     gdx::DenseRaster<double> raster;
 };
 
-std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const SectorInventory& sectorInv, const PollutantInventory& pollutantInv);
+std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg);
 
 }

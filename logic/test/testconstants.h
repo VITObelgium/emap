@@ -58,6 +58,7 @@ const Pollutant PCDD_PCDF("PCDD-PCDF", "PCDD/ PCDF (dioxins/ furans)");
 const Pollutant Cd("Cd", "Cadmium");
 const Pollutant TSP("TSP", "Total Suspended Particles");
 const Pollutant Hg("Hg", "Mercury");
+const Pollutant BaP("BaP", "benzo(a)pyrene");
 
 }
 

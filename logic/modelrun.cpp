@@ -79,11 +79,12 @@ static gdx::DenseRaster<double> apply_uniform_spread(const EmissionInventoryEntr
 static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
 {
     switch (spatialPattern.type) {
-    case SpatialPatternSource::Type::SpatialPatternRaster:
+    case SpatialPatternSource::Type::SpatialPatternCAMS:
         return apply_spatial_pattern_raster(spatialPattern.path, emission, grid);
+    case SpatialPatternSource::Type::SpatialPatternCEIP:
+        throw RuntimeError("CEIP Spatial patterns not implemented yet");
     case SpatialPatternSource::Type::SpatialPatternTable:
         throw RuntimeError("Spatial pattern tables not implemented yet");
-        break;
     case SpatialPatternSource::Type::UnfiformSpread:
         return apply_uniform_spread(emission, grid, cellCoverages);
         break;
@@ -97,14 +98,21 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     const auto camsGrid = grid_data(GridDefinition::CAMS);
 
     Log::debug("Create country coverages");
+
+    ModelProgressInfo progressInfo;
+    ProgressTracker progress(known_countries_in_extent(cfg.countries(), camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id()), progressCb);
+
     chrono::DurationRecorder dur;
-    const auto countryCoverages = create_country_coverages(camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id(), cfg.countries(), [](const auto&) {
+    const auto countryCoverages = create_country_coverages(camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id(), cfg.countries(), [&](const GridProcessingProgress::ProgressTracker::Status& status) {
+        progressInfo.info = fmt::format("Calculate region cells: {}", status.payload().full_name());
+        progress.set_payload(progressInfo);
+        progress.tick();
         return ProgressStatusResult::Continue;
     });
     Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
-    ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * cfg.countries().country_count(), progressCb);
-    progress.set_payload(ModelRunProgressInfo());
+    //ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * cfg.countries().country_count(), progressCb);
+    //progress.set_payload(ModelRunProgressInfo());
 
     // TODO: smarter splitting to avoid huge memory consumption
     tbb::concurrent_vector<ModelResult> result;
@@ -202,7 +210,7 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
         for (const auto& pollutant : cfg.pollutants().list()) {
             const auto path = cfg.point_source_emissions_path(country, pollutant);
             if (fs::is_regular_file(path)) {
-                merge_emissions(result, parse_point_sources(path, cfg.countries(), cfg.sectors(), cfg.pollutants()));
+                merge_emissions(result, parse_point_sources(path, cfg));
                 runSummary.add_point_source(path);
             }
         }
@@ -229,11 +237,11 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
 
     chrono::DurationRecorder duration;
-    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
+    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg);
     summary.add_totals_source(cfg.total_emissions_path_nfr());
     Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
     duration.reset();
-    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg.countries(), cfg.sectors(), cfg.pollutants());
+    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg);
     summary.add_totals_source(cfg.total_emissions_path_gnfr());
     Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
 
