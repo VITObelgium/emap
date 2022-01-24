@@ -10,6 +10,7 @@
         "tiff",
         "date",
         "icu",
+        "libxlsxwriter",
         "lyra",
         "fmt",
         "gsl",

@@ -3,14 +3,45 @@
 #include "enuminfo.h"
 #include "infra/enumutils.h"
 #include "infra/exception.h"
+#include "infra/log.h"
 
 #include <algorithm>
 #include <array>
 #include <tabulate/table.hpp>
+#include <xlsxwriter.h>
 
 namespace emap {
 
 using namespace inf;
+
+namespace xl {
+class WorkBook
+{
+public:
+    WorkBook(const std::string& name)
+    : _ptr(workbook_new(name.c_str()))
+    {
+        if (!_ptr) {
+            throw RuntimeError("Failed to create workbook: {}", name);
+        }
+    }
+
+    ~WorkBook()
+    {
+        auto error = workbook_close(_ptr);
+        if (error != LXW_NO_ERROR) {
+            Log::error("Failed to write excel file: {}", lxw_strerror(error));
+        }
+    }
+
+    operator lxw_workbook*()
+    {
+        return _ptr;
+    }
+
+    lxw_workbook* _ptr;
+};
+}
 
 void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
 {
@@ -69,6 +100,47 @@ static std::string sources_to_table(std::span<const SpatialPatternSource> source
     return ss.str();
 }
 
+static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSource> sources)
+{
+    const std::array<const char*, 5> headers = {
+        "Sector",
+        "Pollutant",
+        "Type",
+        "Year",
+        "Path",
+    };
+
+    auto* ws = workbook_add_worksheet(wb, tabName.c_str());
+    if (!ws) {
+        throw RuntimeError("Failed to add sheet to excel document");
+    }
+
+    auto* headerFormat = workbook_add_format(wb);
+    format_set_bold(headerFormat);
+    //format_set_bg_color(headerFormat, qtColor.rgba());
+
+    for (int i = 0; i < headers.size(); ++i) {
+        worksheet_write_string(ws, 0, i, headers.at(0), headerFormat);
+    }
+
+    int row = 1;
+    for (const auto& sp : sources) {
+        std::string sector(sp.emissionId.sector.name());
+        std::string pollutant(sp.emissionId.pollutant.code());
+        std::string type = spatial_pattern_source_type_to_string(sp.type);
+
+        worksheet_write_string(ws, row, 0, sector.c_str(), nullptr);
+        worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, 2, type.c_str(), nullptr);
+        if (sp.type != SpatialPatternSource::Type::UnfiformSpread) {
+            worksheet_write_number(ws, row, 3, static_cast<int>(sp.year), nullptr);
+        }
+        worksheet_write_string(ws, row, 4, sp.path.filename().generic_u8string().c_str(), nullptr);
+
+        ++row;
+    }
+}
+
 std::string RunSummary::spatial_pattern_usage_table() const
 {
     using namespace tabulate;
@@ -105,4 +177,19 @@ std::string RunSummary::emission_source_usage_table() const
     result << table;
     return result.str();
 }
+
+void RunSummary::write_spatial_pattern_spreadsheet(const fs::path& path) const
+{
+    std::error_code ec;
+    fs::remove(path, ec);
+
+    xl::WorkBook wb(path.generic_u8string());
+
+    for (auto& [region, sources] : _countrySpecificSpatialPatterns) {
+        sources_to_spreadsheet(wb, std::string(region.iso_code()), sources);
+    }
+
+    sources_to_spreadsheet(wb, "rest", _spatialPatterns);
+}
+
 }

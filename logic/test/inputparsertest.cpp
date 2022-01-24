@@ -198,42 +198,42 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load spatial pattern")
     {
-        SUBCASE("Flanders")
-        {
-            const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);
-            CHECK(spatialPatterns.size() == 25);
+        //SUBCASE("Flanders")
+        //{
+        //    const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);
+        //    CHECK(spatialPatterns.size() == 25);
 
-            {
-                const auto* sp = find_in_container(spatialPatterns, [](const auto& val) {
-                    return val.id.sector == EmissionSector(sectors::nfr::Nfr1A5b);
-                });
+        //    {
+        //        const auto* sp = find_in_container(spatialPatterns, [](const auto& val) {
+        //            return val.id.sector == EmissionSector(sectors::nfr::Nfr1A5b);
+        //        });
 
-                REQUIRE(sp);
+        //        REQUIRE(sp);
 
-                constexpr const double expectedCellValue = 0.04034311699095;
+        //        constexpr const double expectedCellValue = 0.04034311699095;
 
-                const auto cell = sp->raster.metadata().convert_point_to_cell(Point(226000.0, 193000.0));
-                CHECK(sp->raster[cell] == Approx(expectedCellValue));
-                const auto nodataCell = sp->raster.metadata().convert_point_to_cell(Point(28000.0, 193000.0));
-                CHECK(std::isnan(sp->raster[nodataCell]));
-                CHECK(138 == std::distance(gdx::value_begin(sp->raster), gdx::value_end(sp->raster)));                                                      // 138 entries should contain data
-                CHECK(std::all_of(gdx::value_begin(sp->raster), gdx::value_end(sp->raster), [=](double val) { return val == Approx(expectedCellValue); })); // all the entries have the same value
-            }
+        //        const auto cell = sp->raster.metadata().convert_point_to_cell(Point(226000.0, 193000.0));
+        //        CHECK(sp->raster[cell] == Approx(expectedCellValue));
+        //        const auto nodataCell = sp->raster.metadata().convert_point_to_cell(Point(28000.0, 193000.0));
+        //        CHECK(std::isnan(sp->raster[nodataCell]));
+        //        CHECK(138 == std::distance(gdx::value_begin(sp->raster), gdx::value_end(sp->raster)));                                                      // 138 entries should contain data
+        //        CHECK(std::all_of(gdx::value_begin(sp->raster), gdx::value_end(sp->raster), [=](double val) { return val == Approx(expectedCellValue); })); // all the entries have the same value
+        //    }
 
-            {
-                const auto* sp = find_in_container(spatialPatterns, [](const auto& val) {
-                    return val.id.sector == EmissionSector(sectors::nfr::Nfr2C7d);
-                });
+        //    {
+        //        const auto* sp = find_in_container(spatialPatterns, [](const auto& val) {
+        //            return val.id.sector == EmissionSector(sectors::nfr::Nfr2C7d);
+        //        });
 
-                REQUIRE(sp);
+        //        REQUIRE(sp);
 
-                constexpr const double expectedCellValue = 135.0;
+        //        constexpr const double expectedCellValue = 135.0;
 
-                const auto cell = sp->raster.metadata().convert_point_to_cell(Point(204000.0, 196000.0));
-                CHECK(sp->raster[cell] == Approx(expectedCellValue));
-                CHECK(1 == std::distance(gdx::value_begin(sp->raster), gdx::value_end(sp->raster))); // 1 entry should contain data
-            }
-        }
+        //        const auto cell = sp->raster.metadata().convert_point_to_cell(Point(204000.0, 196000.0));
+        //        CHECK(sp->raster[cell] == Approx(expectedCellValue));
+        //        CHECK(1 == std::distance(gdx::value_begin(sp->raster), gdx::value_end(sp->raster))); // 1 entry should contain data
+        //    }
+        //}
     }
 }
 }

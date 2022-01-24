@@ -20,6 +20,7 @@ public:
 
     std::string spatial_pattern_usage_table() const;
     std::string emission_source_usage_table() const;
+    void write_spatial_pattern_spreadsheet(const fs::path& path) const;
 
 private:
     std::vector<SpatialPatternSource> _spatialPatterns;

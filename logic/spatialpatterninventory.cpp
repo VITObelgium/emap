@@ -315,7 +315,7 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country&
                 });
 
                 if (iter != patterns.end()) {
-                    return SpatialPatternSource::create_from_table(iter->path, country, sector, *fallbackPollutant, year, EmissionSector::Type::Nfr);
+                    return SpatialPatternSource::create_from_table(iter->path, country, sector, pol, year, EmissionSector::Type::Nfr);
                 }
             }
         }

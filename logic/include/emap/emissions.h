@@ -115,6 +115,16 @@ public:
         _coordinate = std::optional<Coordinate>(coordinate);
     }
 
+    void set_source_id(std::string_view srcId) noexcept
+    {
+        _sourceId = srcId;
+    }
+
+    std::string_view source_id() const noexcept
+    {
+        return _sourceId;
+    }
+
     EmissionSector sector() const noexcept
     {
         return _id.sector;
@@ -204,6 +214,7 @@ private:
     double _temperature    = 0.0;
     double _warmthContents = 0.0;
     double _flowRate       = 0.0;
+    std::string _sourceId; // optional source identifier
 };
 
 class EmissionInventoryEntry

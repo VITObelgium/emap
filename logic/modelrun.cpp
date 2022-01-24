@@ -71,12 +71,21 @@ static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& ras
     return gdx::warp_raster(raster, gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
 }
 
+static gdx::DenseRaster<double> apply_spatial_pattern_table(const fs::path& tablePath, const EmissionInventoryEntry& emission, const RunConfiguration& cfg)
+{
+    if (emission.id().country == country::BEF) {
+        return parse_spatial_pattern_flanders(tablePath, emission.id().sector, cfg);
+    }
+
+    throw RuntimeError("Spatial pattern tables are only implemented for Flanders, not {}", emission.id().country);
+}
+
 static gdx::DenseRaster<double> apply_uniform_spread(const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
 {
     return spread_values_uniformly_over_cells(emission.scaled_diffuse_emissions(), grid.type, cellCoverages);
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
+static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages, const RunConfiguration& cfg)
 {
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
@@ -84,7 +93,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     case SpatialPatternSource::Type::SpatialPatternCEIP:
         throw RuntimeError("CEIP Spatial patterns not implemented yet");
     case SpatialPatternSource::Type::SpatialPatternTable:
-        throw RuntimeError("Spatial pattern tables not implemented yet");
+        return apply_spatial_pattern_table(spatialPattern.path, emission, cfg);
     case SpatialPatternSource::Type::UnfiformSpread:
         return apply_uniform_spread(emission, grid, cellCoverages);
         break;
@@ -174,7 +183,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     continue;
                 }
 
-                const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), countryCellCoverages->second);
+                const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), countryCellCoverages->second, cfg);
                 const auto& meta        = resultRaster.metadata();
 
                 std::vector<BrnOutputEntry> brnEntries;
@@ -214,6 +223,54 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
                 runSummary.add_point_source(path);
             }
         }
+    }
+
+    try {
+        const auto pm10     = cfg.pollutants().try_pollutant_from_string("PM10");
+        const auto pm2_5    = cfg.pollutants().try_pollutant_from_string("PM2.5");
+        const auto pmCoarse = cfg.pollutants().try_pollutant_from_string("PMcoarse");
+
+        if (pm10.has_value() &&
+            pm2_5.has_value() &&
+            pmCoarse.has_value() &&
+            fs::is_regular_file(cfg.point_source_emissions_path(country, *pm10)) &&
+            fs::is_regular_file(cfg.point_source_emissions_path(country, *pm2_5)) &&
+            !fs::is_regular_file(cfg.point_source_emissions_path(country, *pmCoarse))) {
+            // No PMcoarse data provided, create it from pm10 and pm2.5 data
+            const auto pm10Path  = cfg.point_source_emissions_path(country, *pm10);
+            const auto pm2_5Path = cfg.point_source_emissions_path(country, *pm2_5);
+
+            auto pm10Emissions  = parse_point_sources(pm10Path, cfg);
+            auto pm2_5Emissions = parse_point_sources(pm2_5Path, cfg);
+
+            std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
+                return lhs.source_id() < rhs.source_id();
+            });
+
+            SingleEmissions pmCoarseEmissions;
+
+            for (auto& pm10Entry : pm10Emissions) {
+                auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
+                    return entry.source_id() < srcId;
+                });
+
+                if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
+                    auto pm10Val  = pm10Entry.value().amount();
+                    auto pm2_5Val = iter->value().amount();
+
+                    if (pm10Val.has_value() >= pm2_5Val.has_value()) {
+                        if (pm10Val >= pm2_5Val) {
+                            auto pmCoarseVal = EmissionValue(*pm10Val - *pm2_5Val);
+                            result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
+                        } else {
+                            throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, *pm10, *pm2_5);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        Log::debug("Failed to create PMcoarse point sources: {}", e.what());
     }
 
     return result;
@@ -302,6 +359,8 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
             fmt::fprintf(fp, "\nUsed spatial patterns\n");
             fmt::fprintf(fp, summary.spatial_pattern_usage_table());
         }
+
+        summary.write_spatial_pattern_spreadsheet(cfg.run_summary_spreadsheet_path());
     }
 }
 }

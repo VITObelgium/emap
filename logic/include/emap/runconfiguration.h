@@ -55,6 +55,7 @@ public:
     fs::path countries_vector_path() const noexcept;
     std::string country_field_id() const noexcept;
     fs::path run_summary_path() const;
+    fs::path run_summary_spreadsheet_path() const;
 
     GridDefinition grid_definition() const noexcept;
     RunType run_type() const noexcept;

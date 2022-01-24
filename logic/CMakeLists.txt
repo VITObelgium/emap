@@ -4,6 +4,7 @@ find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
 find_package(type_safe CONFIG REQUIRED)
+find_package(XlsxWriter REQUIRED)
 
 add_library(emaplogic
     include/emap/constants.h
@@ -52,6 +53,7 @@ PRIVATE
     FastCppCsvParser::csv
     GEOS::geos
     tomlplusplus::tomlplusplus
+    XlsxWriter::XlsxWriter
 )
 
 if (BUILD_TESTING)

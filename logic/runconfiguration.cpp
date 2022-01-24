@@ -126,6 +126,11 @@ fs::path RunConfiguration::run_summary_path() const
     return output_path() / "summary.txt";
 }
 
+fs::path RunConfiguration::run_summary_spreadsheet_path() const
+{
+    return output_path() / "summary.xlsx";
+}
+
 GridDefinition RunConfiguration::grid_definition() const noexcept
 {
     return _grid;
