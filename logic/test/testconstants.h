@@ -37,6 +37,7 @@ const NfrSector Nfr2C7d("2C7d", NfrId(7068), gnfr::Industry, "Storage, handling 
 const NfrSector Nfr2D3d("2D3d", NfrId(7072), gnfr::Solvents, "Coating applications", EmissionDestination::Land);
 const NfrSector Nfr3Da1("3Da1", NfrId(7099), gnfr::AgriOther, "Inorganic N-fertilizers (includes also urea application)", EmissionDestination::Land);
 const NfrSector Nfr3Dc("3Dc", NfrId(7106), gnfr::AgriOther, "Farm-level agricultural operations including storage, handling and transport of agricultural products", EmissionDestination::Land);
+const NfrSector Nfr5C1bv("5C1bv", NfrId(7120), gnfr::Waste, "Cremation", EmissionDestination::Land);
 const NfrSector Nfr5C1bii("5C1bii", NfrId(7117), gnfr::Waste, "Hazardous waste incineration", EmissionDestination::Land);
 const NfrSector Nfr5C2("5C2", NfrId(7122), gnfr::Waste, "Open burning of waste", EmissionDestination::Land);
 const NfrSector Nfr5D3("5D3", NfrId(7125), gnfr::Waste, "Other wastewater handling", EmissionDestination::Land);

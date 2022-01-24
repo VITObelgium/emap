@@ -17,8 +17,10 @@ TEST_CASE("Spatial pattern selection test")
     const auto sectorInventory = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
                                                fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
-    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
-                                                     fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
+                                               fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+
+    pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
 
     SpatialPatternInventory inv(sectorInventory, pollutantInventory);
     inv.scan_dir(2021_y, 2016_y, fs::u8path(TEST_DATA_DIR) / "spatialinventory");
@@ -31,6 +33,28 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2016_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
+    }
+
+    {
+        // Fallback pollutant Available in 2016 at gnfr level: Industry
+        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::PMcoarse, EmissionSector(sectors::nfr::Nfr1A2b));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.1_2016_pm10_B_Industry.tif");
+        CHECK(spSource.emissionId.pollutant == pollutants::PMcoarse);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
+        CHECK(spSource.year == 2016_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
+    }
+
+    {
+        // Fallback pollutant Available in 2015 at gnfr level: Waste
+        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::PMcoarse, EmissionSector(sectors::nfr::Nfr5C1bv));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2015" / "CAMS_emissions_REG-APv5.1_2015_pm10_J_Waste.tif");
+        CHECK(spSource.emissionId.pollutant == pollutants::PMcoarse);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C1bv));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
+        CHECK(spSource.year == 2015_y);
         CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
