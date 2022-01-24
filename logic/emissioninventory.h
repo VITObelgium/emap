@@ -33,7 +33,14 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
             });
 
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
-                throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
+                // Check if the difference is caused by floating point rounding
+                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-6) {
+                    // Minor difference caused by rounding, make them the same
+                    pointEmissionSum = diffuseEmission;
+                } else {
+                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
+                }
+            } else {
             }
         } else {
             // Rest of Europe
@@ -52,5 +59,4 @@ inline EmissionInventory create_emission_inventory(const SingleEmissions& totalE
 
     return result;
 }
-
 }

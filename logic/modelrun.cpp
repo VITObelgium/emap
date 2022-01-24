@@ -219,6 +219,38 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
     return result;
 }
 
+static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary)
+{
+    chrono::DurationRecorder duration;
+    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg);
+    runSummary.add_totals_source(cfg.total_emissions_path_nfr());
+    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
+    duration.reset();
+
+    static const std::array<const Country*, 3> belgianRegions = {
+        &country::BEB,
+        &country::BEF,
+        &country::BEW,
+    };
+
+    for (auto* region : belgianRegions) {
+        const auto& path = cfg.total_emissions_path_nfr_belgium(*region);
+        merge_emissions(nfrTotalEmissions, parse_emissions_belgium(path, cfg.year(), cfg));
+        runSummary.add_totals_source(path);
+    }
+
+    return nfrTotalEmissions;
+}
+
+static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary)
+{
+    chrono::DurationRecorder duration;
+    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg);
+    runSummary.add_totals_source(cfg.total_emissions_path_gnfr());
+    Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
+    return gnfrTotalEmissions;
+}
+
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     RunSummary summary;
@@ -231,19 +263,14 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
         for (auto pol : cfg.pollutants().list()) {
             // Take any european country, except for a Belgian region
             summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(cfg.countries().non_belgian_country(), pol, EmissionSector(nfr)));
+            summary.add_country_specific_spatial_pattern_source(country::BEF, spatPatInv.get_spatial_pattern(country::BEF, pol, EmissionSector(nfr)));
         }
     }
 
     const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
 
-    chrono::DurationRecorder duration;
-    const auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg);
-    summary.add_totals_source(cfg.total_emissions_path_nfr());
-    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
-    duration.reset();
-    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg);
-    summary.add_totals_source(cfg.total_emissions_path_gnfr());
-    Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
+    const auto nfrTotalEmissions  = read_nfr_emissions(cfg, summary);
+    const auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary);
 
     const ScalingFactors scalingsDiffuse;
     const ScalingFactors scalingsPointSource;

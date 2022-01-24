@@ -246,10 +246,57 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
     return get_spatial_pattern(emissionId.country, emissionId.pollutant, emissionId.sector);
 }
 
-SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country& country, const Pollutant& pol, const EmissionSector& sector) const
+std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_pattern_within_year(const Country& country,
+                                                                                                const Pollutant& pol,
+                                                                                                const Pollutant& polToReport,
+                                                                                                const EmissionSector& sector,
+                                                                                                date::year year,
+                                                                                                const std::vector<SpatialPatternFile>& patterns) const
 {
     auto sectorLevel = EmissionSector::Type::Nfr;
 
+    auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
+        return spf.pollutant == pol && spf.sector == sector;
+    });
+
+    if (iter != patterns.end()) {
+        if (iter->source == SpatialPatternFile::Source::Cams) {
+            return SpatialPatternSource::create_from_cams(iter->path, country, sector, polToReport, year, sectorLevel);
+        } else if (iter->source == SpatialPatternFile::Source::Ceip) {
+            return SpatialPatternSource::create_from_cams(iter->path, country, sector, polToReport, year, sectorLevel);
+        }
+
+        throw std::logic_error("Unhandled spatial pattern source type");
+    }
+
+    if (sector.type() == EmissionSector::Type::Nfr) {
+        // No matching spatial pattern for nfr sector
+        // Check if there is one for the corresponding gnfr sector
+        EmissionSector gnfrSector(sector.gnfr_sector());
+        iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
+            return spf.pollutant == pol && spf.sector == gnfrSector;
+        });
+
+        if (iter != patterns.end()) {
+            sectorLevel = EmissionSector::Type::Gnfr;
+        }
+    }
+
+    if (iter != patterns.end()) {
+        if (iter->source == SpatialPatternFile::Source::Cams) {
+            return SpatialPatternSource::create_from_cams(iter->path, country, sector, polToReport, year, sectorLevel);
+        } else if (iter->source == SpatialPatternFile::Source::Ceip) {
+            return SpatialPatternSource::create_from_ceip(iter->path, country, sector, polToReport, year, sectorLevel);
+        }
+
+        throw std::logic_error("Unhandled spatial pattern source type");
+    }
+
+    return {};
+}
+
+SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country& country, const Pollutant& pol, const EmissionSector& sector) const
+{
     if (auto countrySpecificIter = _countrySpecificSpatialPatterns.find(country); countrySpecificIter != _countrySpecificSpatialPatterns.end()) {
         for (auto& [year, patterns] : countrySpecificIter->second) {
             auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
@@ -257,46 +304,33 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Country&
             });
 
             if (iter != patterns.end()) {
-                return SpatialPatternSource::create_from_table(iter->path, country, sector, pol, year, sectorLevel);
+                return SpatialPatternSource::create_from_table(iter->path, country, sector, pol, year, EmissionSector::Type::Nfr);
+            }
+
+            // Try the fallback pollutant
+            if (auto fallbackPollutant = _pollutantInventory.pollutant_fallback(pol); fallbackPollutant.has_value()) {
+                // A fallback is defined, search for the pattern
+                iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
+                    return spf.pollutant == *fallbackPollutant;
+                });
+
+                if (iter != patterns.end()) {
+                    return SpatialPatternSource::create_from_table(iter->path, country, sector, *fallbackPollutant, year, EmissionSector::Type::Nfr);
+                }
             }
         }
     } else {
         for (auto& [year, patterns] : _spatialPatternsRest) {
-            auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-                return spf.pollutant == pol && spf.sector == sector;
-            });
-
-            if (iter != patterns.end()) {
-                if (iter->source == SpatialPatternFile::Source::Cams) {
-                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
-                } else if (iter->source == SpatialPatternFile::Source::Ceip) {
-                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
+            if (auto source = search_spatial_pattern_within_year(country, pol, pol, sector, year, patterns); source.has_value()) {
+                return *source;
+            } else {
+                // Try the fallback pollutant
+                if (auto fallbackPollutant = _pollutantInventory.pollutant_fallback(pol); fallbackPollutant.has_value()) {
+                    // A fallback is defined, search for the pattern
+                    if (auto source = search_spatial_pattern_within_year(country, *fallbackPollutant, pol, sector, year, patterns); source.has_value()) {
+                        return *source;
+                    }
                 }
-
-                throw std::logic_error("Unhandled spatial pattern source type");
-            }
-
-            if (sector.type() == EmissionSector::Type::Nfr) {
-                // No matching spatial pattern for nfr sector
-                // Check if there is one for the corresponding gnfr sector
-                EmissionSector gnfrSector(sector.gnfr_sector());
-                iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-                    return spf.pollutant == pol && spf.sector == gnfrSector;
-                });
-
-                if (iter != patterns.end()) {
-                    sectorLevel = EmissionSector::Type::Gnfr;
-                }
-            }
-
-            if (iter != patterns.end()) {
-                if (iter->source == SpatialPatternFile::Source::Cams) {
-                    return SpatialPatternSource::create_from_cams(iter->path, country, sector, pol, year, sectorLevel);
-                } else if (iter->source == SpatialPatternFile::Source::Ceip) {
-                    return SpatialPatternSource::create_from_ceip(iter->path, country, sector, pol, year, sectorLevel);
-                }
-
-                throw std::logic_error("Unhandled spatial pattern source type");
             }
         }
     }

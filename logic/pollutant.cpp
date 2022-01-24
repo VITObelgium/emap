@@ -50,8 +50,18 @@ size_t PollutantInventory::pollutant_count() const noexcept
     return _pollutants.size();
 }
 
+std::optional<Pollutant> PollutantInventory::pollutant_fallback(const Pollutant& pollutant) const noexcept
+{
+    return inf::find_in_map_optional(_pollutantFallbacks, pollutant);
+}
+
 std::span<const Pollutant> PollutantInventory::list() const noexcept
 {
     return _pollutants;
+}
+
+void PollutantInventory::add_fallback_for_pollutant(const Pollutant& pollutant, const Pollutant& fallback)
+{
+    _pollutantFallbacks[pollutant] = fallback;
 }
 }

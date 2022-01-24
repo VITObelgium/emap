@@ -17,6 +17,11 @@ void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
     _spatialPatterns.push_back(source);
 }
 
+void RunSummary::add_country_specific_spatial_pattern_source(const Country& country, const SpatialPatternSource& source)
+{
+    _countrySpecificSpatialPatterns[country].push_back(source);
+}
+
 void RunSummary::add_point_source(const fs::path& pointSource)
 {
     _pointSources.push_back(pointSource);
@@ -43,14 +48,14 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
     return "";
 }
 
-std::string RunSummary::spatial_pattern_usage_table() const
+static std::string sources_to_table(std::span<const SpatialPatternSource> sources)
 {
     using namespace tabulate;
 
     Table table;
     table.add_row({"Sector", "Pollutant", "Type", "Year", "Path"});
 
-    for (const auto& sp : _spatialPatterns) {
+    for (const auto& sp : sources) {
         std::string sector(sp.emissionId.sector.name());
         std::string pollutant(sp.emissionId.pollutant.code());
         std::string type = spatial_pattern_source_type_to_string(sp.type);
@@ -59,8 +64,25 @@ std::string RunSummary::spatial_pattern_usage_table() const
         table.add_row({sector, pollutant, type, year, sp.path.filename().generic_u8string()});
     }
 
+    std::stringstream ss;
+    ss << table;
+    return ss.str();
+}
+
+std::string RunSummary::spatial_pattern_usage_table() const
+{
+    using namespace tabulate;
+
     std::stringstream result;
-    result << table;
+
+    for (auto& [region, sources] : _countrySpecificSpatialPatterns) {
+        result << fmt::format("{} ({})\n", region.full_name(), region.iso_code());
+        result << sources_to_table(sources);
+    }
+
+    result << fmt::format("\nOther regions\n");
+    result << sources_to_table(_spatialPatterns);
+
     return result.str();
 }
 
@@ -83,5 +105,4 @@ std::string RunSummary::emission_source_usage_table() const
     result << table;
     return result.str();
 }
-
 }

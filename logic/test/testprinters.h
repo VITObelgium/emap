@@ -8,7 +8,7 @@ namespace emap {
 
 inline doctest::String toString(const EmissionSector& sector)
 {
-    return doctest::String(sector.name().data(), sector.name().size());
+    return doctest::String(sector.name().data(), static_cast<int>(sector.name().size()));
 }
 
 inline doctest::String toString(const EmissionSector::Type& type)

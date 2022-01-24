@@ -3,6 +3,7 @@
 #include "infra/cast.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
+#include "infra/log.h"
 
 #include <cassert>
 #include <filesystem>
@@ -208,6 +209,39 @@ PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::pat
     return PollutantInventory(std::move(pollutants), std::move(conversions));
 }
 
+void parse_missing_pollutant_references(const fs::path& path, PollutantInventory& inv)
+{
+    if (!fs::is_regular_file(path)) {
+        return;
+    }
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+
+    auto ds    = gdal::VectorDataSet::open(path);
+    auto layer = ds.layer(0);
+
+    const auto colCode      = layer.layer_definition().required_field_index("pollutant_code");
+    const auto colReference = layer.layer_definition().required_field_index("reference_pollutant_code");
+
+    for (const auto& feature : layer) {
+        if (!feature.field_is_valid(0)) {
+            continue; // skip empty lines
+        }
+
+        try {
+            auto pollutant          = inv.pollutant_from_string(feature.field_as<std::string_view>(colCode));
+            auto referencePollutant = inv.pollutant_from_string(feature.field_as<std::string_view>(colReference));
+
+            if (pollutant.code() != referencePollutant.code()) {
+                inv.add_fallback_for_pollutant(pollutant, referencePollutant);
+            }
+
+        } catch (const std::exception& e) {
+            Log::warn("Pollutant reference when missing: {}", e.what());
+        }
+    }
+}
+
 struct NamedSection
 {
     NamedSection(std::string_view theName, toml::node_view<const toml::node> theSection)
@@ -383,6 +417,8 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto countryInventory   = parse_countries(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx");
+
+        parse_missing_pollutant_references(basePath / dataPath / "03_spatial_disaggregation" / "pollutant_reference_when_missing.xlsx", pollutantInventory);
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);

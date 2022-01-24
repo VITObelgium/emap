@@ -104,7 +104,15 @@ private:
         std::vector<SpatialPatternFile> spatialPatterns;
     };
 
-    std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
+    std::optional<SpatialPatternSource> search_spatial_pattern_within_year(const Country& country,
+                                                                           const Pollutant& pol,
+                                                                           const Pollutant& polToReport,
+                                                                           const EmissionSector& sector,
+                                                                           date::year year,
+                                                                           const std::vector<SpatialPatternFile>& patterns) const;
+
+    std::optional<SpatialPatternFile>
+    identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_excel(const fs::path& path) const;
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;

@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace emap {
@@ -40,6 +41,21 @@ private:
     std::string _name;
 };
 
+}
+
+namespace std {
+template <>
+struct hash<emap::Pollutant>
+{
+    size_t operator()(const emap::Pollutant& pollutant) const
+    {
+        return hash<std::string_view>()(pollutant.code());
+    }
+};
+}
+
+namespace emap {
+
 class PollutantInventory
 {
 public:
@@ -49,10 +65,17 @@ public:
     std::optional<Pollutant> try_pollutant_from_string(std::string_view str) const noexcept;
     size_t pollutant_count() const noexcept;
 
+    /* Get the optional fallback pollutant for the given pollutant
+     * in some circumanstance the configured fallback pollutant is used when there is no pollutant data present */
+    std::optional<Pollutant> pollutant_fallback(const Pollutant& pollutant) const noexcept;
+
+    void add_fallback_for_pollutant(const Pollutant& pollutant, const Pollutant& fallback);
+
     std::span<const Pollutant> list() const noexcept;
 
 private:
     std::vector<Pollutant> _pollutants;
+    std::unordered_map<Pollutant, Pollutant> _pollutantFallbacks;
     InputConversions _conversions;
 };
 

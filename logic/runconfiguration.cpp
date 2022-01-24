@@ -66,6 +66,15 @@ fs::path RunConfiguration::total_emissions_path_gnfr() const
     return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(_reportYear));
 }
 
+fs::path RunConfiguration::total_emissions_path_nfr_belgium(const Country& belgianRegian) const
+{
+    if (!belgianRegian.is_belgium()) {
+        throw std::logic_error("Internal error: a belgian region is required");
+    }
+
+    return emissions_dir_path() / "totals" / fmt::format("{}_{}.xlsx", belgianRegian.iso_code(), static_cast<int>(_reportYear));
+}
+
 fs::path RunConfiguration::spatial_pattern_path() const
 {
     return _dataPath / "03_spatial_disaggregation";
