@@ -102,12 +102,18 @@ static std::string sources_to_table(std::span<const SpatialPatternSource> source
 
 static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSource> sources)
 {
-    const std::array<const char*, 5> headers = {
-        "Sector",
-        "Pollutant",
-        "Type",
-        "Year",
-        "Path",
+    struct ColumnInfo
+    {
+        const char* header = nullptr;
+        double width       = 0.0;
+    };
+
+    const std::array<ColumnInfo, 5> headers = {
+        ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"Pollutant", 15.0},
+        ColumnInfo{"Type", 15.0},
+        ColumnInfo{"Year", 15.0},
+        ColumnInfo{"Path", 100.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -117,10 +123,11 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
 
     auto* headerFormat = workbook_add_format(wb);
     format_set_bold(headerFormat);
-    //format_set_bg_color(headerFormat, qtColor.rgba());
+    format_set_bg_color(headerFormat, 0xD5EBFF);
 
     for (int i = 0; i < headers.size(); ++i) {
-        worksheet_write_string(ws, 0, i, headers.at(0), headerFormat);
+        worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
+        worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
     }
 
     int row = 1;
