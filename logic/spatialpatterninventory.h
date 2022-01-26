@@ -114,7 +114,7 @@ private:
     std::optional<SpatialPatternFile>
     identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
-    std::optional<SpatialPatternFile> identify_spatial_pattern_excel(const fs::path& path) const;
+    std::optional<SpatialPatternFile> identify_spatial_pattern_belgium(const fs::path& path) const;
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
@@ -122,7 +122,8 @@ private:
     const PollutantInventory& _pollutantInventory;
     std::regex _spatialPatternCamsRegex;
     std::regex _spatialPatternCeipRegex;
-    std::regex _spatialPatternExcelRegex;
+    std::regex _spatialPatternBelgium1Regex;
+    std::regex _spatialPatternBelgium2Regex;
     // Contains all the available patterns, sorted by year of preference
     std::vector<SpatialPatterns> _spatialPatternsRest;
     std::unordered_map<Country, std::vector<SpatialPatterns>> _countrySpecificSpatialPatterns;

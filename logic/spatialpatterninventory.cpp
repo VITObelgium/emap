@@ -72,7 +72,8 @@ SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorIn
 , _pollutantInventory(pollutantInventory)
 , _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
 , _spatialPatternCeipRegex("(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)_(\\d{4})_GRID_(\\d{4})")
-, _spatialPatternExcelRegex("Emissies per km2 excl puntbrongegevens_(\\d{4})_(\\w+)")
+, _spatialPatternBelgium1Regex("Emissies per km2 excl puntbrongegevens_(\\d{4})_(\\w+)")
+, _spatialPatternBelgium2Regex("Emissie per km2_met NFR_([\\w ]+) (\\d{4})_(\\w+) (\\d{4})")
 {
 }
 
@@ -125,15 +126,22 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     return {};
 }
 
-std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_excel(const fs::path& path) const
+std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_belgium(const fs::path& path) const
 {
     std::smatch baseMatch;
     const std::string filename = path.stem().u8string();
 
-    if (std::regex_match(filename, baseMatch, _spatialPatternExcelRegex)) {
+    if (std::regex_match(filename, baseMatch, _spatialPatternBelgium1Regex)) {
         try {
-            const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
             const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
+
+            return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
+        } catch (const std::exception& e) {
+            Log::debug("Unexpected spatial pattern filename: {} ({})", e.what(), path);
+        }
+    } else if (std::regex_match(filename, baseMatch, _spatialPatternBelgium2Regex)) {
+        try {
+            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[1].str());
 
             return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
         } catch (const std::exception& e) {
@@ -208,7 +216,7 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
             if (fs::is_directory(currentPath)) {
                 for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
                     if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".xlsx") {
-                        if (const auto source = identify_spatial_pattern_excel(dirEntry.path()); source.has_value()) {
+                        if (const auto source = identify_spatial_pattern_belgium(dirEntry.path()); source.has_value()) {
                             patternsForYear.spatialPatterns.push_back(*source);
                         }
                     }

@@ -46,6 +46,7 @@ const NfrSector Nfr5D3("5D3", NfrId(7125), gnfr::Waste, "Other wastewater handli
 }
 
 namespace pollutants {
+const Pollutant As("As", "Arsenic");
 const Pollutant PM10("PM10", "Particulate matter (diameter < 10µm)");
 const Pollutant PM2_5("PM2.5", "Particulate matter (diameter < 2.5µm)");
 const Pollutant PMcoarse("PMcoarse", "Particulate matter(2.5µm < diameter < 10µm)");

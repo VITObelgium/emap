@@ -136,17 +136,6 @@ TEST_CASE("Spatial pattern selection test")
     }
 
     {
-        // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(countries::BEF, pollutants::NOx, EmissionSector(sectors::nfr::Nfr1A2a));
-        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2015" / "Emissies per km2 excl puntbrongegevens_2015_NOx.xlsx");
-        CHECK(spSource.emissionId.pollutant == pollutants::NOx);
-        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
-        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
-        CHECK(spSource.year == 2015_y);
-        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
-    }
-
-    {
         // No spatial mapping available: Use uniform spread
         const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NMVOC, EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(spSource.path.empty());
@@ -164,6 +153,28 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.sectorLevel == EmissionSector::Type::Gnfr);
         CHECK(spSource.year == 2016_y);
         CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternCEIP);
+    }
+
+    {
+        // Flanders excel data
+        const auto spSource = inv.get_spatial_pattern(countries::BEF, pollutants::NOx, EmissionSector(sectors::nfr::Nfr1A2a));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2015" / "Emissies per km2 excl puntbrongegevens_2015_NOx.xlsx");
+        CHECK(spSource.emissionId.pollutant == pollutants::NOx);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
+        CHECK(spSource.year == 2015_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
+    }
+
+    {
+        // Flanders excel data
+        const auto spSource = inv.get_spatial_pattern(countries::BEF, pollutants::As, EmissionSector(sectors::nfr::Nfr1A2a));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissie per km2_met NFR_As 2019_juli 2021.xlsx");
+        CHECK(spSource.emissionId.pollutant == pollutants::As);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
+        CHECK(spSource.year == 2019_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
     }
 }
 
