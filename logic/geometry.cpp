@@ -21,8 +21,6 @@ namespace emap::geom {
 
 using namespace inf;
 
-static constexpr double s_scalingFactor = 1e6;
-
 std::unique_ptr<geos::geom::LinearRing> gdal_linear_ring_to_geos(const geos::geom::GeometryFactory& factory, gdal::LinearRingCRef ring)
 {
     std::vector<geos::geom::Coordinate> coords;

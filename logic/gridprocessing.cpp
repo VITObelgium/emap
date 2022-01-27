@@ -359,14 +359,14 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     return result;
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
+void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras       = read_raster_north_up(rasterInput);
     const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, inv, progressCb);
-    return extract_countries_from_raster(rasterInput, gnfrSector, coverages, outputDir, filenameFormat, progressCb);
+    return extract_countries_from_raster(rasterInput, coverages, outputDir, filenameFormat, progressCb);
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
+void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
 {
     const auto ras = read_raster_north_up(rasterInput);
 
@@ -398,16 +398,16 @@ gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput
     return cutout_country(read_raster_north_up(rasterInput), cellCoverages);
 }
 
-//generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries)
+// generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries)
 //{
-//    const auto ras = read_raster_north_up(rasterInput);
+//     const auto ras = read_raster_north_up(rasterInput);
 //
-//    for (const auto& [countryId, coverages] : countries) {
-//        if (countryId == country::BEF) {
-//            continue;
-//        }
+//     for (const auto& [countryId, coverages] : countries) {
+//         if (countryId == country::BEF) {
+//             continue;
+//         }
 //
-//        co_yield {cutout_country(ras, coverages), Country(countryId)};
-//    }
-//}
+//         co_yield {cutout_country(ras, coverages), Country(countryId)};
+//     }
+// }
 }

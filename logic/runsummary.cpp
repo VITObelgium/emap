@@ -1,6 +1,7 @@
 #include "runsummary.h"
 
 #include "enuminfo.h"
+#include "infra/cast.h"
 #include "infra/enumutils.h"
 #include "infra/exception.h"
 #include "infra/log.h"
@@ -125,7 +126,7 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
     format_set_bold(headerFormat);
     format_set_bg_color(headerFormat, 0xD5EBFF);
 
-    for (int i = 0; i < headers.size(); ++i) {
+    for (int i = 0; i < truncate<int>(headers.size()); ++i) {
         worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
         worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
     }

@@ -386,13 +386,6 @@ static std::string read_string(const NamedSection& ns, std::string_view name)
     return nodeValue.value<std::string>().value();
 }
 
-static void throw_on_missing_section(const toml::table& table, std::string_view name)
-{
-    if (!table.contains(name)) {
-        throw RuntimeError("No '{}' section present in configuration", name);
-    }
-}
-
 static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {

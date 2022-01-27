@@ -32,20 +32,6 @@ static const char* s_wgs84 = R"wkt(PROJCS["WGS 84 / Pseudo-Mercator",
     AUTHORITY["EPSG","3857"]]
 )wkt";
 
-static const char* s_wgs84_degrees = R"wkt(
-    GEOGCS["WGS 84",
-        DATUM["WGS_1984",
-            SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],
-            AUTHORITY["EPSG","6326"]],
-        PRIMEM["Greenwich",0,
-            AUTHORITY["EPSG","8901"]],
-            UNIT["degree",0.0174532925199433,
-            AUTHORITY["EPSG","9122"]],
-        AXIS["Latitude",NORTH],
-        AXIS["Longitude",EAST],
-        AUTHORITY["EPSG","4326"]]
-)wkt";
-
 static const char* s_belgianLambert72 = R"wkt(PROJCS["Belge 1972 / Belgian Lambert 72",
     GEOGCS["Belge 1972",
         DATUM["Reseau_National_Belge_1972",
