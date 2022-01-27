@@ -14,6 +14,7 @@ enum class GridDefinition
     Rio4x4Extended,
     Flanders1km,
     CAMS,
+    ChimereEmep,
     EnumCount,
     Invalid,
 };

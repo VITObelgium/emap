@@ -14,7 +14,7 @@ inline std::optional<double> to_giga_gram_factor(std::string_view unit) noexcept
         return result = 1.0;
     }
 
-    if (unit == "ton" || unit == "t" || unit == "t/jr") {
+    if (unit == "ton" || unit == "t" || unit == "t/jr" || unit == "Mg") {
         return 1.0 / 1000.0;
     }
 

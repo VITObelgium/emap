@@ -334,9 +334,13 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 if (const auto* emission = std::get_if<double>(&field)) {
                     emissionValue = (*emission) * polData.unitConversion;
                 } else if (const auto* emission = std::get_if<std::string_view>(&field)) {
-                    emissionValue = str::to_double(*emission);
-                    if (emissionValue.has_value()) {
-                        emissionValue = (*emissionValue) * polData.unitConversion;
+                    if (*emission == "NO" || *emission == "IE" || *emission == "NA" || *emission == "NE" || *emission == "NR" || *emission == "C") {
+                        emissionValue = 0.0;
+                    } else {
+                        emissionValue = str::to_double(*emission);
+                        if (emissionValue.has_value()) {
+                            emissionValue = (*emissionValue) * polData.unitConversion;
+                        }
                     }
                 }
 
@@ -357,7 +361,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                     }
                 } else {
                     const auto value = feature.field_as<std::string>(index);
-                    if (!value.empty() && value != "NO" && value != "IE" && value != "NA" && value != "NE" && value != "NR" && value != "C") {
+                    if (!value.empty()) {
                         Log::error("Failed to obtain emission value from {}", value);
                     }
                 }
@@ -513,6 +517,8 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
             continue;
         }
 
+        //Log::info("{}: {} {} {} ({})", f, sectorName, feature.field_as<double>(colX), feature.field_as<double>(colY), feature.field_as<double>(colEmission));
+
         const Point<double> point(feature.field_as<double>(colX), feature.field_as<double>(colY));
         const Cell cell = gridData.meta.convert_point_to_cell(point);
         if (gridData.meta.is_on_map(cell)) {
@@ -523,5 +529,71 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
     }
 
     return raster;
+}
+
+static std::string process_ceip_sector(std::string_view str)
+{
+    if (str::starts_with("N14 ", str)) {
+        return std::string(str.substr(4));
+    }
+
+    return std::string(str);
+}
+
+gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatternPath, const EmissionIdentifier& id, const RunConfiguration& cfg)
+{
+    inf::CsvReader csv(spatialPatternPath);
+
+    const auto& sectors    = cfg.sectors();
+    const auto& pollutants = cfg.pollutants();
+    const auto& countries  = cfg.countries();
+
+    // ISO2;YEAR;SECTOR;POLLUTANT;LONGITUDE;LATITUDE;UNIT;EMISSION
+
+    const int colCountry   = 0;
+    const int colYear      = 1;
+    const int colSector    = 2;
+    const int colPollutant = 3;
+    const int colLongitude = 4;
+    const int colLatitude  = 5;
+    const int colUnit      = 6;
+    const int colEmission  = 7;
+
+    int lineNr = 1;
+
+    const auto extent = grid_data(GridDefinition::ChimereEmep).meta;
+
+    gdx::DenseRaster<double> result(extent, extent.nodata.value());
+
+    for (auto& line : csv) {
+        double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
+        auto curPollutant    = pollutants.pollutant_from_string(line.get_string(colPollutant));
+        auto country         = countries.try_country_from_string(line.get_string(colCountry));
+
+        if (country != id.country) {
+            continue;
+        }
+
+        if (id.pollutant == curPollutant && id.sector == sectors.sector_from_string(process_ceip_sector(line.get_string(colSector)))) {
+            const auto lon = line.get_double(colLongitude);
+            const auto lat = line.get_double(colLatitude);
+
+            if (!(lat.has_value() && lon.has_value())) {
+                Log::warn("CEIP pattern: invalid lat lon values: lat {} lon {} ({}:{})", line.get_string(colLatitude), line.get_string(colLongitude), spatialPatternPath, lineNr);
+                continue;
+            }
+
+            const auto cell = extent.convert_point_to_cell(Point(*lat, *lon));
+            if (extent.is_on_map(cell)) {
+                result.add_to_cell(cell, emissionValue);
+            } else {
+                Log::warn("CEIP pattern: emission is outside of the grid: lat {} lon {} ({}:{})", *lat, *lon, spatialPatternPath, lineNr);
+            }
+        }
+
+        ++lineNr;
+    }
+
+    return result;
 }
 }

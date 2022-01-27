@@ -84,6 +84,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Rio4x4Extended, GeoMetadata(61, 73, 14000.0, 12000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Flanders1km, GeoMetadata(154, 260, 0.0, 142000.0, 1000.0, nan, s_belgianLambert72)},
     {GridDefinition::CAMS, GeoMetadata(841, 1801, -30.0, 29.95, 0.05, nan, s_wgs84)},
+    {GridDefinition::ChimereEmep, GeoMetadata(520, 1199, -30.0, 30.0, 0.1, nan, s_wgs84)},
 }};
 
 const GridData& grid_data(GridDefinition grid) noexcept

@@ -62,9 +62,21 @@ struct ModelResult
     std::vector<BrnOutputEntry> emissions;
 };
 
-static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionInventoryEntry& emission, const GridData& grid)
+static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
 {
-    auto raster = gdx::read_dense_raster<double>(rasterPath);
+    // The returned raster is normalized
+    auto raster = extract_country_from_raster(rasterPath, cellCoverages);
+    raster *= emission.diffuse_emissions();
+
+    const auto gridMeta = grid.meta;
+    return gdx::warp_raster(raster, gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
+}
+
+static gdx::DenseRaster<double> apply_spatial_pattern_ceip(const fs::path& ceipPath, const EmissionInventoryEntry& emission, const GridData& grid, const RunConfiguration& cfg)
+{
+    // The returned raster is not normalized, it contains only values for the requested country
+    auto raster = parse_spatial_pattern_ceip(ceipPath, emission.id(), cfg);
+    normalize_raster(raster);
     raster *= emission.diffuse_emissions();
 
     const auto gridMeta = grid.meta;
@@ -89,9 +101,9 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
 {
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
-        return apply_spatial_pattern_raster(spatialPattern.path, emission, grid);
+        return apply_spatial_pattern_raster(spatialPattern.path, emission, grid, cellCoverages);
     case SpatialPatternSource::Type::SpatialPatternCEIP:
-        throw RuntimeError("CEIP Spatial patterns not implemented yet");
+        throw apply_spatial_pattern_ceip(spatialPattern.path, emission, grid, cfg);
     case SpatialPatternSource::Type::SpatialPatternTable:
         return apply_spatial_pattern_table(spatialPattern.path, emission, cfg);
     case SpatialPatternSource::Type::UnfiformSpread:
@@ -111,6 +123,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     ModelProgressInfo progressInfo;
     ProgressTracker progress(known_countries_in_extent(cfg.countries(), camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id()), progressCb);
 
+    // Precompute the cell coverages per country as it can be expensive
     chrono::DurationRecorder dur;
     const auto countryCoverages = create_country_coverages(camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id(), cfg.countries(), [&](const GridProcessingProgress::ProgressTracker::Status& status) {
         progressInfo.info = fmt::format("Calculate region cells: {}", status.payload().full_name());
@@ -342,10 +355,10 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
-    /*Log::debug("Spread emissions");
+    Log::debug("Spread emissions");
     dur.reset();
     spread_emissions(inventory, spatPatInv, cfg, progressCb);
-    Log::debug("Spread emissions took {}", dur.elapsed_time_string());*/
+    Log::debug("Spread emissions took {}", dur.elapsed_time_string());
 
     // Write the summary
     {

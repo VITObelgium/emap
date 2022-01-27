@@ -132,11 +132,7 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
     }
 
     // normalize the raster so the sum is 1
-    if (const auto sum = gdx::sum(result); sum != 0.0) {
-        gdx::transform(result, result, [sum](const auto& val) {
-            return val / sum;
-        });
-    }
+    normalize_raster(result);
 
     return result;
 }
@@ -152,13 +148,23 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput)
     return ras;
 }
 
+void normalize_raster(gdx::DenseRaster<double>& ras) noexcept
+{
+    // normalize the raster so the sum is 1
+    if (const auto sum = gdx::sum(ras); sum != 0.0) {
+        gdx::transform(ras, ras, [sum](const auto& val) {
+            return val / sum;
+        });
+    }
+}
+
 gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, GridDefinition grid, std::span<const CellCoverageInfo> cellCoverages)
 {
     const auto totalCoverage = std::accumulate(cellCoverages.begin(), cellCoverages.end(), 0.0, [](double current, const CellCoverageInfo& cov) {
         return current + cov.coverage;
     });
 
-    auto raster = cutout_country(gdx::DenseRaster<double>(grid_data(GridDefinition::CAMS).meta, 1.0), cellCoverages);
+    auto raster = cutout_country(gdx::DenseRaster<double>(grid_data(grid).meta, 1.0), cellCoverages);
     raster *= (valueToSpread / totalCoverage);
     return raster;
 }
@@ -382,16 +388,26 @@ void extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrS
     }
 }
 
-generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries)
+gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, std::span<const CellCoverageInfo> cellCoverages)
 {
-    const auto ras = read_raster_north_up(rasterInput);
-
-    for (const auto& [countryId, coverages] : countries) {
-        if (countryId == country::BEF) {
-            continue;
-        }
-
-        co_yield {cutout_country(ras, coverages), Country(countryId)};
-    }
+    return cutout_country(rasterInput, cellCoverages);
 }
+
+gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, std::span<const CellCoverageInfo> cellCoverages)
+{
+    return cutout_country(read_raster_north_up(rasterInput), cellCoverages);
+}
+
+//generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries)
+//{
+//    const auto ras = read_raster_north_up(rasterInput);
+//
+//    for (const auto& [countryId, coverages] : countries) {
+//        if (countryId == country::BEF) {
+//            continue;
+//        }
+//
+//        co_yield {cutout_country(ras, coverages), Country(countryId)};
+//    }
+//}
 }
