@@ -6,23 +6,36 @@
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
+#include <type_safe/strong_typedef.hpp>
 
 namespace emap {
+
+struct CountryId : type_safe::strong_typedef<CountryId, std::string>,
+                   type_safe::strong_typedef_op::equality_comparison<CountryId>,
+                   type_safe::strong_typedef_op::relational_comparison<CountryId>
+{
+    using strong_typedef::strong_typedef;
+};
 
 class Country
 {
 public:
     Country() noexcept = default;
     Country(std::string_view isoCode, std::string_view label, bool isLand)
-    : _isoCode(isoCode)
+    : _isoCode(std::string(isoCode))
     , _label(label)
     , _isLand(isLand)
     {
     }
 
+    const CountryId& id() const noexcept
+    {
+        return _isoCode;
+    }
+
     bool is_belgium() const noexcept
     {
-        return _isoCode == "BEF" || _isoCode == "BEB" || _isoCode == "BEW";
+        return iso_code() == "BEF" || iso_code() == "BEB" || iso_code() == "BEW";
     }
 
     bool is_sea() const noexcept
@@ -32,7 +45,7 @@ public:
 
     std::string_view iso_code() const noexcept
     {
-        return _isoCode;
+        return static_cast<const std::string&>(_isoCode);
     }
 
     std::string_view full_name() const noexcept
@@ -53,7 +66,7 @@ public:
     std::string_view to_string() const noexcept;
 
 private:
-    std::string _isoCode;
+    CountryId _isoCode;
     std::string _label;
     bool _isLand = true;
 };
@@ -109,4 +122,13 @@ struct formatter<emap::Country>
         return format_to(ctx.out(), val.to_string());
     }
 };
+}
+
+namespace std {
+// we want to use it with the std::unordered_* containers
+template <>
+struct hash<emap::CountryId> : type_safe::hashable<emap::CountryId>
+{
+};
+
 }

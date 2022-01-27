@@ -105,7 +105,7 @@ std::string_view EmissionSector::gnfr_name() const noexcept
     return gnfr_sector().name();
 }
 
-GnfrSector EmissionSector::gnfr_sector() const noexcept
+const GnfrSector& EmissionSector::gnfr_sector() const noexcept
 {
     if (type() == Type::Gnfr) {
         return get_gnfr_sector();
@@ -119,39 +119,39 @@ bool EmissionSector::is_land_sector() const noexcept
     return gnfr_sector().has_land_destination();
 }
 
-//std::optional<NfrSector> EmissionSector::is_sector_override() const noexcept
+// std::optional<NfrSector> EmissionSector::is_sector_override() const noexcept
 //{
-//    if (type() == Type::Gnfr) {
-//        return {};
-//    }
+//     if (type() == Type::Gnfr) {
+//         return {};
+//     }
 //
-//    switch (get_nfr_sector()) {
-//    case NfrSector::Nfr1A3bi_fu:
-//        return NfrSector::Nfr1A3bi;
-//    case NfrSector::Nfr1A3bii_fu:
-//        return NfrSector::Nfr1A3bii;
-//    case NfrSector::Nfr1A3biii_fu:
-//        return NfrSector::Nfr1A3biii;
-//    case NfrSector::Nfr1A3biv_fu:
-//        return NfrSector::Nfr1A3biv;
-//    case NfrSector::Nfr1A3bv_fu:
-//        return NfrSector::Nfr1A3bv;
-//    case NfrSector::Nfr1A3bvi_fu:
-//        return NfrSector::Nfr1A3bvi;
-//    case NfrSector::Nfr1A3bvii_fu:
-//        return NfrSector::Nfr1A3bvii;
-//    }
+//     switch (get_nfr_sector()) {
+//     case NfrSector::Nfr1A3bi_fu:
+//         return NfrSector::Nfr1A3bi;
+//     case NfrSector::Nfr1A3bii_fu:
+//         return NfrSector::Nfr1A3bii;
+//     case NfrSector::Nfr1A3biii_fu:
+//         return NfrSector::Nfr1A3biii;
+//     case NfrSector::Nfr1A3biv_fu:
+//         return NfrSector::Nfr1A3biv;
+//     case NfrSector::Nfr1A3bv_fu:
+//         return NfrSector::Nfr1A3bv;
+//     case NfrSector::Nfr1A3bvi_fu:
+//         return NfrSector::Nfr1A3bvi;
+//     case NfrSector::Nfr1A3bvii_fu:
+//         return NfrSector::Nfr1A3bvii;
+//     }
 //
-//    return {};
-//}
+//     return {};
+// }
 
-NfrSector EmissionSector::get_nfr_sector() const noexcept
+const NfrSector& EmissionSector::get_nfr_sector() const noexcept
 {
     assert(type() == Type::Nfr);
     return std::get<NfrSector>(_sector);
 }
 
-GnfrSector EmissionSector::get_gnfr_sector() const noexcept
+const GnfrSector& EmissionSector::get_gnfr_sector() const noexcept
 {
     assert(type() == Type::Gnfr);
     return std::get<GnfrSector>(_sector);
@@ -294,5 +294,4 @@ std::span<const NfrSector> SectorInventory::nfr_sectors() const noexcept
 {
     return _nfrSectors;
 }
-
 }

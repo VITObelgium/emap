@@ -158,11 +158,11 @@ public:
     /*! If it is a gnfr sector: returns it
      *  If it is s nfr sector: returns the corresponding gnfr sector
      */
-    GnfrSector gnfr_sector() const noexcept;
+    const GnfrSector& gnfr_sector() const noexcept;
 
     bool is_land_sector() const noexcept;
     /* Returns the nfr sector this sector overrides if it is applicable */
-    //std::optional<NfrSector> is_sector_override() const noexcept;
+    // std::optional<NfrSector> is_sector_override() const noexcept;
 
     bool operator<(const EmissionSector& other) const noexcept
     {
@@ -180,8 +180,8 @@ public:
     }
 
 private:
-    NfrSector get_nfr_sector() const noexcept;
-    GnfrSector get_gnfr_sector() const noexcept;
+    const NfrSector& get_nfr_sector() const noexcept;
+    const GnfrSector& get_gnfr_sector() const noexcept;
 
     std::variant<NfrSector, GnfrSector> _sector;
 };
