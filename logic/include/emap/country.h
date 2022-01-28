@@ -20,7 +20,10 @@ struct CountryId : type_safe::strong_typedef<CountryId, std::string>,
 class Country
 {
 public:
-    Country() noexcept = default;
+    Country() noexcept
+    {
+    }
+
     Country(std::string_view isoCode, std::string_view label, bool isLand)
     : _isoCode(std::string(isoCode))
     , _label(label)
@@ -66,7 +69,7 @@ public:
     std::string_view to_string() const noexcept;
 
 private:
-    CountryId _isoCode;
+    CountryId _isoCode = CountryId("");
     std::string _label;
     bool _isLand = true;
 };
