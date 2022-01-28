@@ -2,6 +2,7 @@
 #include "emap/emissions.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
+#include "gdx/algo/sum.h"
 #include "gdx/rasteriterator.h"
 
 #include "testconfig.h"
@@ -204,6 +205,18 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load spatial pattern")
     {
+        SUBCASE("Flanders")
+        {
+            const auto spatialPattern = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM10.xlsx", EmissionSector(sectors::nfr::Nfr1A1a), cfg);
+            CHECK(gdx::sum(spatialPattern) == Approx(23.5972773909986).epsilon(1e-4));
+        }
+
+        SUBCASE("Flanders sector at end of file")
+        {
+            const auto spatialPattern = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM10.xlsx", EmissionSector(sectors::nfr::Nfr5E), cfg);
+            CHECK(gdx::sum(spatialPattern) == Approx(432.989391850553).epsilon(1e-4));
+        }
+
         //SUBCASE("Flanders")
         //{
         //    const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);

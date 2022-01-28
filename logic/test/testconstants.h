@@ -41,6 +41,7 @@ const NfrSector Nfr5C1bv("5C1bv", NfrId(7120), gnfr::Waste, "Cremation", Emissio
 const NfrSector Nfr5C1bii("5C1bii", NfrId(7117), gnfr::Waste, "Hazardous waste incineration", EmissionDestination::Land);
 const NfrSector Nfr5C2("5C2", NfrId(7122), gnfr::Waste, "Open burning of waste", EmissionDestination::Land);
 const NfrSector Nfr5D3("5D3", NfrId(7125), gnfr::Waste, "Other wastewater handling", EmissionDestination::Land);
+const NfrSector Nfr5E("5E", NfrId(7126), gnfr::Waste, "Other waste (please specify in the IIR)", EmissionDestination::Land);
 
 }
 }
