@@ -352,13 +352,13 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
-    const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource);
+    const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
-    Log::debug("Spread emissions");
+    /*Log::debug("Spread emissions");
     dur.reset();
     spread_emissions(inventory, spatPatInv, cfg, progressCb);
-    Log::debug("Spread emissions took {}", dur.elapsed_time_string());
+    Log::debug("Spread emissions took {}", dur.elapsed_time_string());*/
 
     // Write the summary
     {
@@ -373,7 +373,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
             fmt::fprintf(fp, summary.spatial_pattern_usage_table());
         }
 
-        summary.write_spatial_pattern_spreadsheet(cfg.run_summary_spreadsheet_path());
+        summary.write_summary_spreadsheet(cfg.run_summary_spreadsheet_path());
     }
 }
 }

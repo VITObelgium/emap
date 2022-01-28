@@ -4,7 +4,7 @@
         <DisplayString>{_name}</DisplayString>
     </Type>
 	<Type Name="emap::Country">
-		<DisplayString>{_isoCode}</DisplayString>
+		<DisplayString>{_isoCode.value_}</DisplayString>
 	</Type>
 	<Type Name="emap::Pollutant">
 		<DisplayString>{_code}</DisplayString>

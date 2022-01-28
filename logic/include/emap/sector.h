@@ -160,6 +160,8 @@ public:
      */
     const GnfrSector& gnfr_sector() const noexcept;
 
+    int64_t id() const noexcept;
+
     bool is_land_sector() const noexcept;
     /* Returns the nfr sector this sector overrides if it is applicable */
     // std::optional<NfrSector> is_sector_override() const noexcept;

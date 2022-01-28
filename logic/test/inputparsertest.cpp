@@ -26,12 +26,16 @@ TEST_CASE("Input parsers")
     const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
     const auto countryInventory   = parse_countries(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
 
-    const auto cfg = create_config(sectorInventory, pollutantInventory, countryInventory);
+    auto cfg = create_config(sectorInventory, pollutantInventory, countryInventory);
 
     SUBCASE("Load emissions")
     {
         SUBCASE("nfr sectors")
         {
+            // year == 2016, no results
+            CHECK(parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg).empty());
+            cfg.set_year(1990_y);
+
             auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg);
             REQUIRE(emissions.size() == 6);
 
@@ -50,6 +54,8 @@ TEST_CASE("Input parsers")
 
         SUBCASE("gnfr sectors")
         {
+            cfg.set_year(1990_y);
+
             auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg);
             REQUIRE(emissions.size() == 4);
 
@@ -58,11 +64,11 @@ TEST_CASE("Input parsers")
             }
 
             const auto& firstEmission = *emissions.begin();
-            //TJ;1990;A_PublicPower;CO;Gg;1.82364
-            CHECK(firstEmission.country() == countries::LI);
+            //TR;1990;A_PublicPower;CO;Gg;1.82364
+            CHECK(firstEmission.country() == countries::TR);
             CHECK(firstEmission.sector().name() == "A_PublicPower");
             CHECK(firstEmission.pollutant() == pollutants::CO);
-            CHECK(firstEmission.value().amount().value() == Approx(0.001773375));
+            CHECK(firstEmission.value().amount().value() == Approx(1.82364));
             CHECK(firstEmission.value().unit() == "Gg");
         }
 

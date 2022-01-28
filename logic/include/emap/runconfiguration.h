@@ -62,6 +62,8 @@ public:
     ValidationType validation_type() const noexcept;
 
     date::year year() const noexcept;
+    void set_year(date::year year) noexcept;
+
     date::year reporting_year() const noexcept;
 
     std::string_view scenario() const noexcept;

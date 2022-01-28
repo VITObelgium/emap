@@ -142,9 +142,14 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
         using namespace io;
         CSVReader<6, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(emissionsCsv.u8string());
 
-        int year;
+        int32_t year;
         char *countryStr, *sector, *pollutant, *unit, *value;
         while (in.read_row(countryStr, year, sector, pollutant, unit, value)) {
+            if (year != static_cast<int32_t>(cfg.year())) {
+                // not the year we want
+                continue;
+            }
+
             auto emissionValue = str::to_double(value);
             if (emissionValue.has_value()) {
                 *emissionValue = to_giga_gram(*emissionValue, unit);

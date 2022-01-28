@@ -151,6 +151,11 @@ date::year RunConfiguration::year() const noexcept
     return _year;
 }
 
+void RunConfiguration::set_year(date::year year) noexcept
+{
+    _year = year;
+}
+
 date::year RunConfiguration::reporting_year() const noexcept
 {
     return _reportYear;

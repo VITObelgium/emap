@@ -23,7 +23,7 @@ add_library(emaplogic
     include/emap/outputwriters.h outputwriters.cpp
     configurationutil.h
     enuminfo.h
-    emissioninventory.h
+    emissioninventory.h emissioninventory.cpp
     unitconversion.h
     geometry.h geometry.cpp
     runsummary.h runsummary.cpp

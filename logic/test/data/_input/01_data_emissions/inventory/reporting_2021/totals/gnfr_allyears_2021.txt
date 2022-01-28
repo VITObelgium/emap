@@ -1,4 +1,4 @@
-TJ;1990;A_PublicPower;CO;Gg;1.82364
+TR;1990;A_PublicPower;CO;Gg;1.82364
 LI;1990;A_PublicPower;CO;Gg;0.001773375
 MK;1990;D_Fugitive;CO;Gg;0.11728707
 KZ;1990;G_Shipping;CO;Gg;0.011947164

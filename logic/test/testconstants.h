@@ -72,6 +72,7 @@ const Country DE("DE", "Germany", true);
 const Country AL("AL", "Albania", true);
 const Country AM("AM", "Armenia", true);
 const Country NL("NL", "Netherlands", true);
+const Country TR("TR", "Turkey", true);
 const Country BEF = country::BEF;
 const Country BEW = country::BEW;
 const Country BEB = country::BEB;

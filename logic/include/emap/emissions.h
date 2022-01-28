@@ -4,6 +4,7 @@
 #include "emap/pollutant.h"
 #include "emap/sector.h"
 #include "infra/algo.h"
+#include "infra/hash.h"
 #include "infra/point.h"
 #include "infra/span.h"
 
@@ -464,6 +465,19 @@ struct formatter<emap::EmissionSector::Type>
     auto format(const emap::EmissionSector::Type& val, FormatContext& ctx)
     {
         return format_to(ctx.out(), emission_sector_type_name(val));
+    }
+};
+}
+
+namespace std {
+template <>
+struct hash<emap::EmissionIdentifier>
+{
+    size_t operator()(const emap::EmissionIdentifier& id) const
+    {
+        size_t seed = 0;
+        inf::hash_combine(seed, id.country.id(), id.pollutant.code(), id.sector.id());
+        return seed;
     }
 };
 }

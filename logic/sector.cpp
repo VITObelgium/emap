@@ -114,6 +114,14 @@ const GnfrSector& EmissionSector::gnfr_sector() const noexcept
     return get_nfr_sector().gnfr();
 }
 
+int64_t EmissionSector::id() const noexcept
+{
+    return std::visit([](auto& sectorType) {
+        return static_cast<int64_t>(sectorType.id());
+    },
+                      _sector);
+}
+
 bool EmissionSector::is_land_sector() const noexcept
 {
     return gnfr_sector().has_land_destination();
