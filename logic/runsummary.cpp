@@ -64,7 +64,7 @@ void RunSummary::add_totals_source(const fs::path& totalsSource)
     _totalsSources.push_back(totalsSource);
 }
 
-void RunSummary::add_gnfr_correction(const EmissionIdentifier& id, double validatedGnfrTotal, double summedGnfrTotal, double correction)
+void RunSummary::add_gnfr_correction(const EmissionIdentifier& id, std::optional<double> validatedGnfrTotal, double summedGnfrTotal, double correction)
 {
     _gnfrCorrections.push_back({id, validatedGnfrTotal, summedGnfrTotal, correction});
 }
@@ -194,7 +194,9 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
-        worksheet_write_number(ws, row, 3, correction.validatedGnfrTotal, nullptr);
+        if (correction.validatedGnfrTotal.has_value()) {
+            worksheet_write_number(ws, row, 3, *correction.validatedGnfrTotal, nullptr);
+        }
         worksheet_write_number(ws, row, 4, correction.summedGnfrTotal, nullptr);
         if (std::isfinite(correction.correction)) {
             worksheet_write_number(ws, row, 5, correction.correction, nullptr);

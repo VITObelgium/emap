@@ -76,7 +76,7 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
             correction = *gnfrBasedTotal / nfrBasedTotal;
             summary.add_gnfr_correction(id, *gnfrBasedTotal, nfrBasedTotal, correction);
         } else {
-            summary.add_gnfr_correction(id, 0.0, nfrBasedTotal, 1.0);
+            summary.add_gnfr_correction(id, {}, nfrBasedTotal, 1.0);
         }
 
         result[id] = correction;

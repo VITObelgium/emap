@@ -20,7 +20,7 @@ public:
     void add_point_source(const fs::path& pointSource);
     void add_totals_source(const fs::path& totalsSource);
 
-    void add_gnfr_correction(const EmissionIdentifier& id, double validatedGnfrTotal, double summedGnfrTotal, double correction);
+    void add_gnfr_correction(const EmissionIdentifier& id, std::optional<double> validatedGnfrTotal, double summedGnfrTotal, double correction);
 
     std::string spatial_pattern_usage_table() const;
     std::string emission_source_usage_table() const;
@@ -30,9 +30,9 @@ private:
     struct GnfrCorrection
     {
         EmissionIdentifier id;
-        double validatedGnfrTotal = 0.0;
-        double summedGnfrTotal    = 0.0;
-        double correction         = 0.0;
+        std::optional<double> validatedGnfrTotal;
+        double summedGnfrTotal = 0.0;
+        double correction      = 0.0;
     };
 
     void gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const GnfrCorrection> corrections) const;
