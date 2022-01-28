@@ -132,7 +132,7 @@ EmissionInventory create_emission_inventory(const SingleEmissions& totalEmission
                 diffuseEmission = 0.0;
             }
 
-            diffuseEmission *= nfrCorrectionRatios[em.id()];
+            diffuseEmission *= find_in_map_optional(nfrCorrectionRatios, convert_emission_id_to_gnfr_level(em.id())).value_or(1.0);
         }
 
         EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
