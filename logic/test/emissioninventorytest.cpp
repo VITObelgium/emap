@@ -1,5 +1,7 @@
 #include "emissioninventory.h"
 
+#include "emap/scalingfactors.h"
+
 #include "runsummary.h"
 #include "testconfig.h"
 #include "testconstants.h"

@@ -1,6 +1,4 @@
-#pragma once
-
-#include "emap/emissions.h"
+#include "emissioninventory.h"
 #include "emap/scalingfactors.h"
 #include "infra/algo.h"
 #include "infra/log.h"
