@@ -16,14 +16,14 @@ namespace emap {
 
 class SectorInventory;
 
-struct GnfrId : type_safe::strong_typedef<GnfrId, int64_t>,
+struct GnfrId : type_safe::strong_typedef<GnfrId, int32_t>,
                 type_safe::strong_typedef_op::equality_comparison<GnfrId>,
                 type_safe::strong_typedef_op::relational_comparison<GnfrId>
 {
     using strong_typedef::strong_typedef;
 };
 
-struct NfrId : type_safe::strong_typedef<NfrId, int64_t>,
+struct NfrId : type_safe::strong_typedef<NfrId, int32_t>,
                type_safe::strong_typedef_op::equality_comparison<NfrId>,
                type_safe::strong_typedef_op::relational_comparison<NfrId>
 {
@@ -160,7 +160,7 @@ public:
      */
     const GnfrSector& gnfr_sector() const noexcept;
 
-    int64_t id() const noexcept;
+    int32_t id() const noexcept;
 
     bool is_land_sector() const noexcept;
     /* Returns the nfr sector this sector overrides if it is applicable */

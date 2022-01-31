@@ -66,14 +66,14 @@ const Pollutant BaP("BaP", "benzo(a)pyrene");
 }
 
 namespace countries {
-const Country FR("FR", "France", true);
-const Country ES("ES", "Spain", true);
-const Country LI("LI", "Lituania", true);
-const Country DE("DE", "Germany", true);
-const Country AL("AL", "Albania", true);
-const Country AM("AM", "Armenia", true);
-const Country NL("NL", "Netherlands", true);
-const Country TR("TR", "Turkey", true);
+const Country FR(CountryId(56), "FR", "France", true);
+const Country ES(CountryId(12), "ES", "Spain", true);
+const Country LI(CountryId(39), "LI", "Lituania", true);
+const Country DE(CountryId(58), "DE", "Germany", true);
+const Country AL(CountryId(21), "AL", "Albania", true);
+const Country AM(CountryId(60), "AM", "Armenia", true);
+const Country NL(CountryId(45), "NL", "Netherlands", true);
+const Country TR(CountryId(70), "TR", "Turkey", true);
 const Country BEF = country::BEF;
 const Country BEW = country::BEW;
 const Country BEB = country::BEB;

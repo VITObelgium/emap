@@ -40,6 +40,7 @@ CountryInventory parse_countries(const fs::path& countriesSpec)
 
         const auto colIsoCode = layer.layer_definition().required_field_index("country_iso_code");
         const auto colLabel   = layer.layer_definition().required_field_index("country_label");
+        const auto colNumber  = layer.layer_definition().required_field_index("country_number");
         const auto colType    = layer.layer_definition().required_field_index("type");
 
         for (const auto& feature : layer) {
@@ -47,9 +48,10 @@ CountryInventory parse_countries(const fs::path& countriesSpec)
                 continue; // skip empty lines
             }
 
-            countries.emplace_back(feature.field_as<std::string_view>(colIsoCode),
+            countries.emplace_back(CountryId(feature.field_as<int32_t>(colNumber)),
+                                   feature.field_as<std::string_view>(colIsoCode),
                                    feature.field_as<std::string_view>(colLabel),
-                                   feature.field_as<std::string_view>(colType) == "land");
+                                   str::iequals(feature.field_as<std::string_view>(colType), "land"));
         }
     }
 
@@ -81,7 +83,7 @@ SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conver
             }
 
             gnfrSectors.emplace_back(feature.field_as<std::string_view>(colLabel),
-                                     GnfrId(feature.field_as<int64_t>(colNumber)),
+                                     GnfrId(feature.field_as<int32_t>(colNumber)),
                                      feature.field_as<std::string_view>(colCode),
                                      "",
                                      emission_destination_from_string(feature.field_as<std::string_view>(colType)));
@@ -115,7 +117,7 @@ SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conver
 
             const auto destination = emission_destination_from_string(feature.field_as<std::string_view>(colType));
 
-            nfrSectors.emplace_back(nfrCode, NfrId(feature.field_as<int64_t>(colNumber)), *gnfrSector, feature.field_as<std::string_view>(colDescription), destination);
+            nfrSectors.emplace_back(nfrCode, NfrId(feature.field_as<int32_t>(colNumber)), *gnfrSector, feature.field_as<std::string_view>(colDescription), destination);
         }
     }
 

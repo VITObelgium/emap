@@ -10,7 +10,7 @@
 
 namespace emap {
 
-struct CountryId : type_safe::strong_typedef<CountryId, std::string>,
+struct CountryId : type_safe::strong_typedef<CountryId, int32_t>,
                    type_safe::strong_typedef_op::equality_comparison<CountryId>,
                    type_safe::strong_typedef_op::relational_comparison<CountryId>
 {
@@ -24,8 +24,9 @@ public:
     {
     }
 
-    Country(std::string_view isoCode, std::string_view label, bool isLand)
-    : _isoCode(std::string(isoCode))
+    Country(CountryId id, std::string_view isoCode, std::string_view label, bool isLand)
+    : _id(id)
+    , _isoCode(isoCode)
     , _label(label)
     , _isLand(isLand)
     {
@@ -33,7 +34,7 @@ public:
 
     const CountryId& id() const noexcept
     {
-        return _isoCode;
+        return _id;
     }
 
     bool is_belgium() const noexcept
@@ -69,15 +70,16 @@ public:
     std::string_view to_string() const noexcept;
 
 private:
-    CountryId _isoCode = CountryId("");
+    CountryId _id = CountryId(0);
+    std::string _isoCode;
     std::string _label;
     bool _isLand = true;
 };
 
 namespace country {
-const Country BEB("BEB", "Brussels", true);
-const Country BEF("BEF", "Flanders", true);
-const Country BEW("BEW", "Wallonia", true);
+const Country BEF(CountryId(1), "BEF", "Flanders", true);
+const Country BEB(CountryId(2), "BEB", "Brussels", true);
+const Country BEW(CountryId(3), "BEW", "Wallonia", true);
 }
 
 class CountryInventory

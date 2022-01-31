@@ -3,9 +3,10 @@
 #include "emap/configurationparser.h"
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
-#include "emap/outputwriters.h"
+#include "emap/outputbuilderfactory.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
+#include "outputwriters.h"
 #include "runsummary.h"
 #include "spatialpatterninventory.h"
 
@@ -114,7 +115,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     throw RuntimeError("Invalid spatial pattern type");
 }
 
-void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
+void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, IOutputBuilder& output, const ModelProgress::Callback& progressCb)
 {
     const auto camsGrid = grid_data(GridDefinition::CAMS);
 
@@ -325,6 +326,8 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 {
     RunSummary summary;
 
+    auto outputBuilder = make_output_builder(cfg);
+
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
@@ -357,7 +360,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     /*Log::debug("Spread emissions");
     dur.reset();
-    spread_emissions(inventory, spatPatInv, cfg, progressCb);
+    spread_emissions(inventory, spatPatInv, cfg, *outputBuilder, progressCb);
     Log::debug("Spread emissions took {}", dur.elapsed_time_string());*/
 
     // Write the summary

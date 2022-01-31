@@ -1,4 +1,4 @@
-#include "emap/outputwriters.h"
+#include "outputwriters.h"
 #include "emap/runconfiguration.h"
 #include "emapconfig.h"
 
@@ -55,10 +55,6 @@ void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& p
 {
     BrnOutputWriter writer(path);
     writer.append_entries(entries);
-}
-
-void write_vlops_output(std::span<const VlopsOutputEntry> entries, const fs::path& path)
-{
 }
 
 }
