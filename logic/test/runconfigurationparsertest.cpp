@@ -30,7 +30,10 @@ TEST_CASE("Parse run configuration")
                 report_year = 2018
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                output = "/temp"
+            
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
 
             [options]
                 validation = true
@@ -65,10 +68,10 @@ TEST_CASE("Parse run configuration")
                 year = 2020
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                output = "/temp"
 
-            [options]
-                validation = true
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
         )toml";
 
         CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), RuntimeError);
@@ -84,7 +87,10 @@ TEST_CASE("Parse run configuration")
                 year = "2020"
                 scenario = "scenarionaam"
                 scalefactors = "{}"
-                output = "/temp"
+
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
 
             [options]
                 validation = true
@@ -104,8 +110,11 @@ TEST_CASE("Parse run configuration")
                 report_year = 2020
                 scenario = 2010
                 scalefactors = "{}"
-                output = "/temp"
 
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
+            
             [options]
                 validation = true
         )toml";

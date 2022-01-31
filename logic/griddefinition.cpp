@@ -64,6 +64,8 @@ constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Beleuros, GeoMetadata(0, 0, 0.0, 0.0, {100.0, -100}, nan, "")},
     {GridDefinition::Chimere1, GeoMetadata(45, 110, -116764.223, 6266274.438, {11233.540664545453183, -18200.716633333348000}, nan, s_wgs84)},
+    {GridDefinition::Vlops60km, GeoMetadata(56, 52, -1419000, -1480000, {60000.0, -60000.0}, nan, s_belgianLambert72)},
+    {GridDefinition::Vlops5km, GeoMetadata(120, 144, -219000, -100000, {5000.0, -5000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Vlops1km, GeoMetadata(120, 260, 11000.0, 140000.0, {1000.0, -1000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Vlops250m, GeoMetadata(480, 1040, 11000.0, 140000.0, {250.0, -250.0}, nan, s_belgianLambert72)},
     {GridDefinition::Rio4x4, GeoMetadata(57, 69, 22000.0, 20000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},

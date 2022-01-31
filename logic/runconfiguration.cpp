@@ -31,7 +31,8 @@ RunConfiguration::RunConfiguration(
     SectorInventory sectors,
     PollutantInventory pollutants,
     CountryInventory countries,
-    const fs::path& outputPath)
+    const fs::path& outputPath,
+    std::string_view outputLevel)
 : _dataPath(dataPath)
 , _outputPath(outputPath)
 , _grid(grid)
@@ -43,6 +44,7 @@ RunConfiguration::RunConfiguration(
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
 , _countryInventory(std::move(countries))
+, _outputLevel(outputLevel)
 {
 }
 
@@ -189,6 +191,24 @@ const PollutantInventory& RunConfiguration::pollutants() const noexcept
 const CountryInventory& RunConfiguration::countries() const noexcept
 {
     return _countryInventory;
+}
+
+SectorLevel RunConfiguration::output_sector_level() const noexcept
+{
+    if (str::iequals(output_sector_level_name(), "GNFR")) {
+        return SectorLevel::GNFR;
+    }
+
+    if (str::iequals(output_sector_level_name(), "NFR")) {
+        return SectorLevel::NFR;
+    }
+
+    return SectorLevel::Custom;
+}
+
+std::string_view RunConfiguration::output_sector_level_name() const noexcept
+{
+    return _outputLevel;
 }
 
 }

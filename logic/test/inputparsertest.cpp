@@ -18,7 +18,7 @@ using namespace doctest;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
 {
-    return RunConfiguration("./data", GridDefinition::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, "./out");
+    return RunConfiguration("./data", GridDefinition::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, "./out", "GNFR");
 }
 
 TEST_CASE("Input parsers")

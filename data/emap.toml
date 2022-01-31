@@ -5,7 +5,10 @@ type = "emep" # of gains
 year = 2016
 report_year = 2021
 scenario = "test"
-output = "./_output"
+
+[output]
+path = "./_output"
+sector_level = "NFR"
 
 [options]
 validation = false

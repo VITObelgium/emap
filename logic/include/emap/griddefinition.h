@@ -8,6 +8,8 @@ enum class GridDefinition
 {
     Beleuros,
     Chimere1,
+    Vlops60km,
+    Vlops5km,
     Vlops1km,
     Vlops250m,
     Rio4x4,

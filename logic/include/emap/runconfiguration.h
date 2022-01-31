@@ -16,6 +16,13 @@ enum class RunType
     Gains,
 };
 
+enum class SectorLevel
+{
+    GNFR,
+    NFR,
+    Custom,
+};
+
 enum class ValidationType
 {
     NoValidation,
@@ -36,7 +43,8 @@ public:
         SectorInventory sectors,
         PollutantInventory pollutants,
         CountryInventory countries,
-        const fs::path& outputPath);
+        const fs::path& outputPath,
+        std::string_view outputLevelName);
 
     fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
     fs::path total_emissions_path_nfr() const;
@@ -75,6 +83,9 @@ public:
     const PollutantInventory& pollutants() const noexcept;
     const CountryInventory& countries() const noexcept;
 
+    SectorLevel output_sector_level() const noexcept;
+    std::string_view output_sector_level_name() const noexcept;
+
 private:
     fs::path emissions_dir_path() const;
 
@@ -91,6 +102,8 @@ private:
     CountryInventory _countryInventory;
 
     std::optional<int32_t> _concurrency;
+
+    std::string _outputLevel;
 };
 
 std::string run_type_name(RunType type);

@@ -299,7 +299,7 @@ static RunType run_type_from_string(std::string_view type)
 static GridDefinition read_grid(std::optional<std::string_view> grid)
 {
     if (!grid.has_value()) {
-        throw RuntimeError("No grid definition present in 'input' section (e.g. grid = \"beleuros\")");
+        throw RuntimeError("No grid definition present in 'model' section (e.g. grid = \"beleuros\")");
     }
 
     return grid_from_string(*grid);
@@ -308,10 +308,19 @@ static GridDefinition read_grid(std::optional<std::string_view> grid)
 static RunType read_run_type(std::optional<std::string_view> type)
 {
     if (!type.has_value()) {
-        throw RuntimeError("No type present in 'input' section (e.g. type = \"gains\")");
+        throw RuntimeError("No type present in 'model' section (e.g. type = \"gains\")");
     }
 
     return run_type_from_string(*type);
+}
+
+static std::string read_sector_level(std::optional<std::string_view> level)
+{
+    if (!level.has_value()) {
+        throw RuntimeError("No sector level present in 'output' section (e.g. sector_level = \"GNFR\")");
+    }
+
+    return std::string(*level);
 }
 
 static fs::path read_path(const NamedSection& ns, std::string_view name, const fs::path& basePath)
@@ -398,6 +407,7 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         }
 
         NamedSection model("model", table["model"]);
+        NamedSection output("output", table["output"]);
 
         const auto grid       = read_grid(model.section["grid"].value<std::string_view>());
         const auto dataPath   = read_path(model, "datapath", basePath);
@@ -405,7 +415,9 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         const auto year       = read_year(model.section["year"]);
         const auto reportYear = read_year(model.section["report_year"]);
         const auto scenario   = read_string(model, "scenario");
-        const auto outputPath = read_path(model, "output", basePath);
+
+        const auto outputPath        = read_path(output, "path", basePath);
+        const auto outputSectorLevel = read_sector_level(output.section["sector_level"].value<std::string_view>());
 
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
@@ -426,7 +438,8 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),
                                 std::move(countryInventory),
-                                outputPath);
+                                outputPath,
+                                outputSectorLevel);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
             throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);

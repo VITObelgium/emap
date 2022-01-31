@@ -39,6 +39,11 @@ private:
     size_t _index = 1;
 };
 
+struct VlopsOutputEntry
+{
+};
+
 void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& path);
+void write_vlops_output(std::span<const VlopsOutputEntry> entries, const fs::path& path);
 
 }
