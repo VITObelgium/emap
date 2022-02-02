@@ -31,10 +31,8 @@ RunConfiguration::RunConfiguration(
     SectorInventory sectors,
     PollutantInventory pollutants,
     CountryInventory countries,
-    const fs::path& outputPath,
-    std::string_view outputLevel)
+    Output outputConfig)
 : _dataPath(dataPath)
-, _outputPath(outputPath)
 , _grid(grid)
 , _runType(runType)
 , _validation(validation)
@@ -44,7 +42,7 @@ RunConfiguration::RunConfiguration(
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
 , _countryInventory(std::move(countries))
-, _outputLevel(outputLevel)
+, _outputConfig(outputConfig)
 {
 }
 
@@ -110,7 +108,7 @@ const fs::path& RunConfiguration::data_root() const noexcept
 
 const fs::path& RunConfiguration::output_path() const noexcept
 {
-    return _outputPath;
+    return _outputConfig.path;
 }
 
 fs::path RunConfiguration::countries_vector_path() const noexcept
@@ -208,7 +206,12 @@ SectorLevel RunConfiguration::output_sector_level() const noexcept
 
 std::string_view RunConfiguration::output_sector_level_name() const noexcept
 {
-    return _outputLevel;
+    return _outputConfig.outputLevelName;
+}
+
+std::string_view RunConfiguration::output_filename_suffix() const noexcept
+{
+    return _outputConfig.filenameSuffix;
 }
 
 }

@@ -18,7 +18,11 @@ using namespace doctest;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
 {
-    return RunConfiguration("./data", GridDefinition::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, "./out", "GNFR");
+    RunConfiguration::Output outputConfig;
+    outputConfig.path            = "./out";
+    outputConfig.outputLevelName = "GNFR";
+
+    return RunConfiguration("./data", GridDefinition::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")

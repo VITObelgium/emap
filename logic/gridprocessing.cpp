@@ -124,7 +124,7 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
     gdx::DenseRaster<double> result(copy_metadata_replace_nodata(ras.metadata(), nan), nan);
 
     for (auto& [cell, coverage] : coverages) {
-        if (ras.is_nodata(cell)) {
+        if (!ras.metadata().is_on_map(cell) || ras.is_nodata(cell)) {
             continue;
         }
 

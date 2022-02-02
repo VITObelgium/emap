@@ -50,19 +50,6 @@ void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, const Mo
     }
 }
 
-struct ModelResult
-{
-    ModelResult() noexcept = default;
-    ModelResult(EmissionIdentifier id_, std::vector<BrnOutputEntry> ras) noexcept
-    : id(id_)
-    , emissions(std::move(ras))
-    {
-    }
-
-    EmissionIdentifier id;
-    std::vector<BrnOutputEntry> emissions;
-};
-
 static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
 {
     // The returned raster is normalized
@@ -95,7 +82,9 @@ static gdx::DenseRaster<double> apply_spatial_pattern_table(const fs::path& tabl
 
 static gdx::DenseRaster<double> apply_uniform_spread(const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
 {
-    return spread_values_uniformly_over_cells(emission.scaled_diffuse_emissions(), grid.type, cellCoverages);
+    const auto gridMeta = grid.meta;
+    // Cell coverage are based on the CAMS grid
+    return gdx::warp_raster(spread_values_uniformly_over_cells(emission.scaled_diffuse_emissions(), GridDefinition::CAMS, cellCoverages), gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
 }
 
 static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages, const RunConfiguration& cfg)
@@ -104,15 +93,38 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     case SpatialPatternSource::Type::SpatialPatternCAMS:
         return apply_spatial_pattern_raster(spatialPattern.path, emission, grid, cellCoverages);
     case SpatialPatternSource::Type::SpatialPatternCEIP:
-        throw apply_spatial_pattern_ceip(spatialPattern.path, emission, grid, cfg);
+        return apply_spatial_pattern_ceip(spatialPattern.path, emission, grid, cfg);
     case SpatialPatternSource::Type::SpatialPatternTable:
         return apply_spatial_pattern_table(spatialPattern.path, emission, cfg);
     case SpatialPatternSource::Type::UnfiformSpread:
         return apply_uniform_spread(emission, grid, cellCoverages);
-        break;
     }
 
     throw RuntimeError("Invalid spatial pattern type");
+}
+
+static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
+{
+    auto filename = fmt::format("{}_OPS_{}", pol.code(), static_cast<int32_t>(year));
+    if (!suffix.empty()) {
+        filename += suffix;
+    }
+    filename += ".brn";
+
+    return fs::u8path(filename);
+}
+
+static std::vector<Country> countries_that_use_configured_grid(std::span<const Country> countries)
+{
+    std::vector<Country> result;
+
+    for (auto& country : countries) {
+        if (!country.is_belgium()) {
+            result.push_back(country);
+        }
+    }
+
+    return result;
 }
 
 void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, IOutputBuilder& output, const ModelProgress::Callback& progressCb)
@@ -134,45 +146,11 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     });
     Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
-    //ModelProgress progress(cfg.pollutants().pollutant_count() * cfg.sectors().nfr_sector_count() * cfg.countries().country_count(), progressCb);
-    //progress.set_payload(ModelRunProgressInfo());
-
-    // TODO: smarter splitting to avoid huge memory consumption
-    tbb::concurrent_vector<ModelResult> result;
-    result.reserve(emissionInv.size());
-
-    /*tbb::parallel_for_each(inventory, [&](const auto& entry) {
-        if (auto spatialPatternPath = cfg.spatial_pattern_path(cfg.year(), entry.id()); fs::is_regular_file(spatialPatternPath)) {
-            auto spatialPattern = gdx::read_dense_raster<double>(spatialPatternPath);
-            spatialPattern *= entry.diffuse_emissions();
-
-            gdx::write_raster(spatialPattern, cfg.emission_output_raster_path(cfg.year(), entry.id()));
-        }
-
-        progress.tick();
-    });*/
-
-    struct EmissionInputMsg
-    {
-        EmissionInventoryEntry emissions;
-        fs::path spatialPattern;
-    };
-
-    struct EmissionSpreadResultMsg
-    {
-        std::shared_ptr<gdx::DenseRaster<double>> raster;
-    };
-
-    struct EmissionResultMsg
-    {
-        EmissionInventoryEntry emissions;
-        std::shared_ptr<std::vector<BrnOutputEntry>> brnEmissions;
-    };
-
-    const int maxRasters = cfg.max_concurrency().value_or(tbb::this_task_arena::max_concurrency() + 4);
+    const auto gridCountries = countries_that_use_configured_grid(cfg.countries().list());
+    progress.reset(gridCountries.size() * cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
 
     // Run a pipeline for each pollutant
-    for (auto country : cfg.countries().countries()) {
+    for (const auto& country : gridCountries) {
         const auto* countryCellCoverages = find_in_container(countryCoverages, [&](const CountryCellCoverage& cov) {
             return cov.first == country;
         });
@@ -182,45 +160,44 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
             continue;
         }
 
-        for (auto pollutant : cfg.pollutants().list()) {
-            for (auto& sector : cfg.sectors().nfr_sectors()) {
-                progress.tick();
+        for (const auto& pollutant : cfg.pollutants().list()) {
+            tbb::parallel_for_each(cfg.sectors().nfr_sectors(), [&](const auto& sector) {
+                try {
+                    ModelProgressInfo info;
+                    info.info = fmt::format("Spread {} emissions in {} for sector '{}'", pollutant, country.full_name(), sector.code());
+                    progress.set_payload(info);
+                    progress.tick();
 
-                EmissionIdentifier emissionId(Country(country), EmissionSector(sector), pollutant);
+                    EmissionIdentifier emissionId(Country(country), EmissionSector(sector), pollutant);
 
-                const auto emissions = emissionInv.emissions_with_id(emissionId);
-                if (emissions.empty()) {
-                    Log::debug("No emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
-                    continue;
-                } else if (emissions.size() > 1) {
-                    Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
-                    continue;
-                }
-
-                const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), countryCellCoverages->second, cfg);
-                const auto& meta        = resultRaster.metadata();
-
-                std::vector<BrnOutputEntry> brnEntries;
-                brnEntries.reserve(resultRaster.size());
-                for (auto cell : gdx::RasterCells(resultRaster)) {
-                    if (resultRaster.is_nodata(cell) || resultRaster[cell] == 0.0) {
-                        continue;
+                    const auto emissions = emissionInv.emissions_with_id(emissionId);
+                    if (emissions.empty()) {
+                        Log::debug("No emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
+                        return;
+                    } else if (emissions.size() > 1) {
+                        Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
+                        return;
                     }
 
-                    const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
+                    const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), countryCellCoverages->second, cfg);
+                    const auto& meta        = resultRaster.metadata();
 
-                    BrnOutputEntry entry;
-                    entry.x    = truncate<int64_t>(cellCenter.x);
-                    entry.y    = truncate<int64_t>(cellCenter.y);
-                    entry.q    = resultRaster[cell];
-                    entry.comp = pollutant;
-                    brnEntries.push_back(entry);
-                }
+                    for (auto cell : gdx::RasterCells(resultRaster)) {
+                        if (!meta.is_on_map(cell)) {
+                            continue;
+                        }
 
-                if (!brnEntries.empty()) {
-                    write_brn_output(brnEntries, cfg.emission_brn_output_path(cfg.year(), pollutant, EmissionSector(sector)));
+                        if (resultRaster.is_nodata(cell) || resultRaster[cell] == 0.0) {
+                            continue;
+                        }
+
+                        const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
+                        output.add_diffuse_output_entry(emissionId, truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y), resultRaster[cell]);
+                    }
+                } catch (const std::exception& e) {
+                    Log::error("Error spreading emission: {}", e.what());
                 }
-            }
+            });
         }
     }
 }
@@ -358,10 +335,15 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
-    /*Log::debug("Spread emissions");
+    Log::debug("Spread emissions");
     dur.reset();
     spread_emissions(inventory, spatPatInv, cfg, *outputBuilder, progressCb);
-    Log::debug("Spread emissions took {}", dur.elapsed_time_string());*/
+    Log::debug("Spread emissions took {}", dur.elapsed_time_string());
+
+    Log::debug("Spread emissions");
+    dur.reset();
+    outputBuilder->write_to_disk(cfg);
+    Log::debug("Write output took {}", dur.elapsed_time_string());
 
     // Write the summary
     {

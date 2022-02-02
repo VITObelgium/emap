@@ -73,7 +73,7 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
 
 std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
 {
-    if (cfg.grid_definition() == GridDefinition::Vlops1km || cfg.grid_definition() == GridDefinition::Vlops250m) {
+    if (cfg.grid_definition() == GridDefinition::Vlops60km || cfg.grid_definition() == GridDefinition::Vlops1km || cfg.grid_definition() == GridDefinition::Vlops250m) {
         const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "parameters_diffuus.xlsx";
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "parameter_sd.xlsx";
 

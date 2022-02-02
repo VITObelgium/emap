@@ -45,7 +45,7 @@ size_t CountryInventory::country_count() const noexcept
     return _countries.size();
 }
 
-std::span<const Country> CountryInventory::countries() const noexcept
+std::span<const Country> CountryInventory::list() const noexcept
 {
     return _countries;
 }

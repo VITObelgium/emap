@@ -91,7 +91,7 @@ public:
     std::optional<Country> try_country_from_string(std::string_view str) const noexcept;
     size_t country_count() const noexcept;
 
-    std::span<const Country> countries() const noexcept;
+    std::span<const Country> list() const noexcept;
     Country non_belgian_country() const;
 
 private:

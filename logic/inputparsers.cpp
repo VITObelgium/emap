@@ -534,7 +534,7 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
 
 static std::string process_ceip_sector(std::string_view str)
 {
-    if (str::starts_with("N14 ", str)) {
+    if (str::starts_with(str, "N14 ")) {
         return std::string(str.substr(4));
     }
 
@@ -543,7 +543,8 @@ static std::string process_ceip_sector(std::string_view str)
 
 gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatternPath, const EmissionIdentifier& id, const RunConfiguration& cfg)
 {
-    inf::CsvReader csv(spatialPatternPath);
+    using namespace io;
+    CSVReader<8, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(spatialPatternPath.u8string());
 
     const auto& sectors    = cfg.sectors();
     const auto& pollutants = cfg.pollutants();
@@ -566,21 +567,22 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
 
     gdx::DenseRaster<double> result(extent, extent.nodata.value());
 
-    for (auto& line : csv) {
-        double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
-        auto curPollutant    = pollutants.pollutant_from_string(line.get_string(colPollutant));
-        auto country         = countries.try_country_from_string(line.get_string(colCountry));
+    char *countryStr, *year, *sector, *pollutant, *lonStr, *latStr, *unit, *value;
+    while (in.read_row(countryStr, year, sector, pollutant, lonStr, latStr, unit, value)) {
+        double emissionValue = to_giga_gram(to_double(value, lineNr), unit);
+        auto curPollutant    = pollutants.pollutant_from_string(pollutant);
+        auto country         = countries.try_country_from_string(countryStr);
 
         if (country != id.country) {
             continue;
         }
 
-        if (id.pollutant == curPollutant && id.sector == sectors.sector_from_string(process_ceip_sector(line.get_string(colSector)))) {
-            const auto lon = line.get_double(colLongitude);
-            const auto lat = line.get_double(colLatitude);
+        if (id.pollutant == curPollutant && id.sector == sectors.sector_from_string(process_ceip_sector(sector))) {
+            const auto lon = str::to_double(lonStr);
+            const auto lat = str::to_double(latStr);
 
             if (!(lat.has_value() && lon.has_value())) {
-                Log::warn("CEIP pattern: invalid lat lon values: lat {} lon {} ({}:{})", line.get_string(colLatitude), line.get_string(colLongitude), spatialPatternPath, lineNr);
+                Log::warn("CEIP pattern: invalid lat lon values: lat {} lon {} ({}:{})", latStr, lonStr, spatialPatternPath, lineNr);
                 continue;
             }
 

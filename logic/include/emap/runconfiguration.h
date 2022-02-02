@@ -32,6 +32,13 @@ enum class ValidationType
 class RunConfiguration
 {
 public:
+    struct Output
+    {
+        fs::path path;
+        std::string filenameSuffix; // optional output filename suffix;
+        std::string outputLevelName;
+    };
+
     RunConfiguration(
         const fs::path& dataPath,
         GridDefinition grid,
@@ -43,8 +50,7 @@ public:
         SectorInventory sectors,
         PollutantInventory pollutants,
         CountryInventory countries,
-        const fs::path& outputPath,
-        std::string_view outputLevelName);
+        Output outputConfig);
 
     fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
     fs::path total_emissions_path_nfr() const;
@@ -85,12 +91,12 @@ public:
 
     SectorLevel output_sector_level() const noexcept;
     std::string_view output_sector_level_name() const noexcept;
+    std::string_view output_filename_suffix() const noexcept;
 
 private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
-    fs::path _outputPath;
     GridDefinition _grid;
     RunType _runType;
     ValidationType _validation;
@@ -103,7 +109,7 @@ private:
 
     std::optional<int32_t> _concurrency;
 
-    std::string _outputLevel;
+    Output _outputConfig;
 };
 
 std::string run_type_name(RunType type);

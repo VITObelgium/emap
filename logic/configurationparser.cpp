@@ -266,6 +266,10 @@ static GridDefinition grid_from_string(std::string_view grid)
         return GridDefinition::Chimere1;
     }
 
+    if (grid == "vlops60km") {
+        return GridDefinition::Vlops60km;
+    }
+
     if (grid == "vlops1km") {
         return GridDefinition::Vlops1km;
     }
@@ -397,6 +401,23 @@ static std::string read_string(const NamedSection& ns, std::string_view name)
     return nodeValue.value<std::string>().value();
 }
 
+static std::string read_string(const NamedSection& ns, std::string_view name, std::string_view defaultValue)
+{
+    assert(ns.section.is_table());
+    auto nodeValue = ns.section[name];
+
+    if (!nodeValue) {
+        return std::string(defaultValue);
+    }
+
+    if (!nodeValue.is_string()) {
+        throw RuntimeError("'{0:}' key value in '{1:}' section should be a quoted string (e.g. {0:} = \"value\")", name, ns.name);
+    }
+
+    assert(nodeValue.value<std::string>().has_value());
+    return nodeValue.value<std::string>().value();
+}
+
 static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
@@ -418,8 +439,11 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         const auto reportYear = read_year(model.section["report_year"]);
         const auto scenario   = read_string(model, "scenario");
 
-        const auto outputPath        = read_path(output, "path", basePath);
-        const auto outputSectorLevel = read_sector_level(output.section["sector_level"].value<std::string_view>());
+        RunConfiguration::Output outputConfig;
+
+        outputConfig.path            = read_path(output, "path", basePath);
+        outputConfig.outputLevelName = read_sector_level(output.section["sector_level"].value<std::string_view>());
+        outputConfig.filenameSuffix  = read_string(output, "filename_suffix", "");
 
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
@@ -440,8 +464,7 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),
                                 std::move(countryInventory),
-                                outputPath,
-                                outputSectorLevel);
+                                outputConfig);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
             throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);

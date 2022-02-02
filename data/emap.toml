@@ -1,5 +1,5 @@
 [model]
-grid = "vlops1km"
+grid = "vlops60km"
 datapath = "./_input"
 type = "emep" # of gains
 year = 2016

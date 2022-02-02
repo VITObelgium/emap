@@ -45,7 +45,7 @@ void BrnOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.temp  = emission.temperature();
 
     std::scoped_lock lock(_mutex);
-    _entries.push_back(entry);
+    _pointSources[id.pollutant].push_back(entry);
 }
 
 void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, int64_t x, int64_t y, double emission)
@@ -72,7 +72,27 @@ void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, in
     entry.temp  = 9999.0;
 
     std::scoped_lock lock(_mutex);
-    _entries.push_back(entry);
+    _diffuseSources[id.pollutant].push_back(entry);
+}
+
+static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
+{
+    auto filename = fmt::format("{}_OPS_{}", pol.code(), static_cast<int32_t>(year));
+    if (!suffix.empty()) {
+        filename += suffix;
+    }
+    filename += ".brn";
+
+    return fs::u8path(filename);
+}
+
+void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg)
+{
+    if (cfg.grid_definition() == GridDefinition::Vlops1km || cfg.grid_definition() == GridDefinition::Vlops250m) {
+        for (const auto& [pol, entries] : _diffuseSources) {
+            write_brn_output(entries, cfg.output_path() / create_vlops_output_name(pol, cfg.year(), cfg.output_filename_suffix()));
+        }
+    }
 }
 
 }
