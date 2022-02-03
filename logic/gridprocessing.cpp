@@ -196,12 +196,12 @@ static std::vector<CellCoverageInfo> create_cell_coverages(const GeoMetadata& ex
     return result;
 }
 
-static std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> process_country_borders(std::vector<std::pair<Country, std::vector<CellCoverageInfo>>>& cellCoverages, GeoMetadata extent)
+static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages, GeoMetadata extent)
 {
-    std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> result;
+    std::vector<CountryCellCoverage> result;
     result.reserve(cellCoverages.size());
 
-    for (auto& [country, cells] : cellCoverages) {
+    for (auto& [country, cells, extent] : cellCoverages) {
         std::vector<CellCoverageInfo> modifiedCoverages;
         modifiedCoverages.reserve(cells.size());
 
@@ -214,8 +214,8 @@ static std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> process_co
                 // country border, check if there are other countries in this cell
                 double otherCountryCoverages = 0;
 
-                for (const auto& [testCountry, testCells] : cellCoverages) {
-                    if (testCountry == country || Country(testCountry).is_sea() != Country(country).is_sea()) {
+                for (const auto& [testCountry, testCells, testExtent] : cellCoverages) {
+                    if (testCountry == country || testCountry.is_sea() != country.is_sea()) {
                         continue;
                     }
 
@@ -253,9 +253,13 @@ static std::vector<std::pair<Country, std::vector<CellCoverageInfo>>> process_co
             modifiedCoverages.push_back(modifiedCoverage);
         }
 
-        file::write_as_text(fmt::format("c:/temp/em/{}_cells.geojson", Country(country).iso_code()), rects_to_geojson(intersectInfo, extent.cellSize));
+        //file::write_as_text(fmt::format("c:/temp/em/{}_cells.geojson", Country(country).iso_code()), rects_to_geojson(intersectInfo, extent.cellSize));
 
-        result.emplace_back(country, std::move(modifiedCoverages));
+        CountryCellCoverage cov;
+        cov.country = country;
+        cov.cells   = std::move(modifiedCoverages);
+        cov.extent  = extent;
+        result.push_back(std::move(cov));
     }
 
     return result;
@@ -279,6 +283,47 @@ size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMeta
     }
 
     return count;
+}
+
+GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const GeoMetadata& gridExtent)
+{
+    GeoMetadata geometryExtent = gridExtent;
+
+    auto envelope = geom.getEnvelope();
+    assert(!envelope->isEmpty());
+    assert(envelope->getNumPoints() == 5);
+    assert(envelope->getGeometryTypeId() == geos::geom::GeometryTypeId::GEOS_POLYGON);
+    assert(envelope->isRectangle());
+
+    const auto* env = envelope->getEnvelopeInternal();
+
+    Point<double> topLeft(env->getMinX(), env->getMaxY());
+    Point<double> bottomRight(env->getMaxX(), env->getMinY());
+
+    auto topLeftCell     = gridExtent.convert_xy_to_cell(topLeft.x, topLeft.y);
+    auto bottomRightCell = gridExtent.convert_xy_to_cell(bottomRight.x, bottomRight.y);
+
+    if (topLeftCell.c > 0) {
+        geometryExtent.xll += topLeftCell.c * gridExtent.cell_size_x();
+        geometryExtent.cols -= topLeftCell.c;
+    }
+
+    if (topLeftCell.r > 0) {
+        geometryExtent.rows -= topLeftCell.r;
+    }
+
+    if (bottomRightCell.c + 1 < gridExtent.cols) {
+        geometryExtent.cols -= (gridExtent.cols - (bottomRightCell.c + 1));
+    }
+
+    if (bottomRightCell.r + 1 < gridExtent.rows) {
+        int rowOffset = gridExtent.rows - (bottomRightCell.r + 1);
+
+        geometryExtent.yll += rowOffset * gridExtent.cell_size_y();
+        geometryExtent.rows -= rowOffset;
+    }
+
+    return geometryExtent;
 }
 
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
@@ -324,7 +369,10 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 
         std::mutex mut;
         GridProcessingProgress progress(geometries.size(), progressCb);
+        //std::for_each(geometries.begin(), geometries.end(), [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
         tbb::parallel_for_each(geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
+            //auto countryExtent = create_geometry_extent(*idGeom.second, extent);
+
             auto coverages = create_cell_coverages(extent, *idGeom.second);
 #ifndef NDEBUG
             if (!coverages.empty()) {
@@ -338,8 +386,13 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 
             progress.set_payload(idGeom.first);
             progress.tick();
+
+            CountryCellCoverage cov;
+            cov.country = idGeom.first;
+            cov.cells   = std::move(coverages);
+
             std::scoped_lock lock(mut);
-            result.emplace_back(idGeom.first, std::move(coverages));
+            result.push_back(std::move(cov));
         });
 
         Log::debug("Create cell coverages took: {}", rec.elapsed_time_string());
@@ -348,7 +401,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     // sort the result on country code to get reproducible results in the process country borders function
     // as the cell coverages (double) of the neigboring countries are added, different order causes minor floating point additions differences
     std::sort(result.begin(), result.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
-        return lhs.first.iso_code() < rhs.first.iso_code();
+        return lhs.country.iso_code() < rhs.country.iso_code();
     });
 
     // Update the coverages on the country borders to get appropriate spreading of the emissions
@@ -359,34 +412,34 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     return result;
 }
 
-void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
-{
-    const auto ras       = read_raster_north_up(rasterInput);
-    const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, inv, progressCb);
-    return extract_countries_from_raster(rasterInput, coverages, outputDir, filenameFormat, progressCb);
-}
+//void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesVector, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
+//{
+//    const auto ras       = read_raster_north_up(rasterInput);
+//    const auto coverages = create_country_coverages(ras.metadata(), countriesVector, countryIdField, inv, progressCb);
+//    return extract_countries_from_raster(rasterInput, coverages, outputDir, filenameFormat, progressCb);
+//}
 
-void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
-{
-    const auto ras = read_raster_north_up(rasterInput);
-
-    GridProcessingProgress progress(countries.size(), progressCb);
-
-    for (const auto& [countryId, coverages] : countries) {
-        if (countryId == country::BEF) {
-            progress.tick_throw_on_cancel();
-            continue;
-        }
-
-        Country country(countryId);
-        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.iso_code()));
-
-        gdx::write_raster(cutout_country(ras, coverages), countryOutputPath);
-
-        progress.set_payload(countryId);
-        progress.tick_throw_on_cancel();
-    }
-}
+//void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb)
+//{
+//    const auto ras = read_raster_north_up(rasterInput);
+//
+//    GridProcessingProgress progress(countries.size(), progressCb);
+//
+//    for (const auto& [countryId, coverages, extent] : countries) {
+//        if (countryId == country::BEF) {
+//            progress.tick_throw_on_cancel();
+//            continue;
+//        }
+//
+//        Country country(countryId);
+//        const auto countryOutputPath = outputDir / fs::u8path(fmt::format(filenameFormat, country.iso_code()));
+//
+//        gdx::write_raster(cutout_country(ras, coverages), countryOutputPath);
+//
+//        progress.set_payload(countryId);
+//        progress.tick_throw_on_cancel();
+//    }
+//}
 
 gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, std::span<const CellCoverageInfo> cellCoverages)
 {

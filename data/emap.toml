@@ -9,6 +9,7 @@ scenario = "test"
 [output]
 path = "./_output"
 sector_level = "NFR"
+create_tifs = true
 
 [options]
 validation = false

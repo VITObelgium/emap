@@ -37,6 +37,7 @@ public:
         fs::path path;
         std::string filenameSuffix; // optional output filename suffix;
         std::string outputLevelName;
+        bool createTifs = false;
     };
 
     RunConfiguration(
@@ -92,6 +93,8 @@ public:
     SectorLevel output_sector_level() const noexcept;
     std::string_view output_sector_level_name() const noexcept;
     std::string_view output_filename_suffix() const noexcept;
+    bool output_tifs() const noexcept;
+    fs::path output_path_for_tif(const EmissionIdentifier& id) const;
 
 private:
     fs::path emissions_dir_path() const;

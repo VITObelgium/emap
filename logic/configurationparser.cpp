@@ -444,6 +444,7 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
         outputConfig.path            = read_path(output, "path", basePath);
         outputConfig.outputLevelName = read_sector_level(output.section["sector_level"].value<std::string_view>());
         outputConfig.filenameSuffix  = read_string(output, "filename_suffix", "");
+        outputConfig.createTifs      = output.section["create_tifs"].value<bool>().value_or(false);
 
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");

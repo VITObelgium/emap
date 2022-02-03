@@ -214,4 +214,14 @@ std::string_view RunConfiguration::output_filename_suffix() const noexcept
     return _outputConfig.filenameSuffix;
 }
 
+bool RunConfiguration::output_tifs() const noexcept
+{
+    return _outputConfig.createTifs;
+}
+
+fs::path RunConfiguration::output_path_for_tif(const EmissionIdentifier& id) const
+{
+    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name()));
+}
+
 }

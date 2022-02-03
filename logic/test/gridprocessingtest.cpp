@@ -20,7 +20,7 @@ using namespace doctest;
 static void sort_by_country(std::vector<CountryCellCoverage>& cov)
 {
     std::sort(cov.begin(), cov.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
-        return lhs.first.iso_code() < rhs.first.iso_code();
+        return lhs.country.iso_code() < rhs.country.iso_code();
     });
 }
 

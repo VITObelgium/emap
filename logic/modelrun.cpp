@@ -146,17 +146,11 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     });
     Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
-    const auto gridCountries = countries_that_use_configured_grid(cfg.countries().list());
-    progress.reset(gridCountries.size() * cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
+    //const auto gridCountries = countries_that_use_configured_grid(cfg.countries().list());
+    progress.reset((countryCoverages.size() - 3) * cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
 
-    // Run a pipeline for each pollutant
-    for (const auto& country : gridCountries) {
-        const auto* countryCellCoverages = find_in_container(countryCoverages, [&](const CountryCellCoverage& cov) {
-            return cov.first == country;
-        });
-
-        if (countryCellCoverages == nullptr) {
-            Log::warn("NO cell coverage info for country: {}", country.iso_code());
+    for (const auto& [country, cellCoverages, extent] : countryCoverages) {
+        if (country.is_belgium()) {
             continue;
         }
 
@@ -168,18 +162,18 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     progress.set_payload(info);
                     progress.tick();
 
-                    EmissionIdentifier emissionId(Country(country), EmissionSector(sector), pollutant);
+                    EmissionIdentifier emissionId(country, EmissionSector(sector), pollutant);
 
                     const auto emissions = emissionInv.emissions_with_id(emissionId);
                     if (emissions.empty()) {
-                        Log::debug("No emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
+                        Log::debug("No emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), country);
                         return;
                     } else if (emissions.size() > 1) {
-                        Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), Country(country));
+                        Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), country);
                         return;
                     }
 
-                    const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), countryCellCoverages->second, cfg);
+                    const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), cellCoverages, cfg);
                     const auto& meta        = resultRaster.metadata();
 
                     for (auto cell : gdx::RasterCells(resultRaster)) {
@@ -193,6 +187,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
                         const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
                         output.add_diffuse_output_entry(emissionId, truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y), resultRaster[cell]);
+                    }
+
+                    if (cfg.output_tifs()) {
+                        gdx::write_raster(resultRaster, cfg.output_path_for_tif(emissionId));
                     }
                 } catch (const std::exception& e) {
                     Log::error("Error spreading emission: {}", e.what());
