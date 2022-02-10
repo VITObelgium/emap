@@ -6,6 +6,7 @@ add_executable(emaplogictest
     gridprocessingtest.cpp
     gridtest.cpp
     inputparsertest.cpp
+    outputbuilderstest.cpp
     spatialpatterninventorytest.cpp
     runconfigurationparsertest.cpp
 )

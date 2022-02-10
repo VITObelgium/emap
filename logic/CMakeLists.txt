@@ -10,6 +10,7 @@ add_library(emaplogic
     include/emap/constants.h
     include/emap/configurationparser.h configurationparser.cpp
     include/emap/country.h country.cpp
+    include/emap/debugtools.h debugtools.cpp
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h griddefinition.cpp
     include/emap/gridprocessing.h gridprocessing.cpp
@@ -44,7 +45,7 @@ target_include_directories(emaplogic
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-target_compile_definitions(emaplogic PUBLIC __TBB_NO_IMPLICIT_LINKAGE PRIVATE NOMINMAX)
+target_compile_definitions(emaplogic PUBLIC __TBB_NO_IMPLICIT_LINKAGE PRIVATE NOMINMAX USE_UNSTABLE_GEOS_CPP_API)
 
 target_link_libraries(emaplogic
 PUBLIC

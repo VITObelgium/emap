@@ -5,6 +5,7 @@
 #include "infra/log.h"
 #include "infra/progressinfo.h"
 
+#include "emap/debugtools.h"
 #include "emap/gridprocessing.h"
 #include "emap/modelrun.h"
 
@@ -55,6 +56,7 @@ int main(int argc, char** argv)
         bool showHelp   = false;
         bool noProgress = false;
         bool consoleLog = false;
+        bool debugGrids = false;
         std::string preprocessPath;
         std::string config;
         int32_t logLevel = 1;
@@ -66,6 +68,7 @@ int main(int argc, char** argv)
                lyra::opt(options.logLevel, "number")["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
                lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
                lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use") |
+               lyra::opt(options.debugGrids)["-d"]["--debug"]("Dumps internal grid usages") |
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
     if (argc == 2 && fs::is_regular_file(fs::u8path(argv[1]))) {
@@ -85,7 +88,7 @@ int main(int argc, char** argv)
         inf::gdal::Registration reg(gdalCfg);
         inf::gdal::set_log_handler();
 
-        if (options.consoleLog) {
+        if (options.consoleLog || options.debugGrids) {
             inf::Log::add_console_sink(inf::Log::Colored::On);
         }
 
@@ -94,13 +97,17 @@ int main(int argc, char** argv)
             progressBar = std::make_unique<inf::ProgressBar>(60);
         }
 
-        emap::run_model(fs::u8path(options.config), log_level_from_value(options.logLevel), [&](const emap::ModelProgress::Status& info) {
-            if (progressBar) {
-                progressBar->set_progress(info.progress());
-                progressBar->set_postfix_text(info.payload().to_string());
-            }
-            return inf::ProgressStatusResult::Continue;
-        });
+        if (options.debugGrids) {
+            emap::debug_grids(fs::u8path(options.config), log_level_from_value(options.logLevel));
+        } else {
+            emap::run_model(fs::u8path(options.config), log_level_from_value(options.logLevel), [&](const emap::ModelProgress::Status& info) {
+                if (progressBar) {
+                    progressBar->set_progress(info.progress());
+                    progressBar->set_postfix_text(info.payload().to_string());
+                }
+                return inf::ProgressStatusResult::Continue;
+            });
+        }
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {

@@ -239,7 +239,7 @@ void parse_missing_pollutant_references(const fs::path& path, PollutantInventory
             }
 
         } catch (const std::exception& e) {
-            Log::warn("Pollutant reference when missing: {}", e.what());
+            Log::warn("Error parsing pollutant reference when missing: {}", e.what());
         }
     }
 }

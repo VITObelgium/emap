@@ -4,6 +4,7 @@
 #include "emap/runconfiguration.h"
 
 #include "infra/gdal.h"
+#include "infra/log.h"
 
 #include <unordered_map>
 
@@ -38,7 +39,12 @@ std::unordered_map<int32_t, BrnOutputBuilder::SectorParameterConfig> parse_secto
             config.s_m   = feature.field_as<double>(colS);
             config.tb    = feature.field_as<double>(colTb);
 
-            result.emplace(sectors.nfr_sector_from_string(feature.field_as<std::string_view>(colNfr)).id(), config);
+            if (
+                auto sector = sectors.try_nfr_sector_from_string(feature.field_as<std::string_view>(colNfr)); sector.has_value()) {
+                result.emplace(sector->id(), config);
+            } else {
+                Log::warn("Unknown sector name in parameter configuration: {}", feature.field_as<std::string_view>(colNfr));
+            }
         }
     }
 
@@ -65,7 +71,11 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
         BrnOutputBuilder::PollutantParameterConfig config;
         config.sd = feature.field_as<int32_t>(colSd);
 
-        result.emplace(pollutants.pollutant_from_string(feature.field_as<std::string_view>(colPollutant)).code(), config);
+        if (auto pollutant = pollutants.try_pollutant_from_string(feature.field_as<std::string_view>(colPollutant)); pollutant.has_value()) {
+            result.emplace(pollutant->code(), config);
+        } else {
+            Log::warn("Unknown pollutant in parameters config: {}", feature.field_as<std::string_view>(colPollutant));
+        }
     }
 
     return result;

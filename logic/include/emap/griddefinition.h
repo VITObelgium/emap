@@ -24,6 +24,7 @@ enum class GridDefinition
 struct GridData
 {
     GridDefinition type = GridDefinition::Invalid;
+    std::string name;
     inf::GeoMetadata meta;
 };
 

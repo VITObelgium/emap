@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "infra/cast.h"
+#include "outputwriters.h"
 
 namespace emap {
 
@@ -88,7 +89,10 @@ static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, 
 
 void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg)
 {
-    if (cfg.grid_definition() == GridDefinition::Vlops1km || cfg.grid_definition() == GridDefinition::Vlops250m) {
+    if (cfg.grid_definition() == GridDefinition::Vlops1km ||
+        cfg.grid_definition() == GridDefinition::Vlops250m ||
+        cfg.grid_definition() == GridDefinition::Vlops5km ||
+        cfg.grid_definition() == GridDefinition::Vlops60km) {
         for (const auto& [pol, entries] : _diffuseSources) {
             write_brn_output(entries, cfg.output_path() / create_vlops_output_name(pol, cfg.year(), cfg.output_filename_suffix()));
         }

@@ -13,7 +13,17 @@
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/LineString.h>
 #include <geos/geom/Polygon.h>
+#include <geos/version.h>
 
+#if GEOS_VERSION_MAJOR > 3 || (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR >= 10)
+#define HAVE_GEOJSON_EXPORT 1
+#endif
+
+#ifdef HAVE_GEOJSON_EXPORT
+#include <geos/io/GeoJSONWriter.h>
+#endif
+
+#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -101,6 +111,49 @@ geos::geom::LinearRing::Ptr create_linear_ring_from_rect(inf::Point<double> p1, 
     return create_linear_ring(*factory, p1, p2);
 }
 
+std::string to_geojson(const geos::geom::Geometry& geom)
+{
+#ifdef HAVE_GEOJSON_EXPORT
+    geos::io::GeoJSONWriter writer;
+    return writer.write(&geom);
+#endif
+
+    throw RuntimeError("Export to geojson not supported");
+}
+
+std::string to_geojson(const geos::geom::Envelope& env)
+{
+    auto geomFactory = geos::geom::GeometryFactory::create();
+    geos::geom::CoordinateArraySequence coords(std::vector<geos::geom::Coordinate>({
+        {env.getMinX(), env.getMaxY()},
+        {env.getMaxX(), env.getMaxY()},
+        {env.getMaxX(), env.getMinY()},
+        {env.getMinX(), env.getMinY()},
+        {env.getMinX(), env.getMaxY()},
+    }));
+
+    const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
+    return to_geojson(*poly);
+}
+
+std::string to_geojson(const inf::GeoMetadata& meta)
+{
+    auto topLeft     = meta.top_left();
+    auto bottomRight = meta.bottom_right();
+
+    auto geomFactory = geos::geom::GeometryFactory::create();
+    geos::geom::CoordinateArraySequence coords(std::vector<geos::geom::Coordinate>({
+        {topLeft.x, topLeft.y},
+        {bottomRight.x, topLeft.y},
+        {bottomRight.x, bottomRight.y},
+        {topLeft.x, bottomRight.y},
+        {topLeft.x, topLeft.y},
+    }));
+
+    const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
+    return to_geojson(*poly);
+}
+
 void calculate_geometry_envelopes(const geos::geom::Geometry& geom)
 {
     const auto numGeometries = geom.getNumGeometries();
@@ -114,4 +167,36 @@ void calculate_geometry_envelopes(const geos::geom::Geometry& geom)
     }
 }
 
+CoordinateWarpFilter::CoordinateWarpFilter(int32_t sourceEpsg, int32_t destEpsg)
+: _transformer(sourceEpsg, destEpsg)
+{
+}
+
+CoordinateWarpFilter::CoordinateWarpFilter(const char* sourceProjection, const char* destProjection)
+: _transformer(gdal::SpatialReference(sourceProjection), gdal::SpatialReference(destProjection))
+{
+}
+
+void CoordinateWarpFilter::filter_rw(geos::geom::CoordinateSequence& seq, std::size_t i)
+{
+    auto coordinate = seq.getAt(i);
+    Point p(coordinate.x, coordinate.y);
+    _transformer.transform_in_place(p);
+    seq.setAt(geos::geom::Coordinate(p.x, p.y), i);
+}
+
+void CoordinateWarpFilter::filter_ro(const geos::geom::CoordinateSequence& /*seq*/, std::size_t /*i*/)
+{
+    assert(false);
+}
+
+bool CoordinateWarpFilter::isDone() const
+{
+    return false;
+}
+
+bool CoordinateWarpFilter::isGeometryChanged() const
+{
+    return true;
+}
 }

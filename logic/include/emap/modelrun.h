@@ -5,8 +5,6 @@
 #include "infra/log.h"
 #include "infra/progressinfo.h"
 
-#include <variant>
-
 namespace emap {
 
 struct ModelProgressInfo

@@ -175,10 +175,8 @@ SectorInventory::SectorInventory(std::vector<GnfrSector> gnfrSectors, std::vecto
 
 EmissionSector SectorInventory::sector_from_string(std::string_view name) const
 {
-    if (const auto gnfrSector = try_gnfr_sector_from_string(name); gnfrSector.has_value()) {
-        return EmissionSector(*gnfrSector);
-    } else if (const auto nfrSector = try_nfr_sector_from_string(name); nfrSector.has_value()) {
-        return EmissionSector(*nfrSector);
+    if (auto sector = try_sector_from_string(name); sector.has_value()) {
+        return *sector;
     }
 
     throw RuntimeError("Invalid sector name: '{}'", name);
@@ -186,14 +184,44 @@ EmissionSector SectorInventory::sector_from_string(std::string_view name) const
 
 EmissionSector SectorInventory::sector_from_string(EmissionSector::Type type, std::string_view name) const
 {
+    if (auto sector = try_sector_from_string(type, name); sector.has_value()) {
+        return *sector;
+    }
+
+    throw RuntimeError("Invalid sector name: '{}'", name);
+}
+
+std::optional<EmissionSector> SectorInventory::try_sector_from_string(std::string_view name) const
+{
+    if (const auto gnfrSector = try_gnfr_sector_from_string(name); gnfrSector.has_value()) {
+        return EmissionSector(*gnfrSector);
+    } else if (const auto nfrSector = try_nfr_sector_from_string(name); nfrSector.has_value()) {
+        return EmissionSector(*nfrSector);
+    }
+
+    return {};
+}
+
+std::optional<EmissionSector> SectorInventory::try_sector_from_string(EmissionSector::Type type, std::string_view name) const
+{
     switch (type) {
     case EmissionSector::Type::Nfr:
-        return EmissionSector(nfr_sector_from_string(name));
+        if (auto sector = try_nfr_sector_from_string(name); sector.has_value()) {
+            return EmissionSector(*sector);
+        }
+
+        break;
     case EmissionSector::Type::Gnfr:
-        return EmissionSector(gnfr_sector_from_string(name));
+        if (auto sector = try_gnfr_sector_from_string(name); sector.has_value()) {
+            return EmissionSector(*sector);
+        }
+
+        break;
     default:
         throw RuntimeError("Invalid sector type");
     }
+
+    return {};
 }
 
 std::optional<GnfrSector> SectorInventory::try_gnfr_sector_from_string(std::string_view str) const noexcept

@@ -5,6 +5,8 @@
 #include "emap/sector.h"
 #include "infra/filesystem.h"
 //#include "infra/generator.h"
+#include "infra/cell.h"
+#include "infra/gdal.h"
 #include "infra/geometadata.h"
 #include "infra/progressinfo.h"
 #include "infra/span.h"
@@ -16,11 +18,13 @@ namespace geos::geom {
 class Geometry;
 }
 
+namespace inf::gdal {
+class SpatialReference;
+}
+
 namespace emap {
 
 class CountryInventory;
-
-using namespace inf;
 
 struct GridProcessingProgressInfo
 {
@@ -32,47 +36,59 @@ struct GridProcessingProgressInfo
     Country country;
 };
 
-struct CellCoverageInfo
-{
-    constexpr CellCoverageInfo() noexcept;
-    CellCoverageInfo(Cell c, double cov) noexcept;
-
-    constexpr bool operator==(const CellCoverageInfo& other) const noexcept
-    {
-        return cell == other.cell && coverage == other.coverage;
-    }
-
-    Cell cell;
-    double coverage = 0.0;
-};
-
 using GridProcessingProgress = inf::ProgressTracker<Country>;
 
 struct CountryCellCoverage
 {
+    struct CellInfo
+    {
+        CellInfo() noexcept = default;
+        CellInfo(inf::Cell compute, inf::Cell country, double cov)
+        : computeGridCell(compute)
+        , countryGridCell(country)
+        , coverage(cov)
+        {
+        }
+
+        inf::Cell computeGridCell; // row column index of this cell in the fulk spatial pattern grid
+        inf::Cell countryGridCell; // row column index of this cell in the country sub grid of the spatial pattern grid
+        double coverage = 0.0;     // The cell coverage percentage of this country in the grid
+
+        constexpr bool operator==(const CellInfo& other) const noexcept
+        {
+            // Don't compare the country cell, we want to compare cells from different countries in the compute grid
+            return computeGridCell == other.computeGridCell && coverage == other.coverage;
+        }
+    };
+
     Country country;
-    std::vector<CellCoverageInfo> cells;
-    inf::GeoMetadata extent;
+    inf::GeoMetadata spatialPatternSubgridExtent; // This countries subgrid within the full spatial pattern grid
+    inf::GeoMetadata outputSubgridExtent;         // This countries subgrid within the output grid
+    std::vector<CellInfo> cells;
 };
 
 // normalizes the raster so the sum is 1
 void normalize_raster(gdx::DenseRaster<double>& ras) noexcept;
 
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid);
-gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput);
+gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput, const inf::GeoMetadata& extent);
 
-gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, GridDefinition grid, std::span<const CellCoverageInfo> cellCoverages);
+gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, const CountryCellCoverage& countryCoverage);
+
+inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, int32_t& xOffset, int32_t& yOffset);
+inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection, int32_t& xOffset, int32_t& yOffset);
 
 size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference&, const inf::GeoMetadata& spatialPatternExtent, const inf::GeoMetadata& outputExtent);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 
 //void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 //void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 
 // cuts out the country from the raster based on the cellcoverages, the output extent will be the same is that from the input
 // The resulting raster is normalized
-gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, std::span<const CellCoverageInfo> cellCoverages);
-gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, std::span<const CellCoverageInfo> cellCoverages);
+gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, const CountryCellCoverage& countryCoverage);
+gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, const CountryCellCoverage& countryCoverage);
 
 // generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries);
 
@@ -80,7 +96,7 @@ gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput
 
 namespace fmt {
 template <>
-struct formatter<emap::CellCoverageInfo>
+struct formatter<emap::CountryCellCoverage::CellInfo>
 {
     template <typename ParseContext>
     constexpr auto parse(ParseContext& ctx)
@@ -89,9 +105,9 @@ struct formatter<emap::CellCoverageInfo>
     }
 
     template <typename FormatContext>
-    auto format(const emap::CellCoverageInfo& cov, FormatContext& ctx)
+    auto format(const emap::CountryCellCoverage::CellInfo& info, FormatContext& ctx)
     {
-        return format_to(ctx.out(), "{} covers {}%", cov.cell, cov.coverage);
+        return format_to(ctx.out(), "{} covers {}%", info.computeGridCell, info.coverage * 100);
     }
 };
 }

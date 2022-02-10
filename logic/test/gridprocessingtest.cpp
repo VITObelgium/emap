@@ -1,4 +1,6 @@
 #include "emap/gridprocessing.h"
+#include "emap/configurationparser.h"
+#include "geometry.h"
 
 #include "gdx/algo/sum.h"
 #include "gdx/denseraster.h"
@@ -6,22 +8,60 @@
 
 #include "infra/cliprogressbar.h"
 #include "infra/hash.h"
+#include "infra/log.h"
 #include "infra/test/containerasserts.h"
 #include "infra/test/tempdir.h"
 #include "testconfig.h"
 
 #include <doctest/doctest.h>
+#include <geos/geom/CoordinateArraySequence.h>
+#include <geos/geom/GeometryFactory.h>
 
 namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
+using namespace std::string_view_literals;
 
 static void sort_by_country(std::vector<CountryCellCoverage>& cov)
 {
     std::sort(cov.begin(), cov.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
         return lhs.country.iso_code() < rhs.country.iso_code();
     });
+}
+
+TEST_CASE("create_geometry_extent")
+{
+    auto geomFactory = geos::geom::GeometryFactory::create();
+
+    const GeoMetadata gridMeta(4, 3, 50.0, -50.0, 50.0, {});
+    geos::geom::CoordinateArraySequence coords(std::vector<geos::geom::Coordinate>({{110.0, 55.0}, {130.0, 75.0}, {120.0, 65.0}, {110.0, 55.0}}));
+
+    const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
+
+    int32_t xOffset = 0, yOffset = 0;
+    auto meta = create_geometry_extent(*poly, gridMeta, xOffset, yOffset);
+    CHECK(GeoMetadata(1, 1, 100.0, 50.0, 50.0, {}) == meta);
+    CHECK(xOffset == -1);
+    CHECK(yOffset == -1);
+}
+
+TEST_CASE("create_country_coverages")
+{
+    auto camsGrid      = grid_data(GridDefinition::CAMS).meta;
+    auto outputGrid    = grid_data(GridDefinition::Vlops60km).meta;
+    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+    CountryInventory countries({country::BEB});
+    auto coverageInfo = create_country_coverages(camsGrid, outputGrid, countriesPath, "Code3", countries, nullptr);
+
+    CHECK(coverageInfo.size() == 1);
+    auto& beb = coverageInfo.front();
+
+    for (const auto& cellInfo : beb.cells) {
+        CHECK_MESSAGE(camsGrid.is_on_map(cellInfo.computeGridCell), "Not on spatial pattern extent: ", cellInfo.computeGridCell.r, " - ", cellInfo.computeGridCell.c);
+        CHECK_MESSAGE(beb.spatialPatternSubgridExtent.is_on_map(cellInfo.countryGridCell), "Not on spatial pattern subgrid extent: ", cellInfo.countryGridCell.r, " - ", cellInfo.countryGridCell.c);
+    }
 }
 
 //TEST_CASE("Grid processing" * may_fail())
@@ -142,5 +182,4 @@ static void sort_by_country(std::vector<CountryCellCoverage>& cov)
 //        }
 //    }
 //}
-
 }

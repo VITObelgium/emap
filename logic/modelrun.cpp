@@ -50,14 +50,27 @@ void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, const Mo
     }
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
+static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionInventoryEntry& emission, const CountryCellCoverage& countryCoverage)
 {
     // The returned raster is normalized
-    auto raster = extract_country_from_raster(rasterPath, cellCoverages);
+    auto raster = extract_country_from_raster(rasterPath, countryCoverage);
     raster *= emission.diffuse_emissions();
 
-    const auto gridMeta = grid.meta;
-    return gdx::warp_raster(raster, gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
+    if (emission.id().country.iso_code() == "AT" && emission.id().sector.name() == "1A1a") {
+        gdx::write_raster(raster, fs::u8path(fmt::format("c:/temp/cams_{}.tif", emission.id())));
+
+        int expand = 10;
+
+        auto testExtent = countryCoverage.outputSubgridExtent;
+        testExtent.xll -= testExtent.cell_size_x() * expand;
+        testExtent.yll += testExtent.cell_size_y() * expand;
+        testExtent.cols += expand * 2;
+        testExtent.rows += expand * 2;
+
+        gdx::write_raster(gdx::resample_raster(raster, testExtent, gdal::ResampleAlgorithm::Sum), fs::u8path(fmt::format("c:/temp/vlops_{}.tif", emission.id())));
+    }
+
+    return gdx::resample_raster(raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Sum);
 }
 
 static gdx::DenseRaster<double> apply_spatial_pattern_ceip(const fs::path& ceipPath, const EmissionInventoryEntry& emission, const GridData& grid, const RunConfiguration& cfg)
@@ -67,8 +80,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern_ceip(const fs::path& ceipP
     normalize_raster(raster);
     raster *= emission.diffuse_emissions();
 
-    const auto gridMeta = grid.meta;
-    return gdx::warp_raster(raster, gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
+    return gdx::resample_raster(raster, grid.meta, gdal::ResampleAlgorithm::Sum);
 }
 
 static gdx::DenseRaster<double> apply_spatial_pattern_table(const fs::path& tablePath, const EmissionInventoryEntry& emission, const RunConfiguration& cfg)
@@ -80,24 +92,23 @@ static gdx::DenseRaster<double> apply_spatial_pattern_table(const fs::path& tabl
     throw RuntimeError("Spatial pattern tables are only implemented for Flanders, not {}", emission.id().country);
 }
 
-static gdx::DenseRaster<double> apply_uniform_spread(const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages)
+static gdx::DenseRaster<double> apply_uniform_spread(const EmissionInventoryEntry& emission, const CountryCellCoverage& countryCoverage)
 {
-    const auto gridMeta = grid.meta;
     // Cell coverage are based on the CAMS grid
-    return gdx::warp_raster(spread_values_uniformly_over_cells(emission.scaled_diffuse_emissions(), GridDefinition::CAMS, cellCoverages), gridMeta.projected_epsg().value(), gdal::ResampleAlgorithm::Sum);
+    return gdx::resample_raster(spread_values_uniformly_over_cells(emission.scaled_diffuse_emissions(), countryCoverage), countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Sum);
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, std::span<const CellCoverageInfo> cellCoverages, const RunConfiguration& cfg)
+static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionInventoryEntry& emission, const GridData& grid, const CountryCellCoverage& countryCoverage, const RunConfiguration& cfg)
 {
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
-        return apply_spatial_pattern_raster(spatialPattern.path, emission, grid, cellCoverages);
+        return apply_spatial_pattern_raster(spatialPattern.path, emission, countryCoverage);
     case SpatialPatternSource::Type::SpatialPatternCEIP:
         return apply_spatial_pattern_ceip(spatialPattern.path, emission, grid, cfg);
     case SpatialPatternSource::Type::SpatialPatternTable:
         return apply_spatial_pattern_table(spatialPattern.path, emission, cfg);
     case SpatialPatternSource::Type::UnfiformSpread:
-        return apply_uniform_spread(emission, grid, cellCoverages);
+        return apply_uniform_spread(emission, countryCoverage);
     }
 
     throw RuntimeError("Invalid spatial pattern type");
@@ -127,18 +138,19 @@ static std::vector<Country> countries_that_use_configured_grid(std::span<const C
     return result;
 }
 
-void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, IOutputBuilder& output, const ModelProgress::Callback& progressCb)
+void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
-    const auto camsGrid = grid_data(GridDefinition::CAMS);
+    const auto spatialPatternGrid = grid_data(GridDefinition::CAMS);
+    const auto outputGrid         = grid_data(cfg.grid_definition());
 
     Log::debug("Create country coverages");
 
     ModelProgressInfo progressInfo;
-    ProgressTracker progress(known_countries_in_extent(cfg.countries(), camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id()), progressCb);
+    ProgressTracker progress(known_countries_in_extent(cfg.countries(), spatialPatternGrid.meta, cfg.countries_vector_path(), cfg.country_field_id()), progressCb);
 
     // Precompute the cell coverages per country as it can be expensive
     chrono::DurationRecorder dur;
-    const auto countryCoverages = create_country_coverages(camsGrid.meta, cfg.countries_vector_path(), cfg.country_field_id(), cfg.countries(), [&](const GridProcessingProgress::ProgressTracker::Status& status) {
+    const auto countryCoverages = create_country_coverages(spatialPatternGrid.meta, outputGrid.meta, cfg.countries_vector_path(), cfg.country_field_id(), cfg.countries(), [&](const GridProcessingProgress::ProgressTracker::Status& status) {
         progressInfo.info = fmt::format("Calculate region cells: {}", status.payload().full_name());
         progress.set_payload(progressInfo);
         progress.tick();
@@ -149,44 +161,42 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     //const auto gridCountries = countries_that_use_configured_grid(cfg.countries().list());
     progress.reset((countryCoverages.size() - 3) * cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
 
-    for (const auto& [country, cellCoverages, extent] : countryCoverages) {
-        if (country.is_belgium()) {
-            continue;
-        }
+    for (const auto& pollutant : cfg.pollutants().list()) {
+        auto outputBuilder = make_output_builder(cfg);
 
-        for (const auto& pollutant : cfg.pollutants().list()) {
+        for (const auto& cellCoverageInfo : countryCoverages) {
+            if (cellCoverageInfo.country.is_belgium()) {
+                continue;
+            }
+
             tbb::parallel_for_each(cfg.sectors().nfr_sectors(), [&](const auto& sector) {
                 try {
                     ModelProgressInfo info;
-                    info.info = fmt::format("Spread {} emissions in {} for sector '{}'", pollutant, country.full_name(), sector.code());
+                    info.info = fmt::format("Spread {} emissions in {} for sector '{}'", pollutant, cellCoverageInfo.country.full_name(), sector.code());
                     progress.set_payload(info);
                     progress.tick();
 
-                    EmissionIdentifier emissionId(country, EmissionSector(sector), pollutant);
+                    EmissionIdentifier emissionId(cellCoverageInfo.country, EmissionSector(sector), pollutant);
 
                     const auto emissions = emissionInv.emissions_with_id(emissionId);
                     if (emissions.empty()) {
-                        Log::debug("No emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), country);
+                        Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
                         return;
                     } else if (emissions.size() > 1) {
-                        Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", Pollutant(pollutant), EmissionSector(sector), country);
+                        Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
                         return;
                     }
 
-                    const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), cellCoverages, cfg);
+                    const auto resultRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissions.front(), grid_data(cfg.grid_definition()), cellCoverageInfo, cfg);
                     const auto& meta        = resultRaster.metadata();
 
                     for (auto cell : gdx::RasterCells(resultRaster)) {
-                        if (!meta.is_on_map(cell)) {
-                            continue;
-                        }
-
                         if (resultRaster.is_nodata(cell) || resultRaster[cell] == 0.0) {
                             continue;
                         }
 
                         const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
-                        output.add_diffuse_output_entry(emissionId, truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y), resultRaster[cell]);
+                        outputBuilder->add_diffuse_output_entry(emissionId, truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y), resultRaster[cell]);
                     }
 
                     if (cfg.output_tifs()) {
@@ -197,6 +207,8 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                 }
             });
         }
+
+        outputBuilder->write_to_disk(cfg);
     }
 }
 
@@ -252,7 +264,7 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
                             auto pmCoarseVal = EmissionValue(*pm10Val - *pm2_5Val);
                             result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
                         } else {
-                            throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, *pm10, *pm2_5);
+                            throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, *pm10Val, *pm2_5Val);
                         }
                     }
                 }
@@ -301,8 +313,6 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 {
     RunSummary summary;
 
-    auto outputBuilder = make_output_builder(cfg);
-
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
@@ -335,13 +345,8 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     Log::debug("Spread emissions");
     dur.reset();
-    spread_emissions(inventory, spatPatInv, cfg, *outputBuilder, progressCb);
+    spread_emissions(inventory, spatPatInv, cfg, progressCb);
     Log::debug("Spread emissions took {}", dur.elapsed_time_string());
-
-    Log::debug("Spread emissions");
-    dur.reset();
-    outputBuilder->write_to_disk(cfg);
-    Log::debug("Write output took {}", dur.elapsed_time_string());
 
     // Write the summary
     {

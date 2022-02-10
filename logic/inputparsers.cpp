@@ -100,23 +100,28 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         for (auto& line : csv) {
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
 
-            EmissionEntry info(
-                EmissionIdentifier(countryInv.country_from_string(line.get_string(colCountry)), sectorInv.sector_from_string(sectorType, line.get_string(colSector)), pollutantInv.pollutant_from_string(line.get_string(colPollutant))),
-                EmissionValue(emissionValue));
+            auto sector    = sectorInv.try_sector_from_string(sectorType, line.get_string(colSector));
+            auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
+            auto pollutant = pollutantInv.try_pollutant_from_string(line.get_string(colPollutant));
+            if (sector.has_value() && country.has_value() && pollutant.has_value()) {
+                EmissionEntry info(
+                    EmissionIdentifier(*country, *sector, *pollutant),
+                    EmissionValue(emissionValue));
 
-            info.set_source_id(line.get_string(colSourceId));
+                info.set_source_id(line.get_string(colSourceId));
 
-            if (colX.has_value() && colY.has_value()) {
-                auto x = line.get_int32(*colX);
-                auto y = line.get_int32(*colY);
-                if (x.has_value() && y.has_value()) {
-                    info.set_coordinate(Coordinate(*x, *y));
-                } else {
-                    throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
+                if (colX.has_value() && colY.has_value()) {
+                    auto x = line.get_int32(*colX);
+                    auto y = line.get_int32(*colY);
+                    if (x.has_value() && y.has_value()) {
+                        info.set_coordinate(Coordinate(*x, *y));
+                    } else {
+                        throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
+                    }
                 }
-            }
 
-            result.add_emission(std::move(info));
+                result.add_emission(std::move(info));
+            }
             ++lineNr;
         }
 
