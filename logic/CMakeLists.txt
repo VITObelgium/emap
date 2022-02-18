@@ -52,11 +52,11 @@ PUBLIC
     Infra::infra
     geodynamix::gdxcore
     type_safe
+    GEOS::geos
 PRIVATE
     TBB::tbb
     oneDPL
     FastCppCsvParser::csv
-    GEOS::geos
     tomlplusplus::tomlplusplus
     XlsxWriter::XlsxWriter
 )
