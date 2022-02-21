@@ -98,6 +98,7 @@ gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput
 // generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries);
 
 void erase_area_in_raster(gdx::DenseRaster<double>& rasterInput, const inf::GeoMetadata& extent);
+double erase_area_in_raster_and_sum_erased_values(gdx::DenseRaster<double>& rasterInput, const inf::GeoMetadata& extent);
 
 }
 

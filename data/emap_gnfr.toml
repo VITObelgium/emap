@@ -1,15 +1,16 @@
 [model]
-grid = "vlops60km"
+grid = "vlops1km"
 datapath = "./_input"
 type = "emep" # of gains
-year = 2016
+year = 2019
 report_year = 2021
 scenario = "test"
 
 [output]
-path = "./_output"
-sector_level = "NFR"
-create_tifs = true
+path = "./_output_gnfr"
+sector_level = "GNFR"
+create_country_tifs = false
+create_grid_tifs = false
 
 [options]
 validation = false

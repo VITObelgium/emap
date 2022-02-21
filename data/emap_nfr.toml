@@ -1,0 +1,17 @@
+[model]
+grid = "vlops1km"
+datapath = "./_input"
+type = "emep" # of gains
+year = 2019
+report_year = 2021
+scenario = "test"
+
+[output]
+path = "./_output_nfr"
+sector_level = "NFR"
+create_country_tifs = false
+create_grid_tifs = false
+
+[options]
+validation = false
+

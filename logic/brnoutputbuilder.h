@@ -25,21 +25,35 @@ public:
         int32_t sd = 0;
     };
 
-    BrnOutputBuilder(std::unordered_map<int32_t, SectorParameterConfig> sectorParams,
-                     std::unordered_map<std::string, PollutantParameterConfig> pollutantParams);
+    BrnOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+                     std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
+                     SectorLevel sectorLevel);
 
     void add_point_output_entry(const EmissionEntry& emission) override;
-    void add_diffuse_output_entry(const EmissionIdentifier& id, int64_t x, int64_t y, double emission, int32_t cellSizeInM) override;
+    void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<int64_t> loc, double emission, int32_t cellSizeInM) override;
 
-    void write_to_disk(const RunConfiguration& cfg) override;
+    void write_to_disk(const RunConfiguration& cfg, WriteMode mode) override;
 
 private:
-    std::mutex _mutex;
+    std::string output_level_name(const EmissionSector& sector) const;
 
-    std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _diffuseSources;
+    std::mutex _mutex;
+    SectorLevel _sectorLevel;
+
+    struct Entry
+    {
+        double value     = 0.0;
+        int32_t cellSize = 0;
+    };
+
+    std::unordered_map<Pollutant, std::unordered_map<std::string, std::unordered_map<CountryId, std::unordered_map<inf::Point<int64_t>, Entry>>>> _diffuseSources;
+
+    // std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _diffuseSources;
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
-    std::unordered_map<int32_t, SectorParameterConfig> _sectorParams;
+    std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
     std::unordered_map<std::string, PollutantParameterConfig> _pollutantParams;
+
+    std::unordered_map<std::string, int32_t> _sectorIdLookup;
 };
 
 }

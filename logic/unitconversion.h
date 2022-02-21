@@ -1,6 +1,7 @@
 #pragma once
 
 #include "infra/exception.h"
+#include "infra/string.h"
 
 #include <string_view>
 
@@ -10,15 +11,17 @@ inline std::optional<double> to_giga_gram_factor(std::string_view unit) noexcept
 {
     std::optional<double> result;
 
-    if (unit == "Gg" || unit == "kt") {
+    auto trimmedUnit = inf::str::trimmed_view(unit);
+
+    if (trimmedUnit == "Gg" || trimmedUnit == "kt") {
         return result = 1.0;
     }
 
-    if (unit == "ton" || unit == "t" || unit == "t/jr" || unit == "Mg") {
+    if (trimmedUnit == "ton" || trimmedUnit == "t" || trimmedUnit == "t/jr" || trimmedUnit == "Mg") {
         return 1.0 / 1000.0;
     }
 
-    if (unit == "g I-TEQ" || unit == "g") {
+    if (trimmedUnit == "g I-TEQ" || trimmedUnit == "g") {
         return 1.0 / 1e15;
     }
 

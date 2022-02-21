@@ -9,16 +9,19 @@ namespace emap {
 
 using namespace inf;
 
-BrnOutputWriter::BrnOutputWriter(const fs::path& path)
+BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode)
 {
     fs::create_directories(path.parent_path());
 
-    _fp.open(path, "wt");
+    if (mode == OpenMode::Append) {
+        _fp.open(path, "at");
+    } else {
+        _fp.open(path, "wt");
+    }
+
     if (!_fp.is_open()) {
         throw RuntimeError("Failed to create brn output file: {}", path);
     }
-
-    write_header();
 }
 
 void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
@@ -53,7 +56,7 @@ void BrnOutputWriter::write_header()
 
 void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& path)
 {
-    BrnOutputWriter writer(path);
+    BrnOutputWriter writer(path, BrnOutputWriter::OpenMode::Replace);
     writer.append_entries(entries);
 }
 

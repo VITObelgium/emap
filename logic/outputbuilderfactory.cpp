@@ -12,40 +12,60 @@ namespace emap {
 
 using namespace inf;
 
-std::unordered_map<int32_t, BrnOutputBuilder::SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName, const SectorInventory& sectors)
+static std::string id_column_for_sector_level(SectorLevel level, std::string_view outputSectorLevelName)
 {
-    std::unordered_map<int32_t, BrnOutputBuilder::SectorParameterConfig> result;
+    switch (level) {
+    case SectorLevel::GNFR:
+        return "GNFR sector";
+    case SectorLevel::NFR:
+        return "NFR Code";
+    case SectorLevel::Custom:
+        return std::string(outputSectorLevelName);
+    }
+
+    throw RuntimeError("Invalid sector level");
+}
+
+static std::string layer_name_for_sector_level(SectorLevel level, std::string_view outputSectorLevelName)
+{
+    switch (level) {
+    case SectorLevel::GNFR:
+        return "gnfr";
+    case SectorLevel::NFR:
+        return "nfr";
+    case SectorLevel::Custom:
+        return std::string(outputSectorLevelName);
+    }
+
+    throw RuntimeError("Invalid sector level");
+}
+
+std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName)
+{
+    std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> result;
 
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
-    auto ds = gdal::VectorDataSet::open(diffuseParametersPath);
+    auto ds    = gdal::VectorDataSet::open(diffuseParametersPath);
+    auto layer = ds.layer(layer_name_for_sector_level(level, outputSectorLevelName));
 
-    if (level == SectorLevel::NFR) {
-        auto layer = ds.layer("nfr");
+    const auto colId = layer.layer_definition().required_field_index(id_column_for_sector_level(level, outputSectorLevelName));
+    const auto colHc = layer.layer_definition().required_field_index("hc(MW)");
+    const auto colH  = layer.layer_definition().required_field_index("h(m)");
+    const auto colS  = layer.layer_definition().required_field_index("s(m)");
+    const auto colTb = layer.layer_definition().required_field_index("tb");
 
-        const auto colNfr = layer.layer_definition().required_field_index("NFR Code");
-        const auto colHc  = layer.layer_definition().required_field_index("hc(MW)");
-        const auto colH   = layer.layer_definition().required_field_index("h(m)");
-        const auto colS   = layer.layer_definition().required_field_index("s(m)");
-        const auto colTb  = layer.layer_definition().required_field_index("tb");
-
-        for (const auto& feature : layer) {
-            if (!feature.field_is_valid(0)) {
-                continue; // skip empty lines
-            }
-
-            BrnOutputBuilder::SectorParameterConfig config;
-            config.hc_MW = feature.field_as<double>(colHc);
-            config.h_m   = feature.field_as<double>(colH);
-            config.s_m   = feature.field_as<double>(colS);
-            config.tb    = feature.field_as<double>(colTb);
-
-            if (
-                auto sector = sectors.try_nfr_sector_from_string(feature.field_as<std::string_view>(colNfr)); sector.has_value()) {
-                result.emplace(sector->id(), config);
-            } else {
-                Log::warn("Unknown sector name in parameter configuration: {}", feature.field_as<std::string_view>(colNfr));
-            }
+    for (const auto& feature : layer) {
+        if (!feature.field_is_valid(0)) {
+            break; // abort on empty lines
         }
+
+        BrnOutputBuilder::SectorParameterConfig config;
+        config.hc_MW = feature.field_as<double>(colHc);
+        config.h_m   = feature.field_as<double>(colH);
+        config.s_m   = feature.field_as<double>(colS);
+        config.tb    = feature.field_as<double>(colTb);
+
+        result.emplace(feature.field_as<std::string_view>(colId), config);
     }
 
     return result;
@@ -87,13 +107,12 @@ std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
         const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "parameters_diffuus.xlsx";
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "parameter_sd.xlsx";
 
-        auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name(), cfg.sectors());
+        auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
         auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
 
-        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams));
+        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg.output_sector_level());
     }
 
     throw RuntimeError("No known output builder for the specified grid definition");
 }
-
 }

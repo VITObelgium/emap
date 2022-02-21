@@ -48,7 +48,9 @@ public:
 
     void write_to_disk(const fs::path& path)
     {
-        gdx::write_raster(std::move(_raster), path);
+        if (!_raster.contains_only_nodata()) {
+            gdx::write_raster(std::move(_raster), path);
+        }
     }
 
 private:

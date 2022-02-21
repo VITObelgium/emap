@@ -1,0 +1,1 @@
+ogr2ogr -f GPKG -nlt MULTIPOLYGON eu_10m.gpkg -lco FID=ID CNTR_RG_10M_2020_4326.shp

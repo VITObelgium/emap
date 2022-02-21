@@ -34,7 +34,7 @@ TEST_CASE("Output builders")
 
     auto outputBuilder = make_output_builder(cfg);
 
-    outputBuilder->add_diffuse_output_entry(EmissionIdentifier(countries::AL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO), 100000, 120000, 2.0, 1000);
-    outputBuilder->write_to_disk(cfg);
+    outputBuilder->add_diffuse_output_entry(EmissionIdentifier(countries::AL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO), Point<int64_t>(100000, 120000), 2.0, 1000);
+    outputBuilder->write_to_disk(cfg, IOutputBuilder::WriteMode::Create);
 }
 }
