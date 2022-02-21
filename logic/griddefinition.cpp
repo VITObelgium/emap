@@ -2,6 +2,7 @@
 
 #include "infra/cast.h"
 #include "infra/enumutils.h"
+#include "infra/exception.h"
 
 #include <cassert>
 #include <type_traits>
@@ -81,12 +82,25 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Vlops5km, "Vlops 5km", GeoMetadata(120, 144, -219000, -100000, {5000.0, -5000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Vlops1km, "Vlops 1km", GeoMetadata(120, 260, 11000.0, 140000.0, {1000.0, -1000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Vlops250m, "Vlops 250m", GeoMetadata(480, 1040, 11000.0, 140000.0, {250.0, -250.0}, nan, s_belgianLambert72)},
+    {GridDefinition::VlopsCalc, "Vlops 250m full area", GeoMetadata(13440, 12480, -1419000, -1480000, {250.0, -250.0}, nan, s_belgianLambert72)},
     {GridDefinition::Rio4x4, "RIO 4x4", GeoMetadata(57, 69, 22000.0, 20000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Rio4x4Extended, "RIO 4x4 extended", GeoMetadata(61, 73, 14000.0, 12000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Flanders1km, "Flanders 1km", GeoMetadata(154, 260, 0.0, 142000.0, 1000.0, nan, s_belgianLambert72)},
     {GridDefinition::CAMS, "CAMS", GeoMetadata(841, 1801, -30.0, 29.95, 0.05, nan, s_epsg4326)},
     {GridDefinition::ChimereEmep, "Chimere EMEP", GeoMetadata(520, 1199, -30.0, 30.0, 0.1, nan, s_epsg3857)},
 }};
+
+std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
+{
+    switch (grid) {
+    case ModelGrid::Vlops1km:
+        return {GridDefinition::Vlops60km, GridDefinition::Vlops5km, GridDefinition::Vlops1km};
+    case ModelGrid::Vlops250m:
+        return {GridDefinition::Vlops60km, GridDefinition::Vlops5km, GridDefinition::Vlops250m};
+    }
+
+    throw RuntimeError("Invalid model grid provided");
+}
 
 const GridData& grid_data(GridDefinition grid) noexcept
 {

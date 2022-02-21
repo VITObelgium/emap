@@ -37,12 +37,13 @@ public:
         fs::path path;
         std::string filenameSuffix; // optional output filename suffix;
         std::string outputLevelName;
-        bool createTifs = false;
+        bool createCountryRasters = false;
+        bool createGridRasters    = false;
     };
 
     RunConfiguration(
         const fs::path& dataPath,
-        GridDefinition grid,
+        ModelGrid grid,
         RunType runType,
         ValidationType validation,
         date::year year,
@@ -72,7 +73,7 @@ public:
     fs::path run_summary_path() const;
     fs::path run_summary_spreadsheet_path() const;
 
-    GridDefinition grid_definition() const noexcept;
+    ModelGrid model_grid() const noexcept;
     RunType run_type() const noexcept;
     ValidationType validation_type() const noexcept;
 
@@ -93,14 +94,16 @@ public:
     SectorLevel output_sector_level() const noexcept;
     std::string_view output_sector_level_name() const noexcept;
     std::string_view output_filename_suffix() const noexcept;
-    bool output_tifs() const noexcept;
-    fs::path output_path_for_tif(const EmissionIdentifier& id) const;
+    bool output_country_rasters() const noexcept;
+    bool output_grid_rasters() const noexcept;
+    fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;
+    fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
 
 private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
-    GridDefinition _grid;
+    ModelGrid _grid;
     RunType _runType;
     ValidationType _validation;
     date::year _year;

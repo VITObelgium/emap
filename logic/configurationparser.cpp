@@ -256,37 +256,17 @@ struct NamedSection
     toml::node_view<const toml::node> section;
 };
 
-static GridDefinition grid_from_string(std::string_view grid)
+static ModelGrid model_grid_from_string(std::string_view grid)
 {
-    if (grid == "beleuros") {
-        return GridDefinition::Beleuros;
-    }
-
-    if (grid == "chimere1") {
-        return GridDefinition::Chimere1;
-    }
-
-    if (grid == "vlops60km") {
-        return GridDefinition::Vlops60km;
-    }
-
     if (grid == "vlops1km") {
-        return GridDefinition::Vlops1km;
+        return ModelGrid::Vlops1km;
     }
 
     if (grid == "vlops250m") {
-        return GridDefinition::Vlops250m;
+        return ModelGrid::Vlops250m;
     }
 
-    if (grid == "rio4x4") {
-        return GridDefinition::Rio4x4;
-    }
-
-    if (grid == "rio4x4extended") {
-        return GridDefinition::Rio4x4Extended;
-    }
-
-    throw RuntimeError("Invalid grid type: '{}'", grid);
+    throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 
 static RunType run_type_from_string(std::string_view type)
@@ -302,13 +282,13 @@ static RunType run_type_from_string(std::string_view type)
     throw RuntimeError("Invalid run type: '{}'", type);
 }
 
-static GridDefinition read_grid(std::optional<std::string_view> grid)
+static ModelGrid read_grid(std::optional<std::string_view> grid)
 {
     if (!grid.has_value()) {
         throw RuntimeError("No grid definition present in 'model' section (e.g. grid = \"beleuros\")");
     }
 
-    return grid_from_string(*grid);
+    return model_grid_from_string(*grid);
 }
 
 static RunType read_run_type(std::optional<std::string_view> type)
@@ -418,15 +398,17 @@ static std::string read_string(const NamedSection& ns, std::string_view name, st
     return nodeValue.value<std::string>().value();
 }
 
-static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
+static RunConfiguration parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
         const auto basePath     = tomlPath.parent_path();
         const toml::table table = toml::parse(configContents, tomlPath.u8string());
-
         if (!table.contains("model")) {
-            // No model run configured
-            return {};
+            throw RuntimeError("No model section present in configuration file");
+        }
+
+        if (!table.contains("output")) {
+            throw RuntimeError("No output section present in configuration file");
         }
 
         NamedSection model("model", table["model"]);
@@ -441,10 +423,11 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
 
         RunConfiguration::Output outputConfig;
 
-        outputConfig.path            = read_path(output, "path", basePath);
-        outputConfig.outputLevelName = read_sector_level(output.section["sector_level"].value<std::string_view>());
-        outputConfig.filenameSuffix  = read_string(output, "filename_suffix", "");
-        outputConfig.createTifs      = output.section["create_tifs"].value<bool>().value_or(false);
+        outputConfig.path                 = read_path(output, "path", basePath);
+        outputConfig.outputLevelName      = read_sector_level(output.section["sector_level"].value<std::string_view>());
+        outputConfig.filenameSuffix       = read_string(output, "filename_suffix", "");
+        outputConfig.createCountryRasters = output.section["create_country_rasters"].value<bool>().value_or(false);
+        outputConfig.createGridRasters    = output.section["create_grid_rasters"].value<bool>().value_or(false);
 
         auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
@@ -475,12 +458,12 @@ static std::optional<RunConfiguration> parse_run_configuration_impl(std::string_
     }
 }
 
-std::optional<RunConfiguration> parse_run_configuration_file(const fs::path& config)
+RunConfiguration parse_run_configuration_file(const fs::path& config)
 {
     return parse_run_configuration_impl(file::read_as_text(config), config);
 }
 
-std::optional<RunConfiguration> parse_run_configuration(std::string_view configContents, const fs::path& basePath)
+RunConfiguration parse_run_configuration(std::string_view configContents, const fs::path& basePath)
 {
     return parse_run_configuration_impl(configContents, basePath / "dummy.toml");
 }

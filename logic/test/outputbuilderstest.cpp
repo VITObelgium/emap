@@ -19,7 +19,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = outputDir;
     outputConfig.outputLevelName = "NFR";
 
-    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", GridDefinition::Vlops60km, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", ModelGrid::Vlops1km, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Output builders")
@@ -34,7 +34,7 @@ TEST_CASE("Output builders")
 
     auto outputBuilder = make_output_builder(cfg);
 
-    outputBuilder->add_diffuse_output_entry(EmissionIdentifier(countries::AL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO), 100000, 120000, 2.0);
+    outputBuilder->add_diffuse_output_entry(EmissionIdentifier(countries::AL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO), 100000, 120000, 2.0, 1000);
     outputBuilder->write_to_disk(cfg);
 }
 }

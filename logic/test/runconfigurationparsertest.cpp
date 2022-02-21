@@ -23,7 +23,7 @@ TEST_CASE("Parse run configuration")
     {
         std::string_view tomlConfig = R"toml(
             [model]
-                grid = "beleuros"
+                grid = "vlops1km"
                 datapath = "_input"
                 type = "emep"
                 year = 2020
@@ -41,28 +41,28 @@ TEST_CASE("Parse run configuration")
 
         const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR));
 
-        CHECK(config->grid_definition() == GridDefinition::Beleuros);
-        CHECK(config->data_root() == expectedDataRoot);
-        CHECK(config->run_type() == RunType::Emep);
-        CHECK(config->year() == 2020_y);
-        CHECK(config->reporting_year() == 2018_y);
-        CHECK(config->scenario() == "scenarionaam");
-        CHECK(config->spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
+        CHECK(config.model_grid() == ModelGrid::Vlops1km);
+        CHECK(config.data_root() == expectedDataRoot);
+        CHECK(config.run_type() == RunType::Emep);
+        CHECK(config.year() == 2020_y);
+        CHECK(config.reporting_year() == 2018_y);
+        CHECK(config.scenario() == "scenarionaam");
+        CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
-        CHECK(config->output_path() == expectedOutput);
-        CHECK(config->validation_type() == ValidationType::SumValidation);
+        CHECK(config.output_path() == expectedOutput);
+        CHECK(config.validation_type() == ValidationType::SumValidation);
     }
 
     SUBCASE("invalid file: empty")
     {
-        CHECK(!parse_run_configuration("", fs::u8path(TEST_DATA_DIR)).has_value());
+        CHECK_THROWS_AS(parse_run_configuration("", fs::u8path(TEST_DATA_DIR)), RuntimeError);
     }
 
     SUBCASE("invalid file: no path quotes")
     {
         std::string_view tomlConfig = R"toml(
             [model]
-                grid = "beleuros"
+                grid = "vlops1km"
                 datapath = _input
                 type = "gains"
                 year = 2020
@@ -81,7 +81,7 @@ TEST_CASE("Parse run configuration")
     {
         std::string_view tomlConfig = R"toml(
             [model]
-                grid = "beleuros"
+                grid = "vlops1km"
                 datapath = "_input"
                 type = "gains"
                 year = "2020"
@@ -103,7 +103,7 @@ TEST_CASE("Parse run configuration")
     {
         std::string_view tomlConfig = R"toml(
             [model]
-                grid = "beleuros"
+                grid = "vlops1km"
                 datapath = "_input"
                 type = "gains"
                 year = 2020

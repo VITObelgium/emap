@@ -22,7 +22,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", GridDefinition::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", ModelGrid::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")
@@ -49,7 +49,7 @@ TEST_CASE("Input parsers")
             }
 
             const auto& firstEmission = *emissions.begin();
-            //DE;1990;1A1a;PCB;Gg;0.0003408784
+            // DE;1990;1A1a;PCB;Gg;0.0003408784
             CHECK(firstEmission.country() == countries::DE);
             CHECK(firstEmission.sector().name() == "1A1a");
             CHECK(firstEmission.pollutant() == pollutants::PCBs);
@@ -69,7 +69,7 @@ TEST_CASE("Input parsers")
             }
 
             const auto& firstEmission = *emissions.begin();
-            //TR;1990;A_PublicPower;CO;Gg;1.82364
+            // TR;1990;A_PublicPower;CO;Gg;1.82364
             CHECK(firstEmission.country() == countries::TR);
             CHECK(firstEmission.sector().name() == "A_PublicPower");
             CHECK(firstEmission.pollutant() == pollutants::CO);
@@ -221,10 +221,10 @@ TEST_CASE("Input parsers")
             CHECK(gdx::sum(spatialPattern) == Approx(432.989391850553).epsilon(1e-4));
         }
 
-        //SUBCASE("Flanders")
+        // SUBCASE("Flanders")
         //{
-        //    const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);
-        //    CHECK(spatialPatterns.size() == 25);
+        //     const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);
+        //     CHECK(spatialPatterns.size() == 25);
 
         //    {
         //        const auto* sp = find_in_container(spatialPatterns, [](const auto& val) {

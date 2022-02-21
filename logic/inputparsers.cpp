@@ -10,6 +10,7 @@
 #include "infra/enumutils.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
+#include "infra/hash.h"
 #include "infra/log.h"
 #include "infra/string.h"
 #include "unitconversion.h"
@@ -81,17 +82,29 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
 
+    struct PointSourceIdentifier
+    {
+    };
+
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
 
         SingleEmissions result;
         inf::CsvReader csv(emissionsCsv);
 
-        auto colCountry              = required_csv_column(csv, "reporting_country");
-        auto colPollutant            = required_csv_column(csv, "pollutant");
-        auto colEmission             = required_csv_column(csv, "emission");
-        auto colUnit                 = required_csv_column(csv, "unit");
-        auto colSourceId             = required_csv_column(csv, "EIL_nummer");
+        auto colCountry   = required_csv_column(csv, "reporting_country");
+        auto colPollutant = required_csv_column(csv, "pollutant");
+        auto colEmission  = required_csv_column(csv, "emission");
+        auto colUnit      = required_csv_column(csv, "unit");
+
+        auto colHeight         = required_csv_column(csv, "hoogte_m");
+        auto colDiameter       = required_csv_column(csv, "diameter_m");
+        auto colTemperature    = required_csv_column(csv, "temperatuur_C");
+        auto colWarmthContents = required_csv_column(csv, "warmteinhoud_MW");
+        auto colFlowRate       = required_csv_column(csv, "debiet_Nm3/u");
+        auto colEil            = required_csv_column(csv, "EIL_nummer");
+        auto colSubType        = csv.column_index("subtype");
+
         auto [colSector, sectorType] = determine_sector_column(csv);
         auto colX                    = csv.column_index("x");
         auto colY                    = csv.column_index("y");
@@ -108,7 +121,20 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                     EmissionIdentifier(*country, *sector, *pollutant),
                     EmissionValue(emissionValue));
 
-                info.set_source_id(line.get_string(colSourceId));
+                info.set_height(line.get_double(colHeight).value_or(0.0));
+                info.set_diameter(line.get_double(colDiameter).value_or(0.0));
+                info.set_temperature(line.get_double(colTemperature).value_or(-9999.0));
+                info.set_warmth_contents(line.get_double(colWarmthContents).value_or(0.0));
+                info.set_flow_rate(line.get_double(colFlowRate).value_or(0.0));
+
+                std::string subType = "none";
+                if (colSubType.has_value()) {
+                    subType = line.get_string(*colSubType);
+                }
+
+                size_t seed = 0;
+                hash_combine(seed, info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEil), subType);
+                info.set_source_id(std::to_string(seed));
 
                 if (colX.has_value() && colY.has_value()) {
                     auto x = line.get_int32(*colX);

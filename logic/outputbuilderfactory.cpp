@@ -83,14 +83,14 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
 
 std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
 {
-    if (cfg.grid_definition() == GridDefinition::Vlops60km || cfg.grid_definition() == GridDefinition::Vlops1km || cfg.grid_definition() == GridDefinition::Vlops250m) {
+    if (cfg.model_grid() == ModelGrid::Vlops1km || cfg.model_grid() == ModelGrid::Vlops250m) {
         const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "parameters_diffuus.xlsx";
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "parameter_sd.xlsx";
 
         auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name(), cfg.sectors());
         auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
 
-        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), truncate<int32_t>(grid_data(cfg.grid_definition()).meta.cell_size_x()));
+        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams));
     }
 
     throw RuntimeError("No known output builder for the specified grid definition");

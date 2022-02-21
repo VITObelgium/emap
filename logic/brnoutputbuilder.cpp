@@ -11,10 +11,8 @@ static constexpr const int64_t s_secondsPerYear = 31'536'000;
 using namespace inf;
 
 BrnOutputBuilder::BrnOutputBuilder(std::unordered_map<int32_t, SectorParameterConfig> sectorParams,
-                                   std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
-                                   int32_t cellSizeInM)
-: _cellSizeInM(cellSizeInM)
-, _sectorParams(std::move(sectorParams))
+                                   std::unordered_map<std::string, PollutantParameterConfig> pollutantParams)
+: _sectorParams(std::move(sectorParams))
 , _pollutantParams(std::move(pollutantParams))
 {
 }
@@ -49,7 +47,7 @@ void BrnOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     _pointSources[id.pollutant].push_back(entry);
 }
 
-void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, int64_t x, int64_t y, double emission)
+void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, int64_t x, int64_t y, double emission, int32_t cellSizeInM)
 {
     const auto& sectorParams    = _sectorParams.at(static_cast<int32_t>(id.sector.id()));
     const auto& pollutantParams = _pollutantParams.at(std::string(id.pollutant.code()));
@@ -62,7 +60,7 @@ void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, in
     entry.q_gs  = emission * toGramPerYearRatio;
     entry.hc_MW = sectorParams.hc_MW;
     entry.h_m   = sectorParams.h_m;
-    entry.d_m   = _cellSizeInM;
+    entry.d_m   = cellSizeInM;
     entry.s_m   = sectorParams.s_m;
     entry.dv    = truncate<int32_t>(sectorParams.tb);
     entry.cat   = static_cast<int32_t>(id.sector.id());
@@ -89,10 +87,8 @@ static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, 
 
 void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg)
 {
-    if (cfg.grid_definition() == GridDefinition::Vlops1km ||
-        cfg.grid_definition() == GridDefinition::Vlops250m ||
-        cfg.grid_definition() == GridDefinition::Vlops5km ||
-        cfg.grid_definition() == GridDefinition::Vlops60km) {
+    if (cfg.model_grid() == ModelGrid::Vlops1km ||
+        cfg.model_grid() == ModelGrid::Vlops250m) {
         for (const auto& [pol, entries] : _diffuseSources) {
             write_brn_output(entries, cfg.output_path() / create_vlops_output_name(pol, cfg.year(), cfg.output_filename_suffix()));
         }

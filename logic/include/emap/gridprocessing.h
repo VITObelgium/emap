@@ -4,6 +4,9 @@
 #include "emap/griddefinition.h"
 #include "emap/sector.h"
 #include "infra/filesystem.h"
+
+#include "infra/gdalalgo.h"
+
 //#include "infra/generator.h"
 #include "infra/cell.h"
 #include "infra/gdal.h"
@@ -50,7 +53,7 @@ struct CountryCellCoverage
         {
         }
 
-        inf::Cell computeGridCell; // row column index of this cell in the fulk spatial pattern grid
+        inf::Cell computeGridCell; // row column index of this cell in the full output grid
         inf::Cell countryGridCell; // row column index of this cell in the country sub grid of the spatial pattern grid
         double coverage = 0.0;     // The cell coverage percentage of this country in the grid
 
@@ -62,15 +65,14 @@ struct CountryCellCoverage
     };
 
     Country country;
-    inf::GeoMetadata spatialPatternSubgridExtent; // This countries subgrid within the full spatial pattern grid
-    inf::GeoMetadata outputSubgridExtent;         // This countries subgrid within the output grid
+    inf::GeoMetadata outputSubgridExtent; // This countries subgrid within the output grid
     std::vector<CellInfo> cells;
 };
 
 // normalizes the raster so the sum is 1
 void normalize_raster(gdx::DenseRaster<double>& ras) noexcept;
 
-gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid);
+gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid, inf::gdal::ResampleAlgorithm algo = inf::gdal::ResampleAlgorithm::Average);
 gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput, const inf::GeoMetadata& extent);
 
 gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, const CountryCellCoverage& countryCoverage);
@@ -79,11 +81,14 @@ inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const 
 inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection, int32_t& xOffset, int32_t& yOffset);
 
 size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
-CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference&, const inf::GeoMetadata& spatialPatternExtent, const inf::GeoMetadata& outputExtent);
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField);
 
-//void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
-//void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
+CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference& geometryProjection, const inf::GeoMetadata& outputExtent);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+
+// void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+// void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 
 // cuts out the country from the raster based on the cellcoverages, the output extent will be the same is that from the input
 // The resulting raster is normalized
@@ -91,6 +96,8 @@ gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<doub
 gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, const CountryCellCoverage& countryCoverage);
 
 // generator<std::pair<gdx::DenseRaster<double>, Country>> extract_countries_from_raster(const fs::path& rasterInput, GnfrSector gnfrSector, std::span<const CountryCellCoverage> countries);
+
+void erase_area_in_raster(gdx::DenseRaster<double>& rasterInput, const inf::GeoMetadata& extent);
 
 }
 

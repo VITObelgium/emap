@@ -22,7 +22,7 @@ std::string run_type_name(RunType type)
 
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
-    GridDefinition grid,
+    ModelGrid grid,
     RunType runType,
     ValidationType validation,
     date::year year,
@@ -131,7 +131,7 @@ fs::path RunConfiguration::run_summary_spreadsheet_path() const
     return output_path() / "summary.xlsx";
 }
 
-GridDefinition RunConfiguration::grid_definition() const noexcept
+ModelGrid RunConfiguration::model_grid() const noexcept
 {
     return _grid;
 }
@@ -214,14 +214,24 @@ std::string_view RunConfiguration::output_filename_suffix() const noexcept
     return _outputConfig.filenameSuffix;
 }
 
-bool RunConfiguration::output_tifs() const noexcept
+bool RunConfiguration::output_country_rasters() const noexcept
 {
-    return _outputConfig.createTifs;
+    return _outputConfig.createCountryRasters;
 }
 
-fs::path RunConfiguration::output_path_for_tif(const EmissionIdentifier& id) const
+bool RunConfiguration::output_grid_rasters() const noexcept
 {
-    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name()));
+    return _outputConfig.createGridRasters;
+}
+
+fs::path RunConfiguration::output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const
+{
+    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+}
+
+fs::path RunConfiguration::output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const
+{
+    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
 }
 
 }

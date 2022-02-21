@@ -10,6 +10,7 @@ add_library(emaplogic
     include/emap/constants.h
     include/emap/configurationparser.h configurationparser.cpp
     include/emap/country.h country.cpp
+    include/emap/countryborders.h countryborders.cpp
     include/emap/debugtools.h debugtools.cpp
     include/emap/emissions.h emissions.cpp
     include/emap/griddefinition.h griddefinition.cpp
@@ -30,6 +31,7 @@ add_library(emaplogic
     emissioninventory.h emissioninventory.cpp
     unitconversion.h
     geometry.h geometry.cpp
+    gridrasterbuilder.h
     outputwriters.h outputwriters.cpp
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp

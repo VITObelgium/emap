@@ -7,12 +7,13 @@ add_executable(emaplogictest
     gridtest.cpp
     inputparsertest.cpp
     outputbuilderstest.cpp
+    rasterbuildertest.cpp
     spatialpatterninventorytest.cpp
     runconfigurationparsertest.cpp
 )
 
 target_compile_definitions(emaplogictest
-PRIVATE EMAP_DATA_DIR="${PROJECT_SOURCE_DIR}/data"
+PRIVATE EMAP_DATA_DIR="${PROJECT_SOURCE_DIR}/data" USE_UNSTABLE_GEOS_CPP_API
 )
 target_include_directories(emaplogictest
 PRIVATE
