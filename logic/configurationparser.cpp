@@ -211,6 +211,32 @@ PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::pat
     return PollutantInventory(std::move(pollutants), std::move(conversions));
 }
 
+std::unordered_map<NfrId, std::string> parse_sector_mapping(const fs::path& mappingSpec, const SectorInventory& inv, const std::string& outputLevel)
+{
+    std::unordered_map<NfrId, std::string> result;
+
+    // No mapping needed when output level is NFR
+    if (!str::iequals(outputLevel, "NFR")) {
+        CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+        auto ds    = gdal::VectorDataSet::open(mappingSpec);
+        auto layer = ds.layer(0);
+
+        const auto colNfr    = layer.layer_definition().required_field_index("NFR_code");
+        const auto colMapped = layer.layer_definition().required_field_index(outputLevel);
+
+        for (const auto& feature : layer) {
+            auto nfrSector = inv.try_nfr_sector_from_string(feature.field_as<std::string_view>(colNfr));
+            if (nfrSector.has_value()) {
+                result.emplace(nfrSector->id(), feature.field_as<std::string_view>(colMapped));
+            } else {
+                Log::warn("Unknown nfr id present in mapping file: {}", feature.field_as<std::string_view>(colNfr));
+            }
+        }
+    }
+
+    return result;
+}
+
 void parse_missing_pollutant_references(const fs::path& path, PollutantInventory& inv)
 {
     if (!fs::is_regular_file(path)) {
@@ -429,11 +455,14 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         outputConfig.createCountryRasters = output.section["create_country_rasters"].value<bool>().value_or(false);
         outputConfig.createGridRasters    = output.section["create_grid_rasters"].value<bool>().value_or(false);
 
-        auto sectorInventory    = parse_sectors(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto pollutantInventory = parse_pollutants(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto countryInventory   = parse_countries(basePath / dataPath / "05_model_parameters" / "id_nummers.xlsx");
+        const auto parametersPath = basePath / dataPath / "05_model_parameters";
+
+        auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
 
         parse_missing_pollutant_references(basePath / dataPath / "03_spatial_disaggregation" / "pollutant_reference_when_missing.xlsx", pollutantInventory);
+        sectorInventory.set_output_mapping(parse_sector_mapping(parametersPath / "mapping_sectors.xlsx", sectorInventory, outputConfig.outputLevelName));
 
         const auto optionsSection = table["options"];
         bool validate             = optionsSection["validation"].value_or<bool>(false);

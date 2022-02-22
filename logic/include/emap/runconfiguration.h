@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
+#include "emap/sectorinventory.h"
 #include "infra/filesystem.h"
 
 #include <date/date.h>
@@ -96,6 +97,7 @@ public:
     std::string_view output_filename_suffix() const noexcept;
     bool output_country_rasters() const noexcept;
     bool output_grid_rasters() const noexcept;
+    fs::path output_dir_for_rasters() const;
     fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;
     fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
 

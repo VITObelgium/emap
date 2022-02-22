@@ -21,6 +21,7 @@ add_library(emaplogic
     include/emap/pollutant.h pollutant.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp
+    include/emap/sectorinventory.h sectorinventory.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
     include/emap/outputbuilderinterface.h
     include/emap/outputbuilderfactory.h outputbuilderfactory.cpp
@@ -32,6 +33,7 @@ add_library(emaplogic
     unitconversion.h
     geometry.h geometry.cpp
     gridrasterbuilder.h
+    emissionscollector.h emissionscollector.cpp
     outputwriters.h outputwriters.cpp
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp

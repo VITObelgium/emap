@@ -1,6 +1,7 @@
 #include "spatialpatterninventory.h"
 
 #include "emap/pollutant.h"
+#include "emap/sectorinventory.h"
 
 #include "infra/enumutils.h"
 #include "infra/log.h"
@@ -84,7 +85,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
-            //const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
+            // const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
             const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
             const auto sector    = _sectorInventory.sector_from_string(baseMatch[3].str());
 
@@ -110,8 +111,8 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
         try {
             const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[1].str());
             const auto sector    = _sectorInventory.sector_from_string(baseMatch[2].str());
-            //const auto reportYear = date::year(str::to_int32_value(baseMatch[3].str()));
-            //const auto year = date::year(str::to_int32_value(baseMatch[4].str()));
+            // const auto reportYear = date::year(str::to_int32_value(baseMatch[3].str()));
+            // const auto year = date::year(str::to_int32_value(baseMatch[4].str()));
 
             return SpatialPatternFile{
                 SpatialPatternFile::Source::Ceip,

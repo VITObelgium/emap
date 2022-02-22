@@ -9,8 +9,8 @@ scenario = "test"
 [output]
 path = "./_output_nfr"
 sector_level = "NFR"
-create_country_tifs = false
-create_grid_tifs = false
+create_country_rasters = false
+create_grid_rasters = false
 
 [options]
 validation = false

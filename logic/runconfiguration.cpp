@@ -224,14 +224,19 @@ bool RunConfiguration::output_grid_rasters() const noexcept
     return _outputConfig.createGridRasters;
 }
 
+fs::path RunConfiguration::output_dir_for_rasters() const
+{
+    return output_path() / "rasters";
+}
+
 fs::path RunConfiguration::output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const
 {
-    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
 }
 
 fs::path RunConfiguration::output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const
 {
-    return output_path() / "rasters" / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
+    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
 }
 
 }

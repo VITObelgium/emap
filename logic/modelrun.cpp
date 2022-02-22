@@ -4,9 +4,9 @@
 #include "emap/countryborders.h"
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
-#include "emap/outputbuilderfactory.h"
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
+#include "emissionscollector.h"
 #include "gridrasterbuilder.h"
 #include "outputwriters.h"
 #include "runsummary.h"
@@ -56,7 +56,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& ras
 {
     auto raster = extract_country_from_raster(rasterPath, countryCoverage);
     if (gdx::sum(raster) == 0.0) {
-        // no spreading info, fall back to uniform spread need
+        // no spreading info, fall back to uniform spread needed
         return {};
     }
 
@@ -173,20 +173,6 @@ static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMe
     return result;
 }
 
-static void add_raster_cells_to_output(const gdx::DenseRaster<double>& ras, const EmissionIdentifier& emissionId, IOutputBuilder& outputBuilder, int32_t cellSize)
-{
-    const auto& meta = ras.metadata();
-
-    for (auto cell : gdx::RasterCells(ras)) {
-        if (ras.is_nodata(cell) || ras[cell] == 0.0) {
-            continue;
-        }
-
-        const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
-        outputBuilder.add_diffuse_output_entry(emissionId, Point(truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y)), ras[cell], cellSize);
-    }
-}
-
 void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     Log::debug("Create country coverages");
@@ -227,19 +213,13 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
         progress.reset(cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
 
         for (const auto& pollutant : cfg.pollutants().list()) {
-            auto outputBuilder = make_output_builder(cfg);
+            EmissionsCollector collector(cfg, pollutant, gridData);
 
             for (const auto& sector : cfg.sectors().nfr_sectors()) {
                 ModelProgressInfo info;
                 info.info = fmt::format("[{}] Spread {} emissions for sector '{}'", gridData.name, pollutant, sector.code());
                 progress.set_payload(info);
                 progress.tick();
-
-                std::mutex mut;
-                std::optional<GridRasterBuilder> gridBuilder;
-                if (cfg.output_grid_rasters()) {
-                    gridBuilder = std::make_optional<GridRasterBuilder>(gridData.meta);
-                }
 
                 // double spreadEmissionTotal = 0.0;
 
@@ -282,6 +262,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
                         double erasedEmission = 0.0;
                         if (subGridMeta.has_value()) {
+                            // Erase the region in the subgrid for which we will perform a higher resolution calculation
                             erasedEmission = erase_area_in_raster_and_sum_erased_values(countryRaster, *subGridMeta);
                             if (erasedEmission > 0) {
                                 std::scoped_lock lock;
@@ -289,32 +270,23 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             }
                         }
 
-                        add_raster_cells_to_output(countryRaster, emissionId, *outputBuilder, truncate<int32_t>(gridData.meta.cell_size_x()));
-                        if (gridBuilder.has_value()) {
-                            std::scoped_lock lock;
-                            gridBuilder->add_raster(countryRaster);
-                            // spreadEmissionTotal += emissionToSpread - erasedEmission;
-                        }
-
-                        // Write individual country rasters if configured
-                        if (cfg.output_country_rasters() && !countryRaster.contains_only_nodata()) {
-                            gdx::write_raster(std::move(countryRaster), cfg.output_path_for_country_raster(emissionId, gridData));
-                        }
+                        collector.add_diffuse_emissions(emissionId.country, sector, std::move(countryRaster));
                     } catch (const std::exception& e) {
                         Log::error("Error spreading emission: {}", e.what());
                     }
                 });
 
-                if (gridBuilder.has_value()) {
-                    /*if (auto sum = gridBuilder->current_sum(); std::abs(sum - spreadEmissionTotal) > 0.01) {
-                        Log::warn("Big difference in spread emissions and emissions sum: spread={} - sum={} (diff: {})", spreadEmissionTotal, sum, std::abs(sum - spreadEmissionTotal));
-                    }*/
+                // if (gridBuilder.has_value()) {
+                //     /*if (auto sum = gridBuilder->current_sum(); std::abs(sum - spreadEmissionTotal) > 0.01) {
+                //         Log::warn("Big difference in spread emissions and emissions sum: spread={} - sum={} (diff: {})", spreadEmissionTotal, sum, std::abs(sum - spreadEmissionTotal));
+                //     }*/
 
-                    gridBuilder->write_to_disk(cfg.output_path_for_grid_raster(pollutant, EmissionSector(sector), gridData));
-                }
+                //    gridBuilder->write_to_disk(cfg.output_path_for_grid_raster(pollutant, EmissionSector(sector), gridData));
+                //}
             }
 
-            outputBuilder->write_to_disk(cfg, isCoursestGrid ? IOutputBuilder::WriteMode::Create : IOutputBuilder::WriteMode::Append);
+            // outputBuilder->write_to_disk(cfg, isCoursestGrid ? IOutputBuilder::WriteMode::Create : IOutputBuilder::WriteMode::Append);
+            collector.write_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
         }
     }
 }
