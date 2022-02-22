@@ -448,11 +448,16 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto nfrTotalEmissions  = read_nfr_emissions(cfg, summary);
     const auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary);
 
-    const ScalingFactors scalingsDiffuse;
-    const ScalingFactors scalingsPointSource;
+    ScalingFactors scalingsDiffuse;
+    ScalingFactors scalingsPointSource;
 
-    // const auto scalingsDiffuse     = parse_scaling_factors(throw_if_not_exists(cfg.diffuse_scalings_path()), cfg.countries(), cfg.sectors(), cfg.pollutants());
-    // const auto scalingsPointSource = parse_scaling_factors(throw_if_not_exists(cfg.point_source_scalings_path()), cfg.countries(), cfg.sectors(), cfg.pollutants());
+    if (auto path = cfg.diffuse_scalings_path(); fs::exists(path)) {
+        scalingsDiffuse = parse_scaling_factors(path, cfg);
+    }
+
+    if (auto path = cfg.point_source_scalings_path(); fs::exists(path)) {
+        scalingsDiffuse = parse_scaling_factors(path, cfg);
+    }
 
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
