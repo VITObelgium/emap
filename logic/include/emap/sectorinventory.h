@@ -24,12 +24,14 @@ public:
 
     EmissionSector sector_from_string(std::string_view name) const;
     EmissionSector sector_from_string(EmissionSector::Type type, std::string_view name) const;
+    std::pair<EmissionSector, int32_t> sector_with_priority_from_string(EmissionSector::Type type, std::string_view str) const;
 
     std::optional<EmissionSector> try_sector_from_string(std::string_view name) const;
     std::optional<EmissionSector> try_sector_from_string(EmissionSector::Type type, std::string_view name) const;
 
     GnfrSector gnfr_sector_from_string(std::string_view str) const;
     NfrSector nfr_sector_from_string(std::string_view str) const;
+    std::pair<GnfrSector, int32_t> gnfr_sector_with_priority_from_string(std::string_view str) const;
     std::pair<NfrSector, int32_t> nfr_sector_with_priority_from_string(std::string_view str) const;
 
     std::optional<GnfrSector> try_gnfr_sector_from_string(std::string_view str) const noexcept;
@@ -46,6 +48,7 @@ public:
     std::span<const NfrSector> nfr_sectors() const noexcept;
 
 private:
+    std::optional<std::pair<GnfrSector, int32_t>> try_gnfr_sector_with_priority_from_string(std::string_view str) const noexcept;
     std::optional<std::pair<NfrSector, int32_t>> try_nfr_sector_with_priority_from_string(std::string_view str) const noexcept;
 
     // List of sectors used by the emap model

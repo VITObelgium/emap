@@ -54,9 +54,6 @@ void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Po
     // TODO: support custom sector mappings
     std::scoped_lock lock(_mutex);
     auto& current = _diffuseSources[id.pollutant][output_level_name(id.sector)][id.country.id()][loc];
-    if (current.value > 0.0) {
-        assert(current.cellSize == cellSizeInM;);
-    }
     current.value += emission;
     current.cellSize                              = cellSizeInM;
     _sectorIdLookup[output_level_name(id.sector)] = id.sector.id();

@@ -304,6 +304,19 @@ public:
         _emissions.push_back(std::move(info));
     }
 
+    void update_emission(TEmission&& info)
+    {
+        auto* emission = inf::find_in_container(_emissions, [&info](const TEmission& em) {
+            return em.id() == info.id();
+        });
+
+        if (!emission) {
+            throw RuntimeError("Update of non existing emission");
+        }
+
+        *emission = info;
+    }
+
     void update_or_add_emission(TEmission&& info)
     {
         auto* emission = inf::find_in_container(_emissions, [&info](const TEmission& em) {
@@ -324,9 +337,9 @@ public:
         });
     }
 
-    TEmission& emission_with_id(const EmissionIdentifier& id)
+    std::optional<TEmission> try_emission_with_id(const EmissionIdentifier& id) const noexcept
     {
-        return inf::find_in_container_required(_emissions, [&id](const TEmission& em) {
+        return inf::find_in_container_optional(_emissions, [&id](const TEmission& em) {
             return em.id() == id;
         });
     }

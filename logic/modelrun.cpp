@@ -234,13 +234,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
                         double emissionToSpread = 0.0;
                         if (isCoursestGrid) {
-                            const auto emissions = emissionInv.emissions_with_id(emissionId);
-                            if (emissions.empty()) {
-                                Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
-                            } else if (emissions.size() > 1) {
-                                Log::debug("Multiple emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
+                            if (const auto emission = emissionInv.try_emission_with_id(emissionId); emission.has_value()) {
+                                emissionToSpread = emission->scaled_diffuse_emissions();
                             } else {
-                                emissionToSpread = emissions.front().scaled_diffuse_emissions();
+                                Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
                             }
                         } else {
                             std::scoped_lock lock;

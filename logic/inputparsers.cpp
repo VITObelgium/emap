@@ -73,6 +73,15 @@ static double to_double(std::string_view valueString, size_t lineNr)
     throw RuntimeError("Invalid emission value: {}", valueString);
 }
 
+static std::optional<double> parse_emission_value(std::string_view emission)
+{
+    if (emission == "NO" || emission == "IE" || emission == "NA" || emission == "NE" || emission == "NR" || emission == "C") {
+        return {};
+    }
+
+    return str::to_double(emission);
+}
+
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
@@ -170,21 +179,25 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
         SingleEmissions result;
         Log::debug("Parse emissions: {}", emissionsCsv);
 
+        std::unordered_map<EmissionIdentifier, int32_t> usedSectorPriories;
+
         using namespace io;
         CSVReader<6, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(emissionsCsv.u8string());
 
         int32_t year;
-        char *countryStr, *sector, *pollutant, *unit, *value;
-        while (in.read_row(countryStr, year, sector, pollutant, unit, value)) {
+        char *countryStr, *sectorName, *pollutant, *unit, *value;
+        while (in.read_row(countryStr, year, sectorName, pollutant, unit, value)) {
             if (year != static_cast<int32_t>(cfg.year())) {
                 // not the year we want
                 continue;
             }
 
-            auto emissionValue = str::to_double(value);
-            if (emissionValue.has_value()) {
-                *emissionValue = to_giga_gram(*emissionValue, unit);
+            auto emissionValue = parse_emission_value(value);
+            if (!emissionValue.has_value()) {
+                continue;
             }
+
+            *emissionValue = to_giga_gram(*emissionValue, unit);
 
             const auto country = countryInv.try_country_from_string(countryStr);
             if (!country.has_value()) {
@@ -193,11 +206,27 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             try {
-                if (!sectorInv.is_ignored_sector(sector)) {
-                    EmissionEntry info(
-                        EmissionIdentifier(*country, sectorInv.sector_from_string(sectorType, sector), pollutantInv.pollutant_from_string(pollutant)), EmissionValue(emissionValue));
+                if (!sectorInv.is_ignored_sector(sectorName)) {
+                    auto [sector, priority] = sectorInv.sector_with_priority_from_string(sectorType, sectorName);
+                    EmissionIdentifier id(*country, sectorInv.sector_from_string(sectorType, sectorName), pollutantInv.pollutant_from_string(pollutant));
 
-                    result.add_emission(std::move(info));
+                    EmissionEntry info(id, EmissionValue(emissionValue));
+
+                    if (auto iter = usedSectorPriories.find(id); iter != usedSectorPriories.end()) {
+                        // Sector was already processed, check if the current priority is higher
+                        if (priority > iter->second) {
+                            // the current entry has a higher priority, update the map
+                            iter->second = priority;
+                            result.update_emission(std::move(info));
+                        } else {
+                            // the current entry has a lower priority priority, skip it
+                            continue;
+                        }
+                    } else {
+                        // first time we encounter this sector, add the current priority
+                        usedSectorPriories.emplace(id, priority);
+                        result.add_emission(std::move(info));
+                    }
                 }
             } catch (const std::exception& e) {
                 Log::debug("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());
@@ -369,13 +398,11 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 if (const auto* emission = std::get_if<double>(&field)) {
                     emissionValue = (*emission) * polData.unitConversion;
                 } else if (const auto* emission = std::get_if<std::string_view>(&field)) {
-                    if (*emission == "NO" || *emission == "IE" || *emission == "NA" || *emission == "NE" || *emission == "NR" || *emission == "C") {
+                    emissionValue = parse_emission_value(*emission);
+                    if (!emissionValue.has_value()) {
                         emissionValue = 0.0;
                     } else {
-                        emissionValue = str::to_double(*emission);
-                        if (emissionValue.has_value()) {
-                            emissionValue = (*emissionValue) * polData.unitConversion;
-                        }
+                        emissionValue = (*emissionValue) * polData.unitConversion;
                     }
                 }
 
