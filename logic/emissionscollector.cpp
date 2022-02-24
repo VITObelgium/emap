@@ -67,7 +67,6 @@ void EmissionsCollector::add_diffuse_emissions(const Country& country, const Nfr
         std::scoped_lock lock(_mutex);
         if (auto iter = _collectedEmissions.find(mappedSectorName); iter != _collectedEmissions.end()) {
             add_to_raster(iter->second, raster);
-            iter->second.add_or_assign(raster);
         } else {
             gdx::DenseRaster<double> total(_grid.meta, std::numeric_limits<double>::quiet_NaN());
             add_to_raster(total, raster);
