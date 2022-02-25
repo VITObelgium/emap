@@ -4,6 +4,7 @@
 #include "emap/pollutant.h"
 #include "emap/sector.h"
 #include "infra/algo.h"
+#include "infra/exception.h"
 #include "infra/hash.h"
 #include "infra/point.h"
 #include "infra/span.h"
@@ -311,7 +312,7 @@ public:
         });
 
         if (!emission) {
-            throw RuntimeError("Update of non existing emission");
+            throw inf::RuntimeError("Update of non existing emission");
         }
 
         *emission = info;
