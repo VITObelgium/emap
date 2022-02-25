@@ -30,6 +30,7 @@ add_library(emaplogic
     configurationutil.h
     enuminfo.h
     emissioninventory.h emissioninventory.cpp
+    emissionvalidation.h emissionvalidation.cpp
     unitconversion.h
     geometry.h geometry.cpp
     gridrasterbuilder.h
@@ -37,6 +38,7 @@ add_library(emaplogic
     outputwriters.h outputwriters.cpp
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp
+    xlsxworkbook.h
     ${CMAKE_SOURCE_DIR}/GSL.natvis
     $<$<CXX_COMPILER_ID:MSVC>:${CMAKE_SOURCE_DIR}/emap.natvis>
 )

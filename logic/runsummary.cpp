@@ -5,44 +5,15 @@
 #include "infra/enumutils.h"
 #include "infra/exception.h"
 #include "infra/log.h"
+#include "xlsxworkbook.h"
 
 #include <algorithm>
 #include <array>
 #include <tabulate/table.hpp>
-#include <xlsxwriter.h>
 
 namespace emap {
 
 using namespace inf;
-
-namespace xl {
-class WorkBook
-{
-public:
-    WorkBook(const std::string& name)
-    : _ptr(workbook_new(name.c_str()))
-    {
-        if (!_ptr) {
-            throw RuntimeError("Failed to create workbook: {}", name);
-        }
-    }
-
-    ~WorkBook()
-    {
-        auto error = workbook_close(_ptr);
-        if (error != LXW_NO_ERROR) {
-            Log::error("Failed to write excel file: {}", lxw_strerror(error));
-        }
-    }
-
-    operator lxw_workbook*()
-    {
-        return _ptr;
-    }
-
-    lxw_workbook* _ptr;
-};
-}
 
 void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
 {

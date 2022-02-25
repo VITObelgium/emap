@@ -7,6 +7,7 @@
 #include "emap/scalingfactors.h"
 #include "emissioninventory.h"
 #include "emissionscollector.h"
+#include "emissionvalidation.h"
 #include "gridrasterbuilder.h"
 #include "outputwriters.h"
 #include "runsummary.h"
@@ -190,6 +191,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
+    std::unique_ptr<EmissionValidation> validator;
+    if (cfg.validation_type() == ValidationType::SumValidation) {
+        validator = std::make_unique<EmissionValidation>();
+    }
 
     for (auto gridIter = gridDefinitions.begin(); gridIter != gridDefinitions.end(); ++gridIter) {
         bool isCoursestGrid = gridIter == gridDefinitions.begin();
@@ -275,6 +280,9 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             }
                         }
 
+                        if (validator) {
+                            validator->add_diffuse_emissions(emissionId, countryRaster);
+                        }
                         collector.add_diffuse_emissions(emissionId.country, sector, std::move(countryRaster));
                     } catch (const std::exception& e) {
                         Log::error("Error spreading emission: {}", e.what());
@@ -318,6 +326,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             if (raster.empty()) {
                                 raster = apply_uniform_spread(emission.scaled_diffuse_emissions(), flandersCoverage);
                             }
+
+                            if (validator) {
+                                validator->add_diffuse_emissions(emissionId, raster);
+                            }
                             collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
                         }
                     }
@@ -326,6 +338,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
             collector.write_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
         }
+    }
+
+    if (validator) {
+        validator->write_summary(emissionInv, cfg.output_path() / "emission_validation.xlsx");
     }
 }
 

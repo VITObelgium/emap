@@ -43,6 +43,10 @@ static void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::
 
 void EmissionsCollector::add_diffuse_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> raster)
 {
+    if (raster.contains_only_nodata()) {
+        return;
+    }
+
     const auto& meta = raster.metadata();
 
     EmissionIdentifier emissionId(country, EmissionSector(nfr), _pollutant);
@@ -57,10 +61,10 @@ void EmissionsCollector::add_diffuse_emissions(const Country& country, const Nfr
     }
 
     if (_cfg.output_sector_level() == SectorLevel::NFR) {
-        if (_cfg.output_country_rasters() && !raster.contains_only_nodata()) {
+        if (_cfg.output_country_rasters()) {
             gdx::write_raster(std::move(raster), _cfg.output_path_for_country_raster(emissionId, _grid));
         }
-    } else if (_cfg.output_grid_rasters() && !raster.contains_only_nodata()) {
+    } else if (_cfg.output_grid_rasters()) {
         // The emissions need to be aggregated
         auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(nfr);
 

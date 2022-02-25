@@ -3,6 +3,8 @@
 #include "emap/runconfiguration.h"
 #include "gdx/denseraster.h"
 
+#include <memory>
+
 namespace emap {
 
 class IOutputBuilder;
