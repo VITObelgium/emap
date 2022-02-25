@@ -100,13 +100,14 @@ int main(int argc, char** argv)
         if (options.debugGrids) {
             emap::debug_grids(fs::u8path(options.config), log_level_from_value(options.logLevel));
         } else {
-            emap::run_model(fs::u8path(options.config), log_level_from_value(options.logLevel), [&](const emap::ModelProgress::Status& info) {
-                if (progressBar) {
-                    progressBar->set_progress(info.progress());
-                    progressBar->set_postfix_text(info.payload().to_string());
-                }
-                return inf::ProgressStatusResult::Continue;
-            });
+            emap::run_model(
+                fs::u8path(options.config), log_level_from_value(options.logLevel), options.concurrency, [&](const emap::ModelProgress::Status& info) {
+                    if (progressBar) {
+                        progressBar->set_progress(info.progress());
+                        progressBar->set_postfix_text(info.payload().to_string());
+                    }
+                    return inf::ProgressStatusResult::Continue;
+                });
         }
 
         return EXIT_SUCCESS;

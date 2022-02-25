@@ -166,7 +166,7 @@ std::string_view RunConfiguration::scenario() const noexcept
     return _scenario;
 }
 
-void RunConfiguration::set_max_concurrency(int32_t concurrency) noexcept
+void RunConfiguration::set_max_concurrency(std::optional<int32_t> concurrency) noexcept
 {
     _concurrency = concurrency;
 }

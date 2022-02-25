@@ -21,9 +21,9 @@
 
 #include <numeric>
 #include <oneapi/tbb/concurrent_vector.h>
+#include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
-#include <oneapi/tbb/task_arena.h>
 
 #include <fmt/printf.h>
 
@@ -40,9 +40,10 @@ static fs::path throw_if_not_exists(fs::path&& path)
     return std::move(path);
 }
 
-void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, const ModelProgress::Callback& progressCb)
+void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
 {
     auto runConfig = parse_run_configuration_file(runConfigPath);
+    runConfig.set_max_concurrency(concurrency);
     std::unique_ptr<inf::LogRegistration> logReg;
     inf::Log::add_file_sink(runConfig.output_path() / "emap.log");
 
@@ -227,8 +228,6 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                 progress.set_payload(info);
                 progress.tick();
 
-                // double spreadEmissionTotal = 0.0;
-
                 // std::for_each(countryCoverages.begin(), countryCoverages.end(), [&](const CountryCellCoverage& cellCoverageInfo) {
                 tbb::parallel_for_each(countryCoverages, [&](const CountryCellCoverage& cellCoverageInfo) {
                     if (cellCoverageInfo.country.is_belgium()) {
@@ -281,14 +280,6 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         Log::error("Error spreading emission: {}", e.what());
                     }
                 });
-
-                // if (gridBuilder.has_value()) {
-                //     /*if (auto sum = gridBuilder->current_sum(); std::abs(sum - spreadEmissionTotal) > 0.01) {
-                //         Log::warn("Big difference in spread emissions and emissions sum: spread={} - sum={} (diff: {})", spreadEmissionTotal, sum, std::abs(sum - spreadEmissionTotal));
-                //     }*/
-
-                //    gridBuilder->write_to_disk(cfg.output_path_for_grid_raster(pollutant, EmissionSector(sector), gridData));
-                //}
             }
 
             if (gridIter + 1 == gridDefinitions.end()) {
@@ -437,6 +428,8 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
 
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
+    tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
+
     RunSummary summary;
 
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());

@@ -85,7 +85,7 @@ public:
 
     std::string_view scenario() const noexcept;
 
-    void set_max_concurrency(int32_t concurrency) noexcept;
+    void set_max_concurrency(std::optional<int32_t> concurrency) noexcept;
     std::optional<int32_t> max_concurrency() const noexcept;
 
     const SectorInventory& sectors() const noexcept;

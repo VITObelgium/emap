@@ -159,8 +159,6 @@ void store_country_coverage_vector(const CountryCellCoverage& coverageInfo, cons
     double cellSizeX = meta.cell_size_x();
     double cellSizeY = meta.cell_size_y();
 
-    auto topLeft = meta.top_left();
-
     auto geomFactory = geos::geom::GeometryFactory::create();
 
     std::vector<geos::geom::Polygon::Ptr> cellPolygons;
