@@ -75,40 +75,40 @@ struct IntersectionInfo
     double percentage  = 0.0;
 };
 
-static std::string rects_to_geojson(std::span<const IntersectionInfo> intersections, GeoMetadata::CellSize cellSize)
-{
-    std::stringstream geomStr;
-    geomStr << R"json(
-    {
-        "type": "FeatureCollection",
-        "features": [
-    )json";
+// static std::string rects_to_geojson(std::span<const IntersectionInfo> intersections, GeoMetadata::CellSize cellSize)
+// {
+//     std::stringstream geomStr;
+//     geomStr << R"json(
+//     {
+//         "type": "FeatureCollection",
+//         "features": [
+//     )json";
 
-    size_t i = 0;
-    for (const auto& isect : intersections) {
-        geomStr << "{ \"type\" : \"Feature\", \"geometry\" : { \"type\": \"Polygon\", \"coordinates\": [[";
+//     size_t i = 0;
+//     for (const auto& isect : intersections) {
+//         geomStr << "{ \"type\" : \"Feature\", \"geometry\" : { \"type\": \"Polygon\", \"coordinates\": [[";
 
-        geomStr << fmt::format("[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]",
-                               isect.rect.topLeft.x, isect.rect.topLeft.y,
-                               isect.rect.topLeft.x + cellSize.x, isect.rect.topLeft.y,
-                               isect.rect.topLeft.x + cellSize.x, isect.rect.topLeft.y + cellSize.y,
-                               isect.rect.topLeft.x, isect.rect.topLeft.y + cellSize.y,
-                               isect.rect.topLeft.x, isect.rect.topLeft.y);
+//         geomStr << fmt::format("[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]",
+//                                isect.rect.topLeft.x, isect.rect.topLeft.y,
+//                                isect.rect.topLeft.x + cellSize.x, isect.rect.topLeft.y,
+//                                isect.rect.topLeft.x + cellSize.x, isect.rect.topLeft.y + cellSize.y,
+//                                isect.rect.topLeft.x, isect.rect.topLeft.y + cellSize.y,
+//                                isect.rect.topLeft.x, isect.rect.topLeft.y);
 
-        geomStr << "]]},";
-        geomStr << fmt::format(R"json("properties": {{ "overlap": {}, "cell": {}, "perc": {} }})json", isect.overlapArea, isect.cellArea, isect.percentage);
-        geomStr << "}";
-        if (i + 1 < intersections.size()) {
-            geomStr << ",";
-        }
+//         geomStr << "]]},";
+//         geomStr << fmt::format(R"json("properties": {{ "overlap": {}, "cell": {}, "perc": {} }})json", isect.overlapArea, isect.cellArea, isect.percentage);
+//         geomStr << "}";
+//         if (i + 1 < intersections.size()) {
+//             geomStr << ",";
+//         }
 
-        ++i;
-    }
+//         ++i;
+//     }
 
-    geomStr << "]}";
+//     geomStr << "]}";
 
-    return geomStr.str();
-}
+//     return geomStr.str();
+// }
 
 /* Cut the country out of the grid, using the cellcoverage info, the extent of ras has to be the country subextent */
 static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& ras, const CountryCellCoverage& countryCoverage)
@@ -130,14 +130,6 @@ static gdx::DenseRaster<double> cutout_country(const gdx::DenseRaster<double>& r
         result[cell] = ras[cell] * cellInfo.coverage;
     }
 
-    return result;
-}
-
-/* Cut the country out of the grid, using the cellcoverage info and normalize the result */
-static gdx::DenseRaster<double> cutout_country_normalized(const gdx::DenseRaster<double>& ras, const CountryCellCoverage& countryCoverage)
-{
-    auto result = cutout_country(ras, countryCoverage);
-    normalize_raster(result);
     return result;
 }
 
@@ -201,7 +193,7 @@ static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const Ge
     return result;
 }
 
-static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages, GeoMetadata extent)
+static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages, GeoMetadata /*extent*/)
 {
     std::vector<CountryCellCoverage> result;
     result.reserve(cellCoverages.size());

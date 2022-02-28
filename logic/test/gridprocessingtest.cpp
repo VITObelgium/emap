@@ -24,12 +24,12 @@ using namespace inf;
 using namespace doctest;
 using namespace std::string_view_literals;
 
-static void sort_by_country(std::vector<CountryCellCoverage>& cov)
-{
-    std::sort(cov.begin(), cov.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
-        return lhs.country.iso_code() < rhs.country.iso_code();
-    });
-}
+// static void sort_by_country(std::vector<CountryCellCoverage>& cov)
+// {
+//     std::sort(cov.begin(), cov.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
+//         return lhs.country.iso_code() < rhs.country.iso_code();
+//     });
+// }
 
 TEST_CASE("create_geometry_extent")
 {

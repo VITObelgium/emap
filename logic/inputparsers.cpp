@@ -466,8 +466,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     auto layer = ds.layer(0);
     std::optional<date::year> year;
 
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
-    const auto gridData  = grid_data(GridDefinition::Flanders1km);
+    const auto gridData = grid_data(GridDefinition::Flanders1km);
 
     EmissionIdentifier id;
     id.country = country::BEF;
@@ -613,15 +612,6 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
     const auto& countries  = cfg.countries();
 
     // ISO2;YEAR;SECTOR;POLLUTANT;LONGITUDE;LATITUDE;UNIT;EMISSION
-
-    const int colCountry = 0;
-    // const int colYear      = 1;
-    const int colSector    = 2;
-    const int colPollutant = 3;
-    const int colLongitude = 4;
-    const int colLatitude  = 5;
-    const int colUnit      = 6;
-    const int colEmission  = 7;
 
     int lineNr = 1;
 

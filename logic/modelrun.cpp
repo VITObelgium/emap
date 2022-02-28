@@ -147,30 +147,6 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     return result;
 }
 
-static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
-{
-    auto filename = fmt::format("{}_OPS_{}", pol.code(), static_cast<int32_t>(year));
-    if (!suffix.empty()) {
-        filename += suffix;
-    }
-    filename += ".brn";
-
-    return fs::u8path(filename);
-}
-
-static std::vector<Country> countries_that_use_configured_grid(std::span<const Country> countries)
-{
-    std::vector<Country> result;
-
-    for (auto& country : countries) {
-        if (!country.is_belgium()) {
-            result.push_back(country);
-        }
-    }
-
-    return result;
-}
-
 static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMetadata::CellSize cellsize)
 {
     GeoMetadata result = meta;

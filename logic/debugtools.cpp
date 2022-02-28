@@ -96,11 +96,6 @@ private:
 
 void store_grid(const std::string& name, const inf::GeoMetadata& meta, const fs::path& path)
 {
-    double cellSizeX = meta.cell_size_x();
-    double cellSizeY = meta.cell_size_y();
-
-    auto topLeft = meta.top_left();
-
     auto memDriver = gdal::VectorDriver::create(gdal::VectorType::Memory);
     auto memDs     = memDriver.create_dataset();
     auto layer     = memDs.create_layer(name);
@@ -117,11 +112,7 @@ void store_grid(const std::string& name, const inf::GeoMetadata& meta, const fs:
     auto colIndex = layer.field_index(col.name());
 
     for (int r = 0; r < meta.rows; ++r) {
-        double y = topLeft.y + (r * cellSizeY);
-
         for (int c = 0; c < meta.cols; ++c) {
-            double x = topLeft.x + (c * cellSizeX);
-
             gdal::Feature feature(layer.layer_definition());
             feature.set_field(rowIndex, r);
             feature.set_field(colIndex, c);
@@ -155,9 +146,6 @@ void store_country_coverage_vector(const CountryCellCoverage& coverageInfo, cons
     builder.add_field<double>("coverage");
 
     const auto& meta = coverageInfo.outputSubgridExtent;
-
-    double cellSizeX = meta.cell_size_x();
-    double cellSizeY = meta.cell_size_y();
 
     auto geomFactory = geos::geom::GeometryFactory::create();
 
