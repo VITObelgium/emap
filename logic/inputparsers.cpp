@@ -85,15 +85,11 @@ static std::optional<double> parse_emission_value(std::string_view emission)
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
-    // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
+    // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type;subtype
 
     const auto& countryInv   = cfg.countries();
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
-
-    struct PointSourceIdentifier
-    {
-    };
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
@@ -112,7 +108,9 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         auto colWarmthContents = required_csv_column(csv, "warmteinhoud_MW");
         auto colFlowRate       = required_csv_column(csv, "debiet_Nm3/u");
         auto colEil            = required_csv_column(csv, "EIL_nummer");
-        auto colSubType        = csv.column_index("subtype");
+        auto colEilPoint       = required_csv_column(csv, "EIL_Emissiepunt_Jaar_Naam");
+
+        auto colSubType = csv.column_index("subtype");
 
         auto [colSector, sectorType] = determine_sector_column(csv);
         auto colX                    = csv.column_index("x");
@@ -141,9 +139,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                     subType = line.get_string(*colSubType);
                 }
 
-                size_t seed = 0;
-                hash_combine(seed, info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEil), subType);
-                info.set_source_id(std::to_string(seed));
+                info.set_source_id(fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEilPoint), line.get_string(colEil), subType));
 
                 if (colX.has_value() && colY.has_value()) {
                     auto x = line.get_int32(*colX);
