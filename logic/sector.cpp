@@ -98,6 +98,15 @@ const GnfrSector& EmissionSector::gnfr_sector() const noexcept
     return get_nfr_sector().gnfr();
 }
 
+const NfrSector& EmissionSector::nfr_sector() const
+{
+    if (type() == Type::Gnfr) {
+        throw RuntimeError("Not an nfr sector");
+    }
+
+    return get_nfr_sector();
+}
+
 int32_t EmissionSector::id() const noexcept
 {
     return std::visit([](auto& sectorType) {

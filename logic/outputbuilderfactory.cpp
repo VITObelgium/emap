@@ -12,20 +12,6 @@ namespace emap {
 
 using namespace inf;
 
-static std::string id_column_for_sector_level(SectorLevel level, std::string_view outputSectorLevelName)
-{
-    switch (level) {
-    case SectorLevel::GNFR:
-        return "GNFR sector";
-    case SectorLevel::NFR:
-        return "NFR Code";
-    case SectorLevel::Custom:
-        return std::string(outputSectorLevelName);
-    }
-
-    throw RuntimeError("Invalid sector level");
-}
-
 static std::string layer_name_for_sector_level(SectorLevel level, std::string_view outputSectorLevelName)
 {
     switch (level) {
@@ -34,7 +20,7 @@ static std::string layer_name_for_sector_level(SectorLevel level, std::string_vi
     case SectorLevel::NFR:
         return "nfr";
     case SectorLevel::Custom:
-        return std::string(outputSectorLevelName);
+        return str::lowercase(outputSectorLevelName);
     }
 
     throw RuntimeError("Invalid sector level");
@@ -48,7 +34,7 @@ std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_s
     auto ds    = gdal::VectorDataSet::open(diffuseParametersPath);
     auto layer = ds.layer(layer_name_for_sector_level(level, outputSectorLevelName));
 
-    const auto colId = layer.layer_definition().required_field_index(id_column_for_sector_level(level, outputSectorLevelName));
+    const auto colId = layer.layer_definition().required_field_index("Sector");
     const auto colHc = layer.layer_definition().required_field_index("hc(MW)");
     const auto colH  = layer.layer_definition().required_field_index("h(m)");
     const auto colS  = layer.layer_definition().required_field_index("s(m)");
@@ -110,7 +96,7 @@ std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
         auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
         auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
 
-        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg.output_sector_level());
+        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg);
     }
 
     throw RuntimeError("No known output builder for the specified grid definition");

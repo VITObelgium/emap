@@ -161,6 +161,11 @@ public:
      */
     const GnfrSector& gnfr_sector() const noexcept;
 
+    /*! If it is a gnfr sector: throws RuntimeError
+     *  If it is s nfr sector: returns the corresponding gnfr sector
+     */
+    const NfrSector& nfr_sector() const;
+
     int32_t id() const noexcept;
 
     bool is_land_sector() const noexcept;

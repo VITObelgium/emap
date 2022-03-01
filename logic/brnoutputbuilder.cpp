@@ -12,8 +12,9 @@ using namespace inf;
 
 BrnOutputBuilder::BrnOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
                                    std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
-                                   SectorLevel sectorLevel)
-: _sectorLevel(sectorLevel)
+                                   const RunConfiguration& cfg)
+: _sectorLevel(cfg.output_sector_level())
+, _cfg(cfg)
 , _sectorParams(std::move(sectorParams))
 , _pollutantParams(std::move(pollutantParams))
 {
@@ -51,12 +52,17 @@ void BrnOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 
 void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<int64_t> loc, double emission, int32_t cellSizeInM)
 {
-    // TODO: support custom sector mappings
+    assert(id.sector.type() == EmissionSector::Type::Nfr);
+    std::string mappedSectorName(id.sector.name());
+    if (_sectorLevel != SectorLevel::NFR) {
+        mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
+    }
+
     std::scoped_lock lock(_mutex);
-    auto& current = _diffuseSources[id.pollutant][output_level_name(id.sector)][id.country.id()][loc];
+    auto& current = _diffuseSources[id.pollutant][mappedSectorName][id.country.id()][loc];
     current.value += emission;
-    current.cellSize                              = cellSizeInM;
-    _sectorIdLookup[output_level_name(id.sector)] = id.sector.id();
+    current.cellSize                  = cellSizeInM;
+    _sectorIdLookup[mappedSectorName] = id.sector.id();
 }
 
 static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
@@ -92,7 +98,16 @@ void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg, WriteMode mode
             std::vector<BrnOutputEntry> entries;
 
             for (const auto& [sectorName, countryData] : sectorValues) {
-                const auto& sectorParams = _sectorParams.at(sectorName);
+                if (sectorName.empty()) {
+                    continue;
+                }
+
+                auto sectorParamsIter = _sectorParams.find(sectorName);
+                if (sectorParamsIter == _sectorParams.end()) {
+                    throw RuntimeError("No diffuse parameters configured for sector {}", sectorName);
+                }
+
+                const auto& sectorParams = sectorParamsIter->second;
                 for (const auto& [countryId, locationData] : countryData) {
                     for (const auto& [location, entry] : locationData) {
                         BrnOutputEntry brnEntry;
@@ -124,19 +139,4 @@ void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg, WriteMode mode
     }
 }
 
-std::string BrnOutputBuilder::output_level_name(const EmissionSector& sector) const
-{
-    assert(sector.type() == EmissionSector::Type::Nfr);
-
-    switch (_sectorLevel) {
-    case SectorLevel::GNFR:
-        return std::string(sector.gnfr_name());
-    case SectorLevel::NFR:
-        return std::string(sector.name());
-    case SectorLevel::Custom:
-        throw RuntimeError("Custom levels not implemented");
-    }
-
-    return std::string();
-}
 }
