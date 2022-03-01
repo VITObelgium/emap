@@ -132,7 +132,7 @@ TEST_CASE("Input parsers")
         SUBCASE("Belgian emissions xlsx (Wallonia)")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);
-            REQUIRE(emissions.size() == 3372);
+            REQUIRE(emissions.size() == 3429);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);

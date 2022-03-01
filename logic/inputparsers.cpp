@@ -188,12 +188,8 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
                 continue;
             }
 
-            auto emissionValue = parse_emission_value(value);
-            if (!emissionValue.has_value()) {
-                continue;
-            }
-
-            *emissionValue = to_giga_gram(*emissionValue, unit);
+            auto emissionValue = parse_emission_value(value).value_or(0.0);
+            emissionValue      = to_giga_gram(emissionValue, unit);
 
             const auto country = countryInv.try_country_from_string(countryStr);
             if (!country.has_value()) {

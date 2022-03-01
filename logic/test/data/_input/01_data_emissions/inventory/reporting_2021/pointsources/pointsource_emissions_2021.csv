@@ -1,4 +1,4 @@
-type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL_nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type
+type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL_nummer;exploitatie_naam;NACE_code;EIL_Emissiepunt_Jaar_Naam;Activiteit_type
 historic;NA;1990;BEF;1A1a;NOx;0.042;ton;95820;173080;10;0.25;100;0.012891667;420;Geleide emissie;9517302;EOC BELGIUM;20.13;WARMELUCHTBLAZER G18;B
 historic;NA;1990;BEF;1A1a;NOx;0.208;ton;148450;197211;27;0.5;;;0;Geleide emissie;14819701;PRAYON;20.13;DROGER SSF/PSF;B
 historic;NA;1990;BEF;1A2c;NMVOC;0.128;ton;205000;209000;0;0;182;0.033771111;560;Geleide emissie;20520901;AGC GLASS EUROPE VESTIGING MOL;23.11;STOOKINSTALLATIES;B

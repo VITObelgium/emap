@@ -41,6 +41,13 @@ static void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::
     });
 }
 
+void EmissionsCollector::add_point_emissions(std::span<const EmissionEntry> entries)
+{
+    for (auto& entry : entries) {
+        _outputBuilder->add_point_output_entry(entry);
+    }
+}
+
 void EmissionsCollector::add_diffuse_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> raster)
 {
     if (raster.contains_only_nodata()) {

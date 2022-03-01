@@ -221,13 +221,15 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     try {
                         EmissionIdentifier emissionId(cellCoverageInfo.country, EmissionSector(sector), pollutant);
 
+                        const auto emission = emissionInv.try_emission_with_id(emissionId);
+                        if (!emission.has_value()) {
+                            Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
+                            return;
+                        }
+
                         double emissionToSpread = 0.0;
                         if (isCoursestGrid) {
-                            if (const auto emission = emissionInv.try_emission_with_id(emissionId); emission.has_value()) {
-                                emissionToSpread = emission->scaled_diffuse_emissions();
-                            } else {
-                                Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
-                            }
+                            emissionToSpread = emission->scaled_diffuse_emissions_sum();
                         } else {
                             std::scoped_lock lock(mut);
                             if (auto* remainingEmission = find_in_map(remainingEmissions, emissionId); remainingEmission != nullptr) {
@@ -237,13 +239,25 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             }
                         }
 
-                        if (emissionToSpread == 0.0) {
+                        if (emissionToSpread == 0.0 && emission->point_emissions().empty()) {
                             return;
                         }
 
                         auto countryRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissionId, emissionToSpread, cellCoverageInfo, cfg);
                         if (countryRaster.empty()) {
                             return;
+                        }
+
+                        // Add the point sources to the grid
+                        for (auto pointEmission : emission->point_emissions()) {
+                            if (auto amount = pointEmission.value().amount(); amount.has_value()) {
+                                if (auto coord = pointEmission.coordinate(); coord.has_value()) {
+                                    auto cell = gridData.meta.convert_xy_to_cell(coord->x, coord->y);
+                                    if (gridData.meta.is_on_map(cell)) {
+                                        countryRaster[cell] += *amount;
+                                    }
+                                }
+                            }
                         }
 
                         double erasedEmission = 0.0;
@@ -260,6 +274,14 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             validator->add_diffuse_emissions(emissionId, countryRaster);
                         }
                         collector.add_diffuse_emissions(emissionId.country, sector, std::move(countryRaster));
+
+                        if (isCoursestGrid) {
+                            // Only add the point emissions once for the coursest grid as they are resolution independant
+                            collector.add_point_emissions(emission->scaled_point_emissions());
+                            if (validator) {
+                                validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
+                            }
+                        }
                     } catch (const std::exception& e) {
                         Log::error("Error spreading emission: {}", e.what());
                     }
@@ -298,9 +320,9 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         });
 
                         if (spatPat != nullptr) {
-                            auto raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions(), gridData.meta);
+                            auto raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions_sum(), gridData.meta);
                             if (raster.empty()) {
-                                raster = apply_uniform_spread(emission.scaled_diffuse_emissions(), flandersCoverage);
+                                raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
                             }
 
                             if (validator) {
@@ -308,6 +330,11 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             }
                             collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
                         }
+                    }
+
+                    collector.add_point_emissions(emission.scaled_point_emissions());
+                    if (validator) {
+                        validator->add_point_emissions(emissionId, emission.scaled_point_emissions_sum());
                     }
                 });
             }

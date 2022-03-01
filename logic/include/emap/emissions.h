@@ -51,6 +51,11 @@ public:
         return EmissionValue(_amount.value_or(0.0) + other._amount.value_or(0.0));
     }
 
+    EmissionValue operator*(double val) const noexcept
+    {
+        return EmissionValue(_amount.value_or(0.0) * val);
+    }
+
     EmissionValue& operator+=(const EmissionValue& other) noexcept
     {
         if (_amount.has_value()) {
@@ -263,17 +268,29 @@ public:
         return _pointEmissionEntries;
     }
 
-    double scaled_total_emissions() const noexcept
+    std::vector<EmissionEntry> scaled_point_emissions() const noexcept
     {
-        return scaled_point_emissions() + scaled_diffuse_emissions();
+        std::vector<EmissionEntry> result;
+        result.reserve(_pointEmissionEntries.size());
+        std::transform(_pointEmissionEntries.begin(), _pointEmissionEntries.end(), std::back_inserter(result), [=](const EmissionEntry& entry) {
+            auto scaledEntry = entry;
+            scaledEntry.set_value(entry.value() * _pointScaling);
+            return entry;
+        });
+        return result;
     }
 
-    double scaled_diffuse_emissions() const noexcept
+    double scaled_total_emissions_sum() const noexcept
+    {
+        return scaled_point_emissions_sum() + scaled_diffuse_emissions_sum();
+    }
+
+    double scaled_diffuse_emissions_sum() const noexcept
     {
         return _diffuseEmission * _diffuseScaling;
     }
 
-    double scaled_point_emissions() const noexcept
+    double scaled_point_emissions_sum() const noexcept
     {
         return point_emission_sum() * _pointScaling;
     }

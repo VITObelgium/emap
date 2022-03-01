@@ -56,9 +56,9 @@ TEST_CASE("Emission inventory")
         auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
             const auto emissions = inventory.emissions_with_id(id);
             REQUIRE(emissions.size() == 1);
-            CHECK_MESSAGE(emissions.front().scaled_diffuse_emissions() == expectedDiffuse, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().scaled_point_emissions() == expectedPoint, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().scaled_total_emissions() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_diffuse_emissions_sum() == expectedDiffuse, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_point_emissions_sum() == expectedPoint, fmt::format("{}", id));
+            CHECK_MESSAGE(emissions.front().scaled_total_emissions_sum() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
         });
 
         checkEmission(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 55.5, 0.0);

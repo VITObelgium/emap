@@ -12,6 +12,7 @@ namespace emap {
 class EmissionValidation
 {
 public:
+    void add_point_emissions(const EmissionIdentifier& id, double pointEmissionsTotal);
     void add_diffuse_emissions(const EmissionIdentifier& id, const gdx::DenseRaster<double>& raster);
     void write_summary(const EmissionInventory& emissionInv, const fs::path& outputPath) const;
 
