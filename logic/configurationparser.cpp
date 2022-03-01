@@ -4,6 +4,7 @@
 #include "infra/exception.h"
 #include "infra/gdal.h"
 #include "infra/log.h"
+#include "infra/string.h"
 
 #include <cassert>
 #include <filesystem>
@@ -428,7 +429,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 {
     try {
         const auto basePath     = tomlPath.parent_path();
-        const toml::table table = toml::parse(configContents, tomlPath.u8string());
+        const toml::table table = toml::parse(configContents, str::from_u8(tomlPath.u8string()));
         if (!table.contains("model")) {
             throw RuntimeError("No model section present in configuration file");
         }

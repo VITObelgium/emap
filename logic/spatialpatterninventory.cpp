@@ -20,7 +20,7 @@ static std::set<date::year> scan_available_years(const fs::path& spatialPatternP
 
     for (const auto& dirEntry : std::filesystem::directory_iterator(spatialPatternPath)) {
         if (dirEntry.is_directory()) {
-            if (auto year = str::to_int32(dirEntry.path().stem().u8string()); year.has_value()) {
+            if (auto year = str::to_int32(dirEntry.path().stem().string()); year.has_value()) {
                 years.emplace(*year);
             }
         }
@@ -81,7 +81,7 @@ SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorIn
 std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_cams(const fs::path& path) const
 {
     std::smatch baseMatch;
-    const std::string filename = path.stem().u8string();
+    const std::string filename = path.stem().string();
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
@@ -105,7 +105,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_ceip(const fs::path& path) const
 {
     std::smatch baseMatch;
-    const std::string filename = path.stem().u8string();
+    const std::string filename = path.stem().string();
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCeipRegex)) {
         try {
@@ -130,7 +130,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_belgium(const fs::path& path) const
 {
     std::smatch baseMatch;
-    const std::string filename = path.stem().u8string();
+    const std::string filename = path.stem().string();
 
     if (std::regex_match(filename, baseMatch, _spatialPatternBelgium1Regex)) {
         try {

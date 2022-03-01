@@ -69,7 +69,7 @@ static std::string sources_to_table(std::span<const SpatialPatternSource> source
         std::string type = spatial_pattern_source_type_to_string(sp.type);
         std::string year = sp.type == SpatialPatternSource::Type::UnfiformSpread ? "-" : std::to_string(static_cast<int>(sp.year));
 
-        table.add_row({sector, pollutant, type, year, sp.path.filename().generic_u8string()});
+        table.add_row({sector, pollutant, type, year, str::from_u8(sp.path.filename().generic_u8string())});
     }
 
     std::stringstream ss;
@@ -119,7 +119,7 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
         if (sp.type != SpatialPatternSource::Type::UnfiformSpread) {
             worksheet_write_number(ws, row, 3, static_cast<int>(sp.year), nullptr);
         }
-        worksheet_write_string(ws, row, 4, sp.path.filename().generic_u8string().c_str(), nullptr);
+        worksheet_write_string(ws, row, 4, str::from_u8(sp.path.filename().generic_u8string()).c_str(), nullptr);
 
         ++row;
     }
@@ -202,11 +202,11 @@ std::string RunSummary::emission_source_usage_table() const
     table.add_row({"Emission type", "Path"});
 
     for (const auto& ps : _pointSources) {
-        table.add_row({"Point source", ps.u8string()});
+        table.add_row({"Point source", str::from_u8(ps.u8string())});
     }
 
     for (const auto& ps : _totalsSources) {
-        table.add_row({"Totals", ps.u8string()});
+        table.add_row({"Totals", str::from_u8(ps.u8string())});
     }
 
     std::stringstream result;

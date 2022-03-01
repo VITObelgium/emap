@@ -182,7 +182,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
         std::unordered_map<EmissionIdentifier, int32_t> usedSectorPriories;
 
         using namespace io;
-        CSVReader<6, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(emissionsCsv.u8string());
+        CSVReader<6, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(str::from_u8(emissionsCsv.u8string()));
 
         int32_t year;
         char *countryStr, *sectorName, *pollutant, *unit, *value;
@@ -279,7 +279,7 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const Ru
 
 static Country detect_belgian_region_from_filename(const fs::path& path)
 {
-    auto filename = path.stem().u8string();
+    auto filename = path.stem().string();
     if (str::starts_with(filename, "BEB")) {
         return country::BEB; // Brussels
     } else if (str::starts_with(filename, "BEF")) {
@@ -605,7 +605,7 @@ static std::string process_ceip_sector(std::string_view str)
 gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatternPath, const EmissionIdentifier& id, const RunConfiguration& cfg)
 {
     using namespace io;
-    CSVReader<8, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(spatialPatternPath.u8string());
+    CSVReader<8, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow, single_line_comment<'#'>> in(str::from_u8(spatialPatternPath.u8string()));
 
     const auto& sectors    = cfg.sectors();
     const auto& pollutants = cfg.pollutants();

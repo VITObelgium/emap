@@ -21,7 +21,7 @@ TEST_CASE("Parse run configuration")
 
     SUBCASE("valid file")
     {
-        std::string_view tomlConfig = R"toml(
+        constexpr std::string_view tomlConfig = R"toml(
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
@@ -39,7 +39,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR));
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
@@ -60,7 +60,7 @@ TEST_CASE("Parse run configuration")
 
     SUBCASE("invalid file: no path quotes")
     {
-        std::string_view tomlConfig = R"toml(
+        constexpr std::string_view tomlConfig = R"toml(
             [model]
                 grid = "vlops1km"
                 datapath = _input
@@ -74,12 +74,12 @@ TEST_CASE("Parse run configuration")
                 sector_level = "GNFR"
         )toml";
 
-        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), RuntimeError);
+        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), RuntimeError);
     }
 
     SUBCASE("invalid file: year as string")
     {
-        std::string_view tomlConfig = R"toml(
+        constexpr std::string_view tomlConfig = R"toml(
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
@@ -96,12 +96,12 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
     }
 
     SUBCASE("invalid file: scenario is integer")
     {
-        std::string_view tomlConfig = R"toml(
+        constexpr std::string_view tomlConfig = R"toml(
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
@@ -119,7 +119,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, scaleFactors.generic_u8string()), fs::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
     }
 }
 

@@ -195,16 +195,15 @@ namespace fmt {
 template <>
 struct formatter<emap::EmissionSector>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
     {
         return ctx.begin();
     }
 
     template <typename FormatContext>
-    auto format(const emap::EmissionSector& val, FormatContext& ctx)
+    auto format(const emap::EmissionSector& val, FormatContext& ctx) const -> decltype(ctx.out())
     {
-        return format_to(ctx.out(), val.name());
+        return format_to(ctx.out(), "{}", val.name());
     }
 };
 }

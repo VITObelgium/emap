@@ -2,6 +2,7 @@
 
 #include "infra/exception.h"
 #include "infra/log.h"
+#include "infra/string.h"
 
 #include <string>
 #include <xlsxwriter.h>
@@ -12,11 +13,11 @@ namespace xl {
 class WorkBook
 {
 public:
-    WorkBook(const std::string& name)
-    : _ptr(workbook_new(name.c_str()))
+    WorkBook(const fs::path& path)
+    : _ptr(workbook_new(inf::str::from_u8(path.u8string()).c_str()))
     {
         if (!_ptr) {
-            throw inf::RuntimeError("Failed to create workbook: {}", name);
+            throw inf::RuntimeError("Failed to create workbook: {}", path);
         }
     }
 
