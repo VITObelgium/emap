@@ -15,7 +15,6 @@
 
 #include "infra/chrono.h"
 #include "infra/exception.h"
-#include "infra/log.h"
 
 #include "gdx/algo/sum.h"
 #include "gdx/denserasterio.h"
@@ -25,8 +24,6 @@
 #include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
-
-#include <fmt/printf.h>
 
 namespace emap {
 
@@ -156,7 +153,7 @@ static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMe
     return result;
 }
 
-void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
+void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
 {
     Log::debug("Create country coverages");
 
@@ -167,10 +164,6 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
-    std::unique_ptr<EmissionValidation> validator;
-    if (cfg.validation_type() == ValidationType::SumValidation) {
-        validator = std::make_unique<EmissionValidation>();
-    }
 
     for (auto gridIter = gridDefinitions.begin(); gridIter != gridDefinitions.end(); ++gridIter) {
         bool isCoursestGrid = gridIter == gridDefinitions.begin();
@@ -214,9 +207,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     if (cellCoverageInfo.country.is_belgium()) {
                         return;
                     }
-                    // if (cellCoverageInfo.country.iso_code() != "ES" || sector.name() != "1A3bi" || pollutant.code() != "As") {
-                    //     return;
-                    // }
+
+                    /*if (cellCoverageInfo.country.iso_code() != "MD" || sector.name() != "1A4bi" || pollutant.code() != "NMVOC") {
+                        return;
+                    }*/
 
                     try {
                         EmissionIdentifier emissionId(cellCoverageInfo.country, EmissionSector(sector), pollutant);
@@ -319,17 +313,19 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             return src.id == emissionId;
                         });
 
+                        gdx::DenseRaster<double> raster;
                         if (spatPat != nullptr) {
-                            auto raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions_sum(), gridData.meta);
-                            if (raster.empty()) {
-                                raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
-                            }
-
-                            if (validator) {
-                                validator->add_diffuse_emissions(emissionId, raster);
-                            }
-                            collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
+                            raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions_sum(), gridData.meta);
                         }
+
+                        if (raster.empty()) {
+                            raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
+                        }
+
+                        if (validator) {
+                            validator->add_diffuse_emissions(emissionId, raster);
+                        }
+                        collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
                     }
 
                     collector.add_point_emissions(emission.scaled_point_emissions());
@@ -341,10 +337,6 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
             collector.write_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
         }
-    }
-
-    if (validator) {
-        validator->write_summary(emissionInv, cfg.output_path() / "emission_validation.xlsx");
     }
 }
 
@@ -490,30 +482,28 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
         scalingsDiffuse = parse_scaling_factors(path, cfg);
     }
 
+    std::unique_ptr<EmissionValidation> validator;
+    if (cfg.validation_type() == ValidationType::SumValidation) {
+        validator = std::make_unique<EmissionValidation>();
+    }
+
     Log::debug("Generate emission inventory");
     chrono::DurationRecorder dur;
     const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
-    Log::debug("Spread emissions");
-    dur.reset();
-    spread_emissions(inventory, spatPatInv, cfg, progressCb);
-    Log::debug("Spread emissions took {}", dur.elapsed_time_string());
-
-    // Write the summary
     {
-        const auto summaryPath = cfg.run_summary_path();
-        file::create_directory_for_file(summaryPath);
+        chrono::ScopedDurationLog d("Spread emissions");
+        spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
+    }
 
-        file::Handle fp(summaryPath, "wt");
-        if (fp.is_open()) {
-            fmt::fprintf(fp, "Used emissions\n");
-            fmt::fprintf(fp, summary.emission_source_usage_table());
-            fmt::fprintf(fp, "\nUsed spatial patterns\n");
-            fmt::fprintf(fp, summary.spatial_pattern_usage_table());
+    {
+        chrono::ScopedDurationLog d("Write model run summary");
+        if (validator) {
+            summary.set_validation_results(validator->create_summary(inventory));
         }
 
-        summary.write_summary_spreadsheet(cfg.run_summary_spreadsheet_path());
+        summary.write_summary(cfg.output_path());
     }
 }
 }

@@ -3,6 +3,7 @@
 #include "emap/emissions.h"
 #include "infra/filesystem.h"
 
+#include "emissionvalidation.h"
 #include "spatialpatterninventory.h"
 
 #include <unordered_map>
@@ -22,9 +23,12 @@ public:
 
     void add_gnfr_correction(const EmissionIdentifier& id, std::optional<double> validatedGnfrTotal, double summedGnfrTotal, double correction);
 
+    void set_validation_results(std::vector<EmissionValidation::SummaryEntry> results);
+
     std::string spatial_pattern_usage_table() const;
     std::string emission_source_usage_table() const;
-    void write_summary_spreadsheet(const fs::path& path) const;
+
+    void write_summary(const fs::path& outputDir) const;
 
 private:
     struct GnfrCorrection
@@ -36,12 +40,16 @@ private:
     };
 
     void gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const GnfrCorrection> corrections) const;
+    void write_summary_spreadsheet(const fs::path& path) const;
+    void write_summary_text_file(const fs::path& path) const;
+    void write_validation_results(const fs::path& path) const;
 
     std::vector<SpatialPatternSource> _spatialPatterns;
     std::unordered_map<Country, std::vector<SpatialPatternSource>> _countrySpecificSpatialPatterns;
     std::vector<fs::path> _pointSources;
     std::vector<fs::path> _totalsSources;
     std::vector<GnfrCorrection> _gnfrCorrections;
+    std::vector<EmissionValidation::SummaryEntry> _validationResults;
 };
 
 }

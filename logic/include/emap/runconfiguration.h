@@ -71,8 +71,6 @@ public:
     const fs::path& output_path() const noexcept;
     fs::path countries_vector_path() const noexcept;
     std::string country_field_id() const noexcept;
-    fs::path run_summary_path() const;
-    fs::path run_summary_spreadsheet_path() const;
 
     ModelGrid model_grid() const noexcept;
     RunType run_type() const noexcept;

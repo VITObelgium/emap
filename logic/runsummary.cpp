@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <fmt/printf.h>
 #include <tabulate/table.hpp>
 
 namespace emap {
@@ -38,6 +39,11 @@ void RunSummary::add_totals_source(const fs::path& totalsSource)
 void RunSummary::add_gnfr_correction(const EmissionIdentifier& id, std::optional<double> validatedGnfrTotal, double summedGnfrTotal, double correction)
 {
     _gnfrCorrections.push_back({id, validatedGnfrTotal, summedGnfrTotal, correction});
+}
+
+void RunSummary::set_validation_results(std::vector<EmissionValidation::SummaryEntry> results)
+{
+    _validationResults = std::move(results);
 }
 
 static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::Type type)
@@ -214,12 +220,22 @@ std::string RunSummary::emission_source_usage_table() const
     return result.str();
 }
 
+void RunSummary::write_summary(const fs::path& outputDir) const
+{
+    write_summary_spreadsheet(outputDir / "summary.xlsx");
+    write_summary_text_file(outputDir / "summary.txt");
+
+    if (!_validationResults.empty()) {
+        write_validation_results(outputDir / "emission_validation.xlsx");
+    }
+}
+
 void RunSummary::write_summary_spreadsheet(const fs::path& path) const
 {
     std::error_code ec;
     fs::remove(path, ec);
 
-    xl::WorkBook wb(path.generic_u8string());
+    xl::WorkBook wb(path);
 
     for (auto& [region, sources] : _countrySpecificSpatialPatterns) {
         sources_to_spreadsheet(wb, std::string(region.iso_code()), sources);
@@ -227,6 +243,75 @@ void RunSummary::write_summary_spreadsheet(const fs::path& path) const
 
     sources_to_spreadsheet(wb, "rest", _spatialPatterns);
     gnfr_corrections_to_spreadsheet(wb, "emission correction", _gnfrCorrections);
+}
+
+void RunSummary::write_summary_text_file(const fs::path& path) const
+{
+    file::create_directory_for_file(path);
+
+    file::Handle fp(path, "wt");
+    if (fp.is_open()) {
+        fmt::fprintf(fp, "Used emissions\n");
+        fmt::fprintf(fp, emission_source_usage_table());
+        fmt::fprintf(fp, "\nUsed spatial patterns\n");
+        fmt::fprintf(fp, spatial_pattern_usage_table());
+    }
+}
+
+void RunSummary::write_validation_results(const fs::path& path) const
+{
+    struct ColumnInfo
+    {
+        const char* header = nullptr;
+        double width       = 0.0;
+    };
+
+    const std::array<ColumnInfo, 6> headers = {
+        ColumnInfo{"Country", 15.0},
+        ColumnInfo{"Pollutant", 15.0},
+        ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"Input emission", 15.0},
+        ColumnInfo{"Output emission", 15.0},
+        ColumnInfo{"Diff", 15.0},
+    };
+
+    std::error_code ec;
+    fs::remove(path, ec);
+
+    xl::WorkBook wb(path);
+    auto* ws = workbook_add_worksheet(wb, "Validation");
+    if (!ws) {
+        throw RuntimeError("Failed to add sheet to excel document");
+    }
+
+    auto* headerFormat = workbook_add_format(wb);
+    format_set_bold(headerFormat);
+    format_set_bg_color(headerFormat, 0xD5EBFF);
+
+    for (int i = 0; i < truncate<int>(headers.size()); ++i) {
+        worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
+        worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
+    }
+
+    int row = 1;
+    for (const auto& summaryEntry : _validationResults) {
+        const auto& emissionId = summaryEntry.id;
+
+        std::string sector(emissionId.sector.name());
+        std::string pollutant(emissionId.pollutant.code());
+        std::string country(emissionId.country.iso_code());
+
+        worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
+        worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
+        worksheet_write_number(ws, row, 3, summaryEntry.emissionInventoryTotal, nullptr);
+        if (summaryEntry.spreadTotal.has_value()) {
+            worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, nullptr);
+            worksheet_write_number(ws, row, 5, summaryEntry.diff(), nullptr);
+        }
+
+        ++row;
+    }
 }
 
 }
