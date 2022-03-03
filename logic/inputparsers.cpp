@@ -206,7 +206,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
 
                     if (auto iter = usedSectorPriories.find(id); iter != usedSectorPriories.end()) {
                         // Sector was already processed, check if the current priority is higher
-                        if (priority > iter->second) {
+                        if (priority > iter->second && emissionValue > 0.0) {
                             // the current entry has a higher priority, update the map
                             iter->second = priority;
                             result.update_emission(std::move(info));

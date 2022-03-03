@@ -71,7 +71,10 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
         double correction         = 1.0;
 
         if (gnfrBasedTotal.has_value()) {
-            correction = *gnfrBasedTotal / nfrBasedTotal;
+            if (nfrBasedTotal > 0) {
+                correction = *gnfrBasedTotal / nfrBasedTotal;
+            }
+
             summary.add_gnfr_correction(id, *gnfrBasedTotal, nfrBasedTotal, correction);
         } else {
             summary.add_gnfr_correction(id, {}, nfrBasedTotal, 1.0);
@@ -111,7 +114,7 @@ EmissionInventory create_emission_inventory(const SingleEmissions& totalEmission
             pointSourceEntries = pointSourceEmissions.emissions_with_id(em.id());
             pointEmissionSum   = std::accumulate(pointSourceEntries.cbegin(), pointSourceEntries.cend(), 0.0, [](double total, const auto& current) {
                 return total + current.value().amount().value_or(0.0);
-            });
+              });
 
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
                 // Check if the difference is caused by floating point rounding
@@ -121,7 +124,6 @@ EmissionInventory create_emission_inventory(const SingleEmissions& totalEmission
                 } else {
                     throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
                 }
-            } else {
             }
         } else {
             // Rest of Europe

@@ -157,6 +157,9 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
     format_set_bold(headerFormat);
     format_set_bg_color(headerFormat, 0xD5EBFF);
 
+    auto* formatNumber = workbook_add_format(wb);
+    format_set_num_format(formatNumber, "0.000000000");
+
     for (int i = 0; i < truncate<int>(headers.size()); ++i) {
         worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
         worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
@@ -172,11 +175,11 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
         if (correction.validatedGnfrTotal.has_value()) {
-            worksheet_write_number(ws, row, 3, *correction.validatedGnfrTotal, nullptr);
+            worksheet_write_number(ws, row, 3, *correction.validatedGnfrTotal, formatNumber);
         }
-        worksheet_write_number(ws, row, 4, correction.summedGnfrTotal, nullptr);
+        worksheet_write_number(ws, row, 4, correction.summedGnfrTotal, formatNumber);
         if (std::isfinite(correction.correction)) {
-            worksheet_write_number(ws, row, 5, correction.correction, nullptr);
+            worksheet_write_number(ws, row, 5, correction.correction, formatNumber);
         }
 
         ++row;
@@ -288,6 +291,9 @@ void RunSummary::write_validation_results(const fs::path& path) const
     format_set_bold(headerFormat);
     format_set_bg_color(headerFormat, 0xD5EBFF);
 
+    auto* formatNumber = workbook_add_format(wb);
+    format_set_num_format(formatNumber, "0.000000000");
+
     for (int i = 0; i < truncate<int>(headers.size()); ++i) {
         worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
         worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
@@ -304,10 +310,10 @@ void RunSummary::write_validation_results(const fs::path& path) const
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
-        worksheet_write_number(ws, row, 3, summaryEntry.emissionInventoryTotal, nullptr);
+        worksheet_write_number(ws, row, 3, summaryEntry.emissionInventoryTotal, formatNumber);
         if (summaryEntry.spreadTotal.has_value()) {
-            worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, nullptr);
-            worksheet_write_number(ws, row, 5, summaryEntry.diff(), nullptr);
+            worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, formatNumber);
+            worksheet_write_number(ws, row, 5, summaryEntry.diff(), formatNumber);
         }
 
         ++row;
