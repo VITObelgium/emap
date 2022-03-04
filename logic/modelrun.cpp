@@ -438,6 +438,32 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
     return gnfrTotalEmissions;
 }
 
+static void clean_output_directory(const fs::path& p)
+{
+    if (!fs::exists(p)) {
+        return;
+    }
+
+    Log::debug("Clean output directory");
+    try {
+        for (auto& entry : fs::directory_iterator(p)) {
+            if (entry.is_regular_file()) {
+                // Don't remove the log file we have in use
+                if (entry.path().extension() != ".log") {
+                    fs::remove(entry);
+                }
+            } else if (entry.is_directory()) {
+                fs::remove_all(entry.path());
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        Log::error(e.what());
+        throw RuntimeError("Failed to clean up existing output directory, make sure none of the files are opened");
+    }
+
+    Log::debug("Output directory cleaned up");
+}
+
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
@@ -447,16 +473,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants(), cfg.countries(), cfg.spatial_pattern_exceptions());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
-    // if (fs::exists(cfg.output_path())) {
-    //     Log::debug("Clean output directory");
-    //     try {
-    //         fs::remove_all(cfg.output_path());
-    //     } catch (const fs::filesystem_error& e) {
-    //         Log::error(e.what());
-    //         throw RuntimeError("Failed to clean up existing output directory, make sure none of the files are opened");
-    //     }
-    //     Log::debug("Output directory cleaned up");
-    // }
+    clean_output_directory(cfg.output_path());
 
     // Create the list of spatial patterns that will be used in the model
     for (auto country : cfg.countries().list()) {
