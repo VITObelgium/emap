@@ -259,9 +259,11 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         if (subGridMeta.has_value()) {
                             // Erase the region in the subgrid for which we will perform a higher resolution calculation
                             erasedEmission = erase_area_in_raster_and_sum_erased_values(countryRaster, *subGridMeta);
+                            std::scoped_lock lock(mut);
                             if (erasedEmission > 0) {
-                                std::scoped_lock lock(mut);
                                 remainingEmissions[emissionId] = erasedEmission;
+                            } else {
+                                remainingEmissions.erase(emissionId);
                             }
                         }
 
