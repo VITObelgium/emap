@@ -97,6 +97,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::Vlops60km, GridDefinition::Vlops5km, GridDefinition::Vlops1km};
     case ModelGrid::Vlops250m:
         return {GridDefinition::Vlops60km, GridDefinition::Vlops5km, GridDefinition::Vlops250m};
+    default:
+        break;
     }
 
     throw RuntimeError("Invalid model grid provided");

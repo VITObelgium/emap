@@ -154,6 +154,23 @@ static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMe
     return result;
 }
 
+static void add_point_sources_to_grid(std::span<const EmissionEntry> pointEmissions, gdx::DenseRaster<double>& raster)
+{
+    const auto& meta = raster.metadata();
+
+    // Add the point sources to the grid
+    for (auto pointEmission : pointEmissions) {
+        if (auto amount = pointEmission.value().amount(); amount.has_value()) {
+            if (auto coord = pointEmission.coordinate(); coord.has_value()) {
+                auto cell = meta.convert_xy_to_cell(coord->x, coord->y);
+                if (meta.is_on_map(cell)) {
+                    raster[cell] += *amount;
+                }
+            }
+        }
+    }
+}
+
 void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
 {
     Log::debug("Create country coverages");
@@ -244,16 +261,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         }
 
                         // Add the point sources to the grid
-                        for (auto pointEmission : emission->point_emissions()) {
-                            if (auto amount = pointEmission.value().amount(); amount.has_value()) {
-                                if (auto coord = pointEmission.coordinate(); coord.has_value()) {
-                                    auto cell = gridData.meta.convert_xy_to_cell(coord->x, coord->y);
-                                    if (gridData.meta.is_on_map(cell)) {
-                                        countryRaster[cell] += *amount;
-                                    }
-                                }
-                            }
-                        }
+                        add_point_sources_to_grid(emission->point_emissions(), countryRaster);
 
                         double erasedEmission = 0.0;
                         if (subGridMeta.has_value()) {
@@ -308,33 +316,36 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         }
                     }
 
-                    auto flandersGrid = grid_data(GridDefinition::Flanders1km);
-                    auto emission     = emissionInv.emission_with_id(emissionId);
+                    auto emission = emissionInv.emission_with_id(emissionId);
 
+                    gdx::DenseRaster<double> raster;
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
                         const auto* spatPat = inf::find_in_container(spatialPatterns, [&](const SpatialPatternData& src) {
                             return src.id == emissionId;
                         });
 
-                        gdx::DenseRaster<double> raster;
                         if (spatPat != nullptr) {
                             raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions_sum(), gridData.meta);
                         }
-
-                        if (raster.empty()) {
-                            raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
-                        }
-
-                        if (validator) {
-                            validator->add_diffuse_emissions(emissionId, raster);
-                        }
-                        collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
+                    } else if (spatialPattern.type == SpatialPatternSource::Type::RasterException) {
+                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission.id(), emission.scaled_diffuse_emissions_sum(), flandersCoverage);
                     }
 
-                    collector.add_point_emissions(emission.scaled_point_emissions());
+                    if (raster.empty()) {
+                        Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
+                        raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
+                    }
+
+                    // TODO: grid is not always in lambert, transform if needed or make sure it is done in the input parser
+                    add_point_sources_to_grid(emission.point_emissions(), raster);
+
                     if (validator) {
+                        validator->add_diffuse_emissions(emissionId, raster);
                         validator->add_point_emissions(emissionId, emission.scaled_point_emissions_sum());
                     }
+
+                    collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
+                    collector.add_point_emissions(emission.scaled_point_emissions());
                 });
             }
 
