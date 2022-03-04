@@ -178,6 +178,15 @@ GnfrSector SectorInventory::gnfr_sector_from_string(std::string_view str) const
     throw RuntimeError("Invalid gnfr sector name: '{}'", str);
 }
 
+GnfrSector SectorInventory::gnfr_sector_from_code_string(std::string_view str) const
+{
+    if (auto iter = find_sector_with_code(str, _gnfrSectors); iter != _gnfrSectors.end()) {
+        return *iter;
+    }
+
+    throw RuntimeError("Invalid gnfr sector code: '{}'", str);
+}
+
 NfrSector SectorInventory::nfr_sector_from_string(std::string_view str) const
 {
     if (auto sector = try_nfr_sector_from_string(str); sector.has_value()) {

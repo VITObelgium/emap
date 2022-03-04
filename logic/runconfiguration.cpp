@@ -22,6 +22,7 @@ std::string run_type_name(RunType type)
 
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
+    const fs::path& spatialPatternExceptions,
     ModelGrid grid,
     RunType runType,
     ValidationType validation,
@@ -33,6 +34,7 @@ RunConfiguration::RunConfiguration(
     CountryInventory countries,
     Output outputConfig)
 : _dataPath(dataPath)
+, _spatialPatternExceptions(spatialPatternExceptions)
 , _grid(grid)
 , _runType(runType)
 , _validation(validation)
@@ -109,6 +111,11 @@ const fs::path& RunConfiguration::data_root() const noexcept
 const fs::path& RunConfiguration::output_path() const noexcept
 {
     return _outputConfig.path;
+}
+
+const fs::path& RunConfiguration::spatial_pattern_exceptions() const noexcept
+{
+    return _spatialPatternExceptions;
 }
 
 fs::path RunConfiguration::countries_vector_path() const noexcept

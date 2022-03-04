@@ -44,6 +44,7 @@ public:
 
     RunConfiguration(
         const fs::path& dataPath,
+        const fs::path& spatialPatternExceptions,
         ModelGrid grid,
         RunType runType,
         ValidationType validation,
@@ -69,6 +70,7 @@ public:
 
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
+    const fs::path& spatial_pattern_exceptions() const noexcept;
     fs::path countries_vector_path() const noexcept;
     std::string country_field_id() const noexcept;
 
@@ -103,6 +105,7 @@ private:
     fs::path emissions_dir_path() const;
 
     fs::path _dataPath;
+    fs::path _spatialPatternExceptions;
     ModelGrid _grid;
     RunType _runType;
     ValidationType _validation;

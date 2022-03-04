@@ -21,11 +21,6 @@ void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
     _spatialPatterns.push_back(source);
 }
 
-void RunSummary::add_country_specific_spatial_pattern_source(const Country& country, const SpatialPatternSource& source)
-{
-    _countrySpecificSpatialPatterns[country].push_back(source);
-}
-
 void RunSummary::add_point_source(const fs::path& pointSource)
 {
     _pointSources.push_back(pointSource);
@@ -57,30 +52,11 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
         return "Excel";
     case emap::SpatialPatternSource::Type::UnfiformSpread:
         return "Uniform spread";
+    case emap::SpatialPatternSource::Type::RasterException:
+        return "Exception";
     }
 
     return "";
-}
-
-static std::string sources_to_table(std::span<const SpatialPatternSource> sources)
-{
-    using namespace tabulate;
-
-    Table table;
-    table.add_row({"Sector", "Pollutant", "Type", "Year", "Path"});
-
-    for (const auto& sp : sources) {
-        std::string sector(sp.emissionId.sector.name());
-        std::string pollutant(sp.emissionId.pollutant.code());
-        std::string type = spatial_pattern_source_type_to_string(sp.type);
-        std::string year = sp.type == SpatialPatternSource::Type::UnfiformSpread ? "-" : std::to_string(static_cast<int>(sp.year));
-
-        table.add_row({sector, pollutant, type, year, str::from_u8(sp.path.filename().generic_u8string())});
-    }
-
-    std::stringstream ss;
-    ss << table;
-    return ss.str();
 }
 
 static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSource> sources)
@@ -91,7 +67,8 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
         double width       = 0.0;
     };
 
-    const std::array<ColumnInfo, 5> headers = {
+    const std::array<ColumnInfo, 6> headers = {
+        ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"Pollutant", 15.0},
         ColumnInfo{"Type", 15.0},
@@ -115,20 +92,25 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
 
     int row = 1;
     for (const auto& sp : sources) {
+        std::string country(sp.emissionId.country.iso_code());
         std::string sector(sp.emissionId.sector.name());
         std::string pollutant(sp.emissionId.pollutant.code());
         std::string type = spatial_pattern_source_type_to_string(sp.type);
 
-        worksheet_write_string(ws, row, 0, sector.c_str(), nullptr);
-        worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
-        worksheet_write_string(ws, row, 2, type.c_str(), nullptr);
-        if (sp.type != SpatialPatternSource::Type::UnfiformSpread) {
-            worksheet_write_number(ws, row, 3, static_cast<int>(sp.year), nullptr);
+        worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
+        worksheet_write_string(ws, row, 1, sector.c_str(), nullptr);
+        worksheet_write_string(ws, row, 2, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, 3, type.c_str(), nullptr);
+        if (sp.type != SpatialPatternSource::Type::UnfiformSpread &&
+            sp.type != SpatialPatternSource::Type::RasterException) {
+            worksheet_write_number(ws, row, 4, static_cast<int>(sp.year), nullptr);
         }
-        worksheet_write_string(ws, row, 4, str::from_u8(sp.path.filename().generic_u8string()).c_str(), nullptr);
+        worksheet_write_string(ws, row, 5, str::from_u8(sp.path.generic_u8string()).c_str(), nullptr);
 
         ++row;
     }
+
+    worksheet_autofilter(ws, 0, 0, row, 5);
 }
 
 void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const GnfrCorrection> corrections) const
@@ -184,23 +166,8 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
 
         ++row;
     }
-}
 
-std::string RunSummary::spatial_pattern_usage_table() const
-{
-    using namespace tabulate;
-
-    std::stringstream result;
-
-    for (auto& [region, sources] : _countrySpecificSpatialPatterns) {
-        result << fmt::format("{} ({})\n", region.full_name(), region.iso_code());
-        result << sources_to_table(sources);
-    }
-
-    result << fmt::format("\nOther regions\n");
-    result << sources_to_table(_spatialPatterns);
-
-    return result.str();
+    worksheet_autofilter(ws, 0, 0, row, 5);
 }
 
 std::string RunSummary::emission_source_usage_table() const
@@ -227,10 +194,6 @@ void RunSummary::write_summary(const fs::path& outputDir) const
 {
     write_summary_spreadsheet(outputDir / "summary.xlsx");
     write_summary_text_file(outputDir / "summary.txt");
-
-    if (!_validationResults.empty()) {
-        write_validation_results(outputDir / "emission_validation.xlsx");
-    }
 }
 
 void RunSummary::write_summary_spreadsheet(const fs::path& path) const
@@ -240,12 +203,9 @@ void RunSummary::write_summary_spreadsheet(const fs::path& path) const
 
     xl::WorkBook wb(path);
 
-    for (auto& [region, sources] : _countrySpecificSpatialPatterns) {
-        sources_to_spreadsheet(wb, std::string(region.iso_code()), sources);
-    }
-
-    sources_to_spreadsheet(wb, "rest", _spatialPatterns);
+    sources_to_spreadsheet(wb, "spatial patterns", _spatialPatterns);
     gnfr_corrections_to_spreadsheet(wb, "emission correction", _gnfrCorrections);
+    validation_results_to_spreadsheet(wb, "result validation", _validationResults);
 }
 
 void RunSummary::write_summary_text_file(const fs::path& path) const
@@ -256,13 +216,15 @@ void RunSummary::write_summary_text_file(const fs::path& path) const
     if (fp.is_open()) {
         fmt::fprintf(fp, "Used emissions\n");
         fmt::fprintf(fp, emission_source_usage_table());
-        fmt::fprintf(fp, "\nUsed spatial patterns\n");
-        fmt::fprintf(fp, spatial_pattern_usage_table());
     }
 }
 
-void RunSummary::write_validation_results(const fs::path& path) const
+void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const EmissionValidation::SummaryEntry> validationResults) const
 {
+    if (validationResults.empty()) {
+        return;
+    }
+
     struct ColumnInfo
     {
         const char* header = nullptr;
@@ -278,11 +240,7 @@ void RunSummary::write_validation_results(const fs::path& path) const
         ColumnInfo{"Diff", 15.0},
     };
 
-    std::error_code ec;
-    fs::remove(path, ec);
-
-    xl::WorkBook wb(path);
-    auto* ws = workbook_add_worksheet(wb, "Validation");
+    auto* ws = workbook_add_worksheet(wb, tabName.c_str());
     if (!ws) {
         throw RuntimeError("Failed to add sheet to excel document");
     }
@@ -313,11 +271,13 @@ void RunSummary::write_validation_results(const fs::path& path) const
         worksheet_write_number(ws, row, 3, summaryEntry.emissionInventoryTotal, formatNumber);
         if (summaryEntry.spreadTotal.has_value()) {
             worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, formatNumber);
-            worksheet_write_number(ws, row, 5, summaryEntry.diff(), formatNumber);
+            worksheet_write_number(ws, row, 5, std::abs(summaryEntry.diff()), formatNumber);
         }
 
         ++row;
     }
+
+    worksheet_autofilter(ws, 0, 0, row, 5);
 }
 
 }

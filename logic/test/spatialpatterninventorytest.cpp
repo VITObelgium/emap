@@ -20,14 +20,18 @@ TEST_CASE("Spatial pattern selection test")
     auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
                                                fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
 
+    auto countryInventory = parse_countries(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
+
     pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
 
-    SpatialPatternInventory inv(sectorInventory, pollutantInventory);
+    auto exceptionsPath = fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "exceptions_spatial_disaggregation.xlsx";
+
+    SpatialPatternInventory inv(sectorInventory, pollutantInventory, countryInventory, exceptionsPath);
     inv.scan_dir(2021_y, 2016_y, fs::u8path(TEST_DATA_DIR) / "spatialinventory");
 
     {
         // Available in 2016 at gnfr level: Industry
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::CO, EmissionSector(sectors::nfr::Nfr1A2b));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::CO));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.1_2016_co_B_Industry.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::CO);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
@@ -38,7 +42,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Fallback pollutant Available in 2016 at gnfr level: Industry
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::PMcoarse, EmissionSector(sectors::nfr::Nfr1A2b));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PMcoarse));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.1_2016_pm10_B_Industry.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::PMcoarse);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
@@ -49,7 +53,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Fallback pollutant Available in 2015 at gnfr level: Waste
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::PMcoarse, EmissionSector(sectors::nfr::Nfr5C1bv));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5C1bv), pollutants::PMcoarse));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2015" / "CAMS_emissions_REG-APv5.1_2015_pm10_J_Waste.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::PMcoarse);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C1bv));
@@ -60,7 +64,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2016 at gnfr level: Public power
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::SOx, EmissionSector(sectors::nfr::Nfr1A1a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::SOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.1_2016_so2_A_PublicPower.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::SOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
@@ -71,7 +75,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2016 at gnfr level: Industry, cams version in filename is different
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::CO, EmissionSector(sectors::nfr::Nfr1A1a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.3_2016_co_A_PublicPower.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::CO);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
@@ -82,7 +86,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2016 at nfr
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::PM2_5, EmissionSector(sectors::nfr::Nfr5C2));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5C2), pollutants::PM2_5));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2016" / "CAMS_emissions_REG-APv5.1_2016_pm2_5_5C2.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::PM2_5);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C2));
@@ -93,7 +97,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2015 at gnfr (not in 2016)
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NOx, EmissionSector(sectors::nfr::Nfr3Da1));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr3Da1), pollutants::NOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2015" / "CAMS_emissions_REG-APv5.1_2015_nox_L_AgriOther.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr3Da1));
@@ -104,7 +108,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2017 at gnfr (not in 2016 or 2015)
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NOx, EmissionSector(sectors::nfr::Nfr2D3d));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr2D3d), pollutants::NOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2017" / "CAMS_emissions_REG-APv5.1_2017_nox_E_Solvents.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr2D3d));
@@ -115,7 +119,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2018 at gnfr (not in 2016 or 2015 or 2017 or 2014)
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NOx, EmissionSector(sectors::nfr::Nfr1B2b));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1B2b), pollutants::NOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2018" / "CAMS_emissions_REG-APv5.1_2018_nox_D_Fugitives.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1B2b));
@@ -126,7 +130,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2010 at gnfr (not in 2016 or 2015 or 2017 or 2014 or 2018 or ...)
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NOx, EmissionSector(sectors::nfr::Nfr1A4bi));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A4bi), pollutants::NOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2010" / "CAMS_emissions_REG-APv5.1_2010_nox_I_OffRoad.tif");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A4bi));
@@ -137,7 +141,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // No spatial mapping available: Use uniform spread
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::NMVOC, EmissionSector(sectors::nfr::Nfr1A1a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NMVOC));
         CHECK(spSource.path.empty());
         CHECK(spSource.emissionId.pollutant == pollutants::NMVOC);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
@@ -146,7 +150,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Available in 2016 at gnfr level: Public power
-        const auto spSource = inv.get_spatial_pattern(countries::NL, pollutants::BaP, EmissionSector(sectors::nfr::Nfr1A1a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::BaP));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CEIP" / "2016" / "BaP_A_PublicPower_2018_GRID_2016.txt");
         CHECK(spSource.emissionId.pollutant == pollutants::BaP);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
@@ -157,7 +161,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(countries::BEF, pollutants::NOx, EmissionSector(sectors::nfr::Nfr1A2a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2015" / "Emissies per km2 excl puntbrongegevens_2015_NOx.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
@@ -168,13 +172,23 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(countries::BEF, pollutants::As, EmissionSector(sectors::nfr::Nfr1A2a));
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::As));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissie per km2_met NFR_As 2019_juli 2021.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::As);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
         CHECK(spSource.year == 2019_y);
         CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
+    }
+
+    {
+        // Exception rule
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::CO));
+        CHECK(spSource.path.generic_u8string() == (fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "." / "wegverkeer" / "2021" / "1A3BI_CO_2016.tif").generic_u8string());
+        CHECK(spSource.emissionId.pollutant == pollutants::CO);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
+        CHECK(spSource.type == SpatialPatternSource::Type::RasterException);
     }
 }
 

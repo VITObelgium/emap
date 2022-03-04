@@ -119,6 +119,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     gdx::DenseRaster<double> result;
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
+    case SpatialPatternSource::Type::RasterException:
         result = apply_spatial_pattern_raster(spatialPattern.path, emissionId, emissionValue, countryCoverage);
         break;
     case SpatialPatternSource::Type::SpatialPatternCEIP:
@@ -137,7 +138,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
 
     if (result.empty() && emissionValue > 0) {
         // emission could not be spread, fall back to uniform spread
-        Log::warn("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
+        Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
         result = apply_uniform_spread(emissionValue, countryCoverage);
     }
 
@@ -204,7 +205,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
                 // std::for_each(countryCoverages.begin(), countryCoverages.end(), [&](const CountryCellCoverage& cellCoverageInfo) {
                 tbb::parallel_for_each(countryCoverages, [&](const CountryCellCoverage& cellCoverageInfo) {
-                    if (cellCoverageInfo.country.is_belgium()) {
+                    if (cellCoverageInfo.country == country::BEF) {
                         return;
                     }
 
@@ -443,7 +444,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     RunSummary summary;
 
-    SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants());
+    SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants(), cfg.countries(), cfg.spatial_pattern_exceptions());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
     // if (fs::exists(cfg.output_path())) {
@@ -458,11 +459,11 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     // }
 
     // Create the list of spatial patterns that will be used in the model
-    for (auto& nfr : cfg.sectors().nfr_sectors()) {
-        for (auto pol : cfg.pollutants().list()) {
-            // Take any european country, except for a Belgian region
-            summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(cfg.countries().non_belgian_country(), pol, EmissionSector(nfr)));
-            summary.add_country_specific_spatial_pattern_source(country::BEF, spatPatInv.get_spatial_pattern(country::BEF, pol, EmissionSector(nfr)));
+    for (auto country : cfg.countries().list()) {
+        for (auto& nfr : cfg.sectors().nfr_sectors()) {
+            for (auto pol : cfg.pollutants().list()) {
+                summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(EmissionIdentifier(country, EmissionSector(nfr), pol)));
+            }
         }
     }
 

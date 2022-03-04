@@ -39,7 +39,7 @@ std::optional<Pollutant> PollutantInventory::try_pollutant_from_string(std::stri
     }
 
     const auto* pollutant = find_in_container(_pollutants, [pollutantCode](const Pollutant& pol) {
-        return pol.code() == pollutantCode;
+        return str::iequals(pol.code(), pollutantCode);
     });
 
     return pollutant ? *pollutant : std::optional<Pollutant>();

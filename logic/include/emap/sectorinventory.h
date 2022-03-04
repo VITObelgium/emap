@@ -30,6 +30,7 @@ public:
     std::optional<EmissionSector> try_sector_from_string(EmissionSector::Type type, std::string_view name) const;
 
     GnfrSector gnfr_sector_from_string(std::string_view str) const;
+    GnfrSector gnfr_sector_from_code_string(std::string_view str) const;
     NfrSector nfr_sector_from_string(std::string_view str) const;
     std::pair<GnfrSector, int32_t> gnfr_sector_with_priority_from_string(std::string_view str) const;
     std::pair<NfrSector, int32_t> nfr_sector_with_priority_from_string(std::string_view str) const;

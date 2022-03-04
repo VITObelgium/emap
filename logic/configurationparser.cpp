@@ -336,18 +336,18 @@ static std::string read_sector_level(std::optional<std::string_view> level)
     return std::string(*level);
 }
 
-static fs::path read_path(const NamedSection& ns, std::string_view name, const fs::path& basePath)
+static fs::path read_optional_path(const NamedSection& ns, std::string_view name, const fs::path& basePath)
 {
     assert(ns.section.is_table());
     auto nodeValue = ns.section[name];
 
     if (!nodeValue) {
-        throw RuntimeError("'{0:}' key not present in '{1:}' section (e.g. {0:} = \"/some/path\")", name, ns.name);
+        return {};
     }
 
     if (auto pathValue = nodeValue.value<std::string_view>(); pathValue.has_value()) {
         auto result = fs::u8path(*pathValue);
-        if (result.is_relative()) {
+        if ((!result.empty()) && result.is_relative()) {
             result = fs::absolute(basePath / result);
         }
 
@@ -355,6 +355,16 @@ static fs::path read_path(const NamedSection& ns, std::string_view name, const f
     } else {
         throw RuntimeError("Invalid path value for '{0:}' key in '{1:}' section (e.g. {0:} = \"/some/path\")", name, ns.name);
     }
+}
+
+static fs::path read_path(const NamedSection& ns, std::string_view name, const fs::path& basePath)
+{
+    auto path = read_optional_path(ns, name, basePath);
+    if (path.empty()) {
+        throw RuntimeError("'{0:}' key not present in '{1:}' section (e.g. {0:} = \"/some/path\")", name, ns.name);
+    }
+
+    return path;
 }
 
 static date::year parse_year(toml::node_view<const toml::node> nodeValue)
@@ -441,12 +451,13 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         NamedSection model("model", table["model"]);
         NamedSection output("output", table["output"]);
 
-        const auto grid       = read_grid(model.section["grid"].value<std::string_view>());
-        const auto dataPath   = read_path(model, "datapath", basePath);
-        const auto runType    = read_run_type(model.section["type"].value<std::string_view>());
-        const auto year       = read_year(model.section["year"]);
-        const auto reportYear = read_year(model.section["report_year"]);
-        const auto scenario   = read_string(model, "scenario");
+        const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
+        const auto dataPath                     = read_path(model, "datapath", basePath);
+        const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());
+        const auto year                         = read_year(model.section["year"]);
+        const auto reportYear                   = read_year(model.section["report_year"]);
+        const auto scenario                     = read_string(model, "scenario");
+        const auto spatialPatternExceptionsPath = read_optional_path(model, "spatial_pattern_exceptions", basePath);
 
         RunConfiguration::Output outputConfig;
 
@@ -469,6 +480,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         bool validate             = optionsSection["validation"].value_or<bool>(false);
 
         return RunConfiguration(dataPath,
+                                spatialPatternExceptionsPath,
                                 grid,
                                 runType,
                                 validate ? ValidationType::SumValidation : ValidationType::NoValidation,

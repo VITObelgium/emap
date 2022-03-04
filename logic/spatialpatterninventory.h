@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "infra/filesystem.h"
+#include "infra/range.h"
 
 #include <date/date.h>
 #include <optional>
@@ -19,6 +20,7 @@ struct SpatialPatternSource
     {
         SpatialPatternCAMS,  // Tiff containing the spatial pattern
         SpatialPatternCEIP,  // Tiff containing the spatial pattern
+        RasterException,     // Tiff containing the spatial pattern
         SpatialPatternTable, // Csv file containing information per cell
         UnfiformSpread,      // No data available, use a uniform spread
     };
@@ -75,11 +77,10 @@ struct SpatialPatternSource
 class SpatialPatternInventory
 {
 public:
-    SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory);
+    SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory, const CountryInventory& countryInventory, const fs::path& exceptionsFile);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
     SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId) const;
-    SpatialPatternSource get_spatial_pattern(const Country& country, const Pollutant& pol, const EmissionSector& sector) const;
 
 private:
     struct SpatialPatternFile
@@ -104,6 +105,14 @@ private:
         std::vector<SpatialPatternFile> spatialPatterns;
     };
 
+    struct SpatialPatternException
+    {
+        inf::Range<date::year> yearRange;
+        EmissionIdentifier emissionId;
+        fs::path spatialPattern;
+    };
+
+    std::vector<SpatialPatternException> parse_spatial_pattern_exceptions(const fs::path& exceptionsFile) const;
     std::optional<SpatialPatternSource> search_spatial_pattern_within_year(const Country& country,
                                                                            const Pollutant& pol,
                                                                            const Pollutant& polToReport,
@@ -111,19 +120,24 @@ private:
                                                                            date::year year,
                                                                            const std::vector<SpatialPatternFile>& patterns) const;
 
-    std::optional<SpatialPatternFile>
-    identify_spatial_pattern_cams(const fs::path& path) const;
+    std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_belgium(const fs::path& path) const;
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
+    std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
+
+    fs::path _exceptionsFile;
     const SectorInventory& _sectorInventory;
     const PollutantInventory& _pollutantInventory;
+    const CountryInventory& _countryInventory;
     std::regex _spatialPatternCamsRegex;
     std::regex _spatialPatternCeipRegex;
     std::regex _spatialPatternBelgium1Regex;
     std::regex _spatialPatternBelgium2Regex;
+    // Contains all the exceptions for the configured year
+    std::vector<SpatialPatternException> _exceptions;
     // Contains all the available patterns, sorted by year of preference
     std::vector<SpatialPatterns> _spatialPatternsRest;
     std::unordered_map<Country, std::vector<SpatialPatterns>> _countrySpecificSpatialPatterns;
