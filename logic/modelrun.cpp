@@ -232,7 +232,7 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
         Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
         progress.reset(cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
-        std::mutex mut;
+        std::mutex mut, statusMut;
 
         for (const auto& pollutant : cfg.pollutants().list()) {
             EmissionsCollector collector(cfg, pollutant, gridData);
@@ -281,16 +281,13 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         SpatialPatternStatus spatPatStatus;
                         auto countryRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissionId, emissionToSpread, cellCoverageInfo, cfg, spatPatStatus);
                         if (spatPatStatus == SpatialPatternStatus::FallbackToUniformSpread) {
-                            std::scoped_lock lock(mut);
+                            std::scoped_lock lock(statusMut);
                             status.idsWithoutSpatialPatternData.insert(emissionId);
                         }
 
                         if (countryRaster.empty()) {
                             return;
                         }
-
-                        // Add the point sources to the grid
-                        add_point_sources_to_grid(emission->point_emissions(), countryRaster);
 
                         double erasedEmission = 0.0;
                         if (subGridMeta.has_value()) {
@@ -307,6 +304,26 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         if (validator) {
                             validator->add_diffuse_emissions(emissionId, countryRaster);
                         }
+
+                        // Add the point sources to the grid
+                        auto pointEmissions = container_as_vector(emission->point_emissions());
+                        if (subGridMeta.has_value()) {
+                            // remove the points from the subGrid
+                            remove_from_container(pointEmissions, [meta = *subGridMeta](const EmissionEntry& entry) {
+                                if (!entry.coordinate().has_value()) {
+                                    return true;
+                                }
+
+                                if (meta.is_on_map(*entry.coordinate())) {
+                                    return true;
+                                }
+
+                                return false;
+                            });
+                        }
+
+                        add_point_sources_to_grid(pointEmissions, countryRaster);
+
                         collector.add_diffuse_emissions(emissionId.country, sector, std::move(countryRaster));
 
                         if (isCoursestGrid) {
@@ -363,17 +380,17 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                     if (raster.empty()) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
                         raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
-                        std::scoped_lock lock(mut);
+                        std::scoped_lock lock(statusMut);
                         status.idsWithoutSpatialPatternData.insert(emissionId);
                     }
-
-                    // TODO: grid is not always in lambert, transform if needed or make sure it is done in the input parser
-                    add_point_sources_to_grid(emission.point_emissions(), raster);
 
                     if (validator) {
                         validator->add_diffuse_emissions(emissionId, raster);
                         validator->add_point_emissions(emissionId, emission.scaled_point_emissions_sum());
                     }
+
+                    // TODO: grid is not always in lambert, transform if needed or make sure it is done in the input parser
+                    add_point_sources_to_grid(emission.point_emissions(), raster);
 
                     collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
                     collector.add_point_emissions(emission.scaled_point_emissions());
