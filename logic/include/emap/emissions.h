@@ -19,7 +19,7 @@
 
 namespace emap {
 
-using Coordinate = inf::Point<int32_t>;
+using Coordinate = inf::Point<double>;
 
 enum class EmissionType
 {

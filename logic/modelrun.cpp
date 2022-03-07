@@ -195,7 +195,8 @@ struct SpreadEmissionStatus
 
 SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
 {
-    Log::debug("Create country coverages");
+    chrono::ScopedDurationLog d("Spread emissions");
+
     SpreadEmissionStatus status;
 
     const auto gridDefinitions = grids_for_model_grid(cfg.model_grid());
@@ -389,7 +390,6 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         validator->add_point_emissions(emissionId, emission.scaled_point_emissions_sum());
                     }
 
-                    // TODO: grid is not always in lambert, transform if needed or make sure it is done in the input parser
                     add_point_sources_to_grid(emission.point_emissions(), raster);
 
                     collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
@@ -464,6 +464,19 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
         }
     } catch (const std::exception& e) {
         Log::debug("Failed to create PMcoarse point sources: {}", e.what());
+    }
+
+    const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
+    const auto outputGridMeta = grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
+
+    if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
+        gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);
+
+        for (auto& pointSource : result) {
+            auto coord = pointSource.coordinate().value();
+            transformer.transform_in_place(coord);
+            pointSource.set_coordinate(coord);
+        }
     }
 
     return result;
@@ -570,11 +583,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
-    SpreadEmissionStatus spreadStatus;
-    {
-        chrono::ScopedDurationLog d("Spread emissions");
-        spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
-    }
+    const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
 
     {
         chrono::ScopedDurationLog d("Write model run summary");
