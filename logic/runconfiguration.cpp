@@ -63,6 +63,11 @@ fs::path RunConfiguration::total_emissions_path_nfr() const
     return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(_year), static_cast<int>(_reportYear));
 }
 
+fs::path RunConfiguration::total_extra_emissions_path_nfr() const
+{
+    return emissions_dir_path() / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(_reportYear));
+}
+
 fs::path RunConfiguration::total_emissions_path_gnfr() const
 {
     return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(_reportYear));

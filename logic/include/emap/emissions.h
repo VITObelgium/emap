@@ -443,7 +443,7 @@ void merge_emissions(EmissionCollection<T>& output, EmissionCollection<T>&& toMe
         std::swap(output, toMerge);
     } else {
         for (auto& emission : toMerge) {
-            output.add_emission(std::move(emission));
+            output.update_or_add_emission(std::move(emission));
         }
     }
 }

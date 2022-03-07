@@ -20,10 +20,10 @@
 #include "gdx/denserasterio.h"
 
 #include <numeric>
-#include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
+#include <unordered_set>
 
 namespace emap {
 
@@ -114,9 +114,22 @@ static gdx::DenseRaster<double> apply_uniform_spread(double emissionValue, const
     return spread_values_uniformly_over_cells(emissionValue, countryCoverage);
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionIdentifier& emissionId, double emissionValue, const CountryCellCoverage& countryCoverage, const RunConfiguration& cfg)
+enum class SpatialPatternStatus
+{
+    Ok,
+    NoEmissionToSpread,
+    FallbackToUniformSpread,
+};
+
+static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern, const EmissionIdentifier& emissionId, double emissionValue, const CountryCellCoverage& countryCoverage, const RunConfiguration& cfg, SpatialPatternStatus& status)
 {
     gdx::DenseRaster<double> result;
+
+    if (emissionValue == 0) {
+        status = SpatialPatternStatus::NoEmissionToSpread;
+        return result;
+    }
+
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
     case SpatialPatternSource::Type::RasterException:
@@ -136,10 +149,13 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
         throw std::logic_error("Spatial pattern grid resolution bug!");
     }
 
-    if (result.empty() && emissionValue > 0) {
+    if (result.empty()) {
         // emission could not be spread, fall back to uniform spread
         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
         result = apply_uniform_spread(emissionValue, countryCoverage);
+        status = SpatialPatternStatus::FallbackToUniformSpread;
+    } else {
+        status = SpatialPatternStatus::Ok;
     }
 
     return result;
@@ -171,9 +187,16 @@ static void add_point_sources_to_grid(std::span<const EmissionEntry> pointEmissi
     }
 }
 
-void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
+struct SpreadEmissionStatus
+{
+    // For these id's there was a spatial pattern, but it contained no infomation for this county, uniform spread was used
+    std::unordered_set<EmissionIdentifier> idsWithoutSpatialPatternData;
+};
+
+SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
 {
     Log::debug("Create country coverages");
+    SpreadEmissionStatus status;
 
     const auto gridDefinitions = grids_for_model_grid(cfg.model_grid());
 
@@ -255,7 +278,13 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             return;
                         }
 
-                        auto countryRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissionId, emissionToSpread, cellCoverageInfo, cfg);
+                        SpatialPatternStatus spatPatStatus;
+                        auto countryRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissionId, emissionToSpread, cellCoverageInfo, cfg, spatPatStatus);
+                        if (spatPatStatus == SpatialPatternStatus::FallbackToUniformSpread) {
+                            std::scoped_lock lock(mut);
+                            status.idsWithoutSpatialPatternData.insert(emissionId);
+                        }
+
                         if (countryRaster.empty()) {
                             return;
                         }
@@ -334,6 +363,8 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     if (raster.empty()) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
                         raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
+                        std::scoped_lock lock(mut);
+                        status.idsWithoutSpatialPatternData.insert(emissionId);
                     }
 
                     // TODO: grid is not always in lambert, transform if needed or make sure it is done in the input parser
@@ -352,6 +383,8 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
             collector.write_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
         }
     }
+
+    return status;
 }
 
 static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
@@ -424,8 +457,6 @@ static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummar
     chrono::DurationRecorder duration;
     auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg);
     runSummary.add_totals_source(cfg.total_emissions_path_nfr());
-    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
-    duration.reset();
 
     static const std::array<const Country*, 3> belgianRegions = {
         &country::BEB,
@@ -438,6 +469,15 @@ static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummar
         merge_emissions(nfrTotalEmissions, parse_emissions_belgium(path, cfg.year(), cfg));
         runSummary.add_totals_source(path);
     }
+
+    // Optional additional emissions that supllement or override existing emissions
+    const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
+    if (fs::exists(extraNfrPath)) {
+        merge_emissions(nfrTotalEmissions, parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg));
+        runSummary.add_totals_source(extraNfrPath);
+    }
+
+    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
 
     return nfrTotalEmissions;
 }
@@ -488,19 +528,9 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     clean_output_directory(cfg.output_path());
 
-    // Create the list of spatial patterns that will be used in the model
-    for (auto country : cfg.countries().list()) {
-        for (auto& nfr : cfg.sectors().nfr_sectors()) {
-            for (auto pol : cfg.pollutants().list()) {
-                summary.add_spatial_pattern_source(spatPatInv.get_spatial_pattern(EmissionIdentifier(country, EmissionSector(nfr), pol)));
-            }
-        }
-    }
-
     const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
-
-    const auto nfrTotalEmissions  = read_nfr_emissions(cfg, summary);
-    const auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary);
+    const auto nfrTotalEmissions    = read_nfr_emissions(cfg, summary);
+    const auto gnfrTotalEmissions   = read_gnfr_emissions(cfg, summary);
 
     ScalingFactors scalingsDiffuse;
     ScalingFactors scalingsPointSource;
@@ -523,13 +553,29 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
     const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
     Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
 
+    SpreadEmissionStatus spreadStatus;
     {
         chrono::ScopedDurationLog d("Spread emissions");
-        spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
+        spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
     }
 
     {
         chrono::ScopedDurationLog d("Write model run summary");
+        // Create the list of spatial patterns that will be used in the model
+        for (auto country : cfg.countries().list()) {
+            for (auto& nfr : cfg.sectors().nfr_sectors()) {
+                for (auto pol : cfg.pollutants().list()) {
+                    EmissionIdentifier id(country, EmissionSector(nfr), pol);
+                    const auto spatialPattern = spatPatInv.get_spatial_pattern(id);
+                    if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {
+                        summary.add_spatial_pattern_source_without_data(spatialPattern);
+                    } else {
+                        summary.add_spatial_pattern_source(spatialPattern);
+                    }
+                }
+            }
+        }
+
         if (validator) {
             summary.set_validation_results(validator->create_summary(inventory));
         }

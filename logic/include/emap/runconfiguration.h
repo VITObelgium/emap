@@ -58,6 +58,7 @@ public:
 
     fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
     fs::path total_emissions_path_nfr() const;
+    fs::path total_extra_emissions_path_nfr() const;
     fs::path total_emissions_path_gnfr() const;
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian) const;
     fs::path spatial_pattern_path() const;
