@@ -344,6 +344,15 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
         }
     }
 
+    if (!exception.has_value() && emissionId.sector.type() == EmissionSector::Type::Nfr) {
+        // See if there is an entry on gnfr level
+        exception = find_exception(convert_emission_id_to_gnfr_level(emissionId));
+        if (exception.has_value()) {
+            // restore the nfr based id
+            exception->emissionId = emissionId;
+        }
+    }
+
     return exception;
 }
 

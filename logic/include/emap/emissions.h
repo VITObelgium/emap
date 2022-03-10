@@ -448,6 +448,18 @@ void merge_emissions(EmissionCollection<T>& output, EmissionCollection<T>&& toMe
     }
 }
 
+inline EmissionSector convert_sector_to_gnfr_level(const EmissionSector& sec)
+{
+    return EmissionSector(sec.gnfr_sector());
+}
+
+inline EmissionIdentifier convert_emission_id_to_gnfr_level(const EmissionIdentifier& id)
+{
+    EmissionIdentifier result = id;
+    result.sector             = convert_sector_to_gnfr_level(id.sector);
+    return result;
+}
+
 }
 
 namespace fmt {

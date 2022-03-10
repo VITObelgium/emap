@@ -11,18 +11,6 @@ namespace emap {
 
 using namespace inf;
 
-EmissionSector convert_sector_to_gnfr_level(const EmissionSector& sec)
-{
-    return EmissionSector(sec.gnfr_sector());
-}
-
-EmissionIdentifier convert_emission_id_to_gnfr_level(const EmissionIdentifier& id)
-{
-    EmissionIdentifier result = id;
-    result.sector             = convert_sector_to_gnfr_level(id.sector);
-    return result;
-}
-
 static std::unordered_map<EmissionIdentifier, double> create_gnfr_sums(const SingleEmissions& totalEmissionsNfr)
 {
     std::unordered_map<EmissionIdentifier, double> result;
