@@ -363,7 +363,11 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         }
                     }
 
-                    auto emission = emissionInv.emission_with_id(emissionId);
+                    auto emission = emissionInv.try_emission_with_id(emissionId);
+                    if (!emission.has_value()) {
+                        Log::debug("No emissions available for pollutant {} in sector: {} in BEF", pollutant, EmissionSector(sector));
+                        return;
+                    }
 
                     gdx::DenseRaster<double> raster;
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
@@ -372,28 +376,28 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         });
 
                         if (spatPat != nullptr) {
-                            raster = apply_spatial_pattern_flanders(spatPat->raster, emission.scaled_diffuse_emissions_sum(), gridData.meta);
+                            raster = apply_spatial_pattern_flanders(spatPat->raster, emission->scaled_diffuse_emissions_sum(), gridData.meta);
                         }
                     } else if (spatialPattern.type == SpatialPatternSource::Type::RasterException) {
-                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission.id(), emission.scaled_diffuse_emissions_sum(), flandersCoverage);
+                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission->id(), emission->scaled_diffuse_emissions_sum(), flandersCoverage);
                     }
 
                     if (raster.empty()) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-                        raster = apply_uniform_spread(emission.scaled_diffuse_emissions_sum(), flandersCoverage);
+                        raster = apply_uniform_spread(emission->scaled_diffuse_emissions_sum(), flandersCoverage);
                         std::scoped_lock lock(statusMut);
                         status.idsWithoutSpatialPatternData.insert(emissionId);
                     }
 
                     if (validator) {
                         validator->add_diffuse_emissions(emissionId, raster);
-                        validator->add_point_emissions(emissionId, emission.scaled_point_emissions_sum());
+                        validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                     }
 
-                    add_point_sources_to_grid(emission.point_emissions(), raster);
+                    add_point_sources_to_grid(emission->point_emissions(), raster);
 
                     collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
-                    collector.add_point_emissions(emission.scaled_point_emissions());
+                    collector.add_point_emissions(emission->scaled_point_emissions());
                 });
             }
 
@@ -406,10 +410,10 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
 
 static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
 {
-    SingleEmissions result;
+    SingleEmissions result(cfg.year());
 
     if (country == country::BEF) {
-        for (const auto& pollutant : cfg.pollutants().list()) {
+        for (const auto& pollutant : cfg.included_pollutants()) {
             const auto path = cfg.point_source_emissions_path(country, pollutant);
             if (fs::is_regular_file(path)) {
                 merge_emissions(result, parse_point_sources(path, cfg));
