@@ -61,8 +61,7 @@ void BrnOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Po
     std::scoped_lock lock(_mutex);
     auto& current = _diffuseSources[id.pollutant][mappedSectorName][id.country.id()][loc];
     current.value += emission;
-    current.cellSize                  = cellSizeInM;
-    _sectorIdLookup[mappedSectorName] = id.sector.id();
+    current.cellSize = cellSizeInM;
 }
 
 static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
@@ -104,7 +103,7 @@ void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg, WriteMode mode
 
                 auto sectorParamsIter = _sectorParams.find(sectorName);
                 if (sectorParamsIter == _sectorParams.end()) {
-                    throw RuntimeError("No diffuse parameters configured for sector {}", sectorName);
+                    throw RuntimeError("No sector parameters configured for sector {}", sectorName);
                 }
 
                 const auto& sectorParams = sectorParamsIter->second;
@@ -119,7 +118,7 @@ void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg, WriteMode mode
                         brnEntry.d_m   = entry.cellSize;
                         brnEntry.s_m   = sectorParams.s_m;
                         brnEntry.dv    = truncate<int32_t>(sectorParams.tb);
-                        brnEntry.cat   = _sectorIdLookup.at(sectorName);
+                        brnEntry.cat   = sectorParams.id;
                         brnEntry.area  = static_cast<int32_t>(countryId);
                         brnEntry.sd    = pollutantParams.sd;
                         brnEntry.comp  = pol.code();

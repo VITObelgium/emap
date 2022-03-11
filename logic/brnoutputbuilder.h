@@ -18,6 +18,7 @@ public:
         double h_m   = 0.0;
         double s_m   = 0.0;
         double tb    = 0.0;
+        int32_t id   = 0;
     };
 
     struct PollutantParameterConfig
@@ -50,8 +51,6 @@ private:
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
     std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
     std::unordered_map<std::string, PollutantParameterConfig> _pollutantParams;
-
-    std::unordered_map<std::string, int32_t> _sectorIdLookup;
 };
 
 }

@@ -34,11 +34,12 @@ std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_s
     auto ds    = gdal::VectorDataSet::open(diffuseParametersPath);
     auto layer = ds.layer(layer_name_for_sector_level(level, outputSectorLevelName));
 
-    const auto colId = layer.layer_definition().required_field_index("Sector");
-    const auto colHc = layer.layer_definition().required_field_index("hc(MW)");
-    const auto colH  = layer.layer_definition().required_field_index("h(m)");
-    const auto colS  = layer.layer_definition().required_field_index("s(m)");
-    const auto colTb = layer.layer_definition().required_field_index("tb");
+    const auto colSector = layer.layer_definition().required_field_index("Sector");
+    const auto colHc     = layer.layer_definition().required_field_index("hc(MW)");
+    const auto colH      = layer.layer_definition().required_field_index("h(m)");
+    const auto colS      = layer.layer_definition().required_field_index("s(m)");
+    const auto colTb     = layer.layer_definition().required_field_index("tb");
+    const auto colId     = layer.layer_definition().required_field_index("Id");
 
     for (const auto& feature : layer) {
         if (!feature.field_is_valid(0)) {
@@ -50,8 +51,9 @@ std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_s
         config.h_m   = feature.field_as<double>(colH);
         config.s_m   = feature.field_as<double>(colS);
         config.tb    = feature.field_as<double>(colTb);
+        config.id    = feature.field_as<int32_t>(colId);
 
-        result.emplace(feature.field_as<std::string_view>(colId), config);
+        result.emplace(feature.field_as<std::string_view>(colSector), config);
     }
 
     return result;
@@ -90,8 +92,8 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
 std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
 {
     if (cfg.model_grid() == ModelGrid::Vlops1km || cfg.model_grid() == ModelGrid::Vlops250m) {
-        const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "parameters_diffuus.xlsx";
-        const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "parameter_sd.xlsx";
+        const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "sector_parameters.xlsx";
+        const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "pollutant_parameters.xlsx";
 
         auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
         auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
