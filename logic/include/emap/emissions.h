@@ -317,6 +317,16 @@ template <typename TEmission>
 class EmissionCollection
 {
 public:
+    EmissionCollection(date::year year)
+    : _year(year)
+    {
+    }
+
+    date::year year() const noexcept
+    {
+        return _year;
+    }
+
     void add_emission(TEmission&& info)
     {
         _emissions.push_back(std::move(info));
@@ -427,6 +437,7 @@ public:
     }
 
 private:
+    date::year _year;
     std::vector<TEmission> _emissions;
 };
 

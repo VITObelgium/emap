@@ -38,6 +38,15 @@ static fs::path throw_if_not_exists(fs::path&& path)
     return std::move(path);
 }
 
+static fs::path throw_if_not_exists(const fs::path& path)
+{
+    if (!fs::is_regular_file(path)) {
+        throw RuntimeError("File does not exist: {}", path);
+    }
+
+    return path;
+}
+
 void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
 {
     auto runConfig = parse_run_configuration_file(runConfigPath);
@@ -232,10 +241,10 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
 
         Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
-        progress.reset(cfg.pollutants().list().size() * cfg.sectors().nfr_sectors().size());
+        progress.reset(cfg.included_pollutants().size() * cfg.sectors().nfr_sectors().size());
         std::mutex mut, statusMut;
 
-        for (const auto& pollutant : cfg.pollutants().list()) {
+        for (const auto& pollutant : cfg.included_pollutants()) {
             EmissionsCollector collector(cfg, pollutant, gridData);
 
             for (const auto& sector : cfg.sectors().nfr_sectors()) {
@@ -444,8 +453,6 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
                 return lhs.source_id() < rhs.source_id();
             });
 
-            SingleEmissions pmCoarseEmissions;
-
             for (auto& pm10Entry : pm10Emissions) {
                 auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
                     return entry.source_id() < srcId;
@@ -455,7 +462,7 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
                     auto pm10Val  = pm10Entry.value().amount();
                     auto pm2_5Val = iter->value().amount();
 
-                    if (pm10Val.has_value() >= pm2_5Val.has_value()) {
+                    if (pm10Val.has_value() && pm2_5Val.has_value()) {
                         if (pm10Val >= pm2_5Val) {
                             auto pmCoarseVal = EmissionValue(*pm10Val - *pm2_5Val);
                             result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
@@ -486,11 +493,11 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
     return result;
 }
 
-static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary)
+static SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary)
 {
     chrono::DurationRecorder duration;
-    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr()), cfg);
-    runSummary.add_totals_source(cfg.total_emissions_path_nfr());
+    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr(year)), year, cfg);
+    runSummary.add_totals_source(cfg.total_emissions_path_nfr(year));
 
     static const std::array<const Country*, 3> belgianRegions = {
         &country::BEB,
@@ -500,15 +507,8 @@ static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummar
 
     for (auto* region : belgianRegions) {
         const auto& path = cfg.total_emissions_path_nfr_belgium(*region);
-        merge_emissions(nfrTotalEmissions, parse_emissions_belgium(path, cfg.year(), cfg));
+        merge_emissions(nfrTotalEmissions, parse_emissions_belgium(path, year, cfg));
         runSummary.add_totals_source(path);
-    }
-
-    // Optional additional emissions that supllement or override existing emissions
-    const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
-    if (fs::exists(extraNfrPath)) {
-        merge_emissions(nfrTotalEmissions, parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg));
-        runSummary.add_totals_source(extraNfrPath);
     }
 
     Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
@@ -516,13 +516,38 @@ static SingleEmissions read_nfr_emissions(const RunConfiguration& cfg, RunSummar
     return nfrTotalEmissions;
 }
 
-static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary)
+static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary, date::year& reportYear)
 {
     chrono::DurationRecorder duration;
-    const auto gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(cfg.total_emissions_path_gnfr()), cfg);
-    runSummary.add_totals_source(cfg.total_emissions_path_gnfr());
+
+    std::optional<SingleEmissions> gnfrTotalEmissions;
+
+    auto reportedGnfrDataPath = cfg.total_emissions_path_gnfr(cfg.reporting_year());
+    if (fs::is_regular_file(reportedGnfrDataPath)) {
+        // Validated gnfr data is available
+        reportYear         = cfg.reporting_year();
+        gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, reportedGnfrDataPath, cfg.year(), cfg);
+    }
+
+    if (!gnfrTotalEmissions.has_value() || gnfrTotalEmissions->empty()) {
+        // No GNFR data available yet for this year, read last years Gnfr data
+        if (cfg.year() > cfg.reporting_year() - date::years(2)) {
+            throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(cfg.reporting_year() - date::years(2)));
+        }
+
+        reportYear      = cfg.reporting_year() - date::years(1);
+        const auto year = cfg.year() - date::years(1); // Year Y-3
+
+        reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
+        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg);
+        if (gnfrTotalEmissions->empty()) {
+            throw RuntimeError("No GNFR data could be found for the requested year, nor for the previous year");
+        }
+    }
+
+    runSummary.add_totals_source(reportedGnfrDataPath);
     Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
-    return gnfrTotalEmissions;
+    return *gnfrTotalEmissions;
 }
 
 static void clean_output_directory(const fs::path& p)
@@ -551,42 +576,69 @@ static void clean_output_directory(const fs::path& p)
     Log::debug("Output directory cleaned up");
 }
 
+static std::unique_ptr<EmissionValidation> make_validator(const RunConfiguration& cfg)
+{
+    std::unique_ptr<EmissionValidation> validator;
+
+    if (cfg.validation_type() == ValidationType::SumValidation) {
+        validator = std::make_unique<EmissionValidation>();
+    }
+
+    return validator;
+}
+
+ScalingFactors read_scaling_factors(const fs::path& p, const RunConfiguration& cfg)
+{
+    ScalingFactors scalings;
+
+    if (fs::is_regular_file(p)) {
+        scalings = parse_scaling_factors(p, cfg);
+    }
+
+    return scalings;
+}
+
+static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary)
+{
+    // Read scaling factors
+    const auto scalingsDiffuse      = read_scaling_factors(cfg.diffuse_scalings_path(), cfg);
+    const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
+    const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
+    const auto nfrTotalEmissions    = read_nfr_emissions(cfg.year(), cfg, summary);
+
+    // Optional additional emissions that supllement or override existing emissions
+    std::optional<SingleEmissions> extraEmissions;
+    const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
+    if (fs::exists(extraNfrPath)) {
+        extraEmissions = parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg.year(), cfg);
+        summary.add_totals_source(extraNfrPath);
+    }
+
+    date::year gnfrReportYear;
+    const auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
+
+    if (gnfrReportYear < cfg.reporting_year()) {
+        // no gnfr data was available for the reporting year, older data was read
+        auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - date::years(1), cfg, summary);
+        return create_emission_inventory(nfrTotalEmissions, olderNfrTotalEmissions, gnfrTotalEmissions, extraEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
+    } else {
+        return create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, extraEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
+    }
+}
+
 void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
 
-    RunSummary summary;
+    RunSummary summary(cfg);
 
     SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants(), cfg.countries(), cfg.spatial_pattern_exceptions());
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
     clean_output_directory(cfg.output_path());
 
-    const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
-    const auto nfrTotalEmissions    = read_nfr_emissions(cfg, summary);
-    const auto gnfrTotalEmissions   = read_gnfr_emissions(cfg, summary);
-
-    ScalingFactors scalingsDiffuse;
-    ScalingFactors scalingsPointSource;
-
-    if (auto path = cfg.diffuse_scalings_path(); fs::exists(path)) {
-        scalingsDiffuse = parse_scaling_factors(path, cfg);
-    }
-
-    if (auto path = cfg.point_source_scalings_path(); fs::exists(path)) {
-        scalingsDiffuse = parse_scaling_factors(path, cfg);
-    }
-
-    std::unique_ptr<EmissionValidation> validator;
-    if (cfg.validation_type() == ValidationType::SumValidation) {
-        validator = std::make_unique<EmissionValidation>();
-    }
-
-    Log::debug("Generate emission inventory");
-    chrono::DurationRecorder dur;
-    const auto inventory = create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
-    Log::debug("Generate emission inventory took {}", dur.elapsed_time_string());
-
+    auto validator          = make_validator(cfg);
+    const auto inventory    = make_emission_inventory(cfg, summary);
     const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
 
     {
@@ -594,7 +646,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
         // Create the list of spatial patterns that will be used in the model
         for (auto country : cfg.countries().list()) {
             for (auto& nfr : cfg.sectors().nfr_sectors()) {
-                for (auto pol : cfg.pollutants().list()) {
+                for (auto pol : cfg.included_pollutants()) {
                     EmissionIdentifier id(country, EmissionSector(nfr), pol);
                     const auto spatialPattern = spatPatInv.get_spatial_pattern(id);
                     if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {

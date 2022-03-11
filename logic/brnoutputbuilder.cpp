@@ -31,8 +31,8 @@ void BrnOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     constexpr double toGramPerYearRatio = 1'000'000.0 / s_secondsPerYear;
 
     BrnOutputEntry entry;
-    entry.x_m   = emission.coordinate()->x;
-    entry.y_m   = emission.coordinate()->y;
+    entry.x_m   = truncate<int64_t>(emission.coordinate()->x);
+    entry.y_m   = truncate<int64_t>(emission.coordinate()->y);
     entry.q_gs  = emission.value().amount().value() * toGramPerYearRatio;
     entry.hc_MW = emission.warmth_contents();
     entry.h_m   = emission.height();

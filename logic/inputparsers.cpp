@@ -94,7 +94,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
 
-        SingleEmissions result;
+        SingleEmissions result(cfg.year());
         inf::CsvReader csv(emissionsCsv);
 
         auto colCountry   = required_csv_column(csv, "reporting_country");
@@ -162,7 +162,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     }
 }
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, const RunConfiguration& cfg)
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg)
 {
     // First lines are comments
     // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
@@ -172,7 +172,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
     const auto& pollutantInv = cfg.pollutants();
 
     try {
-        SingleEmissions result;
+        SingleEmissions result(requestYear);
         Log::debug("Parse emissions: {}", emissionsCsv);
 
         std::unordered_map<EmissionIdentifier, int32_t> usedSectorPriories;
@@ -183,7 +183,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
         int32_t year;
         char *countryStr, *sectorName, *pollutant, *unit, *value;
         while (in.read_row(countryStr, year, sectorName, pollutant, unit, value)) {
-            if (year != static_cast<int32_t>(cfg.year())) {
+            if (year != static_cast<int32_t>(requestYear)) {
                 // not the year we want
                 continue;
             }
@@ -307,7 +307,7 @@ static std::string_view strip_newline(std::string_view str)
 
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg)
 {
-    SingleEmissions result;
+    SingleEmissions result(year);
 
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();

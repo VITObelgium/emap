@@ -401,6 +401,23 @@ static date::year read_year(toml::node_view<const toml::node> nodeValue)
     return parse_year(nodeValue);
 }
 
+static std::vector<Pollutant> read_pollutants(toml::node_view<const toml::node> nodeValue, const PollutantInventory& inv)
+{
+    std::vector<Pollutant> result;
+
+    if (nodeValue) {
+        if (const toml::array* arr = nodeValue.as_array()) {
+            for (const toml::node& elem : *arr) {
+                if (auto pollutantName = elem.value<std::string>(); pollutantName.has_value()) {
+                    result.push_back(inv.pollutant_from_string(*pollutantName));
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 static std::string read_string(const NamedSection& ns, std::string_view name)
 {
     assert(ns.section.is_table());
@@ -451,13 +468,20 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         NamedSection model("model", table["model"]);
         NamedSection output("output", table["output"]);
 
+        const auto dataPath = read_path(model, "datapath", basePath);
+
+        const auto parametersPath = basePath / dataPath / "05_model_parameters";
+        auto sectorInventory      = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto pollutantInventory   = parse_pollutants(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto countryInventory     = parse_countries(parametersPath / "id_nummers.xlsx");
+
         const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
-        const auto dataPath                     = read_path(model, "datapath", basePath);
         const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());
         const auto year                         = read_year(model.section["year"]);
         const auto reportYear                   = read_year(model.section["report_year"]);
         const auto scenario                     = read_string(model, "scenario");
         const auto spatialPatternExceptionsPath = read_optional_path(model, "spatial_pattern_exceptions", basePath);
+        auto includedPollutants                 = read_pollutants(model.section["included_pollutants"], pollutantInventory);
 
         RunConfiguration::Output outputConfig;
 
@@ -466,12 +490,6 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         outputConfig.filenameSuffix       = read_string(output, "filename_suffix", "");
         outputConfig.createCountryRasters = output.section["create_country_rasters"].value<bool>().value_or(false);
         outputConfig.createGridRasters    = output.section["create_grid_rasters"].value<bool>().value_or(false);
-
-        const auto parametersPath = basePath / dataPath / "05_model_parameters";
-
-        auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
 
         parse_missing_pollutant_references(basePath / dataPath / "03_spatial_disaggregation" / "pollutant_reference_when_missing.xlsx", pollutantInventory);
         sectorInventory.set_output_mapping(parse_sector_mapping(parametersPath / "mapping_sectors.xlsx", sectorInventory, outputConfig.outputLevelName));
@@ -487,6 +505,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
                                 year,
                                 reportYear,
                                 scenario,
+                                std::move(includedPollutants),
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),
                                 std::move(countryInventory),

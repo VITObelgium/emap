@@ -51,15 +51,16 @@ public:
         date::year year,
         date::year reportYear,
         std::string_view scenario,
+        std::vector<Pollutant> includedPollutants,
         SectorInventory sectors,
         PollutantInventory pollutants,
         CountryInventory countries,
         Output outputConfig);
 
     fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
-    fs::path total_emissions_path_nfr() const;
+    fs::path total_emissions_path_nfr(date::year year) const;
     fs::path total_extra_emissions_path_nfr() const;
-    fs::path total_emissions_path_gnfr() const;
+    fs::path total_emissions_path_gnfr(date::year reportYear) const;
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian) const;
     fs::path spatial_pattern_path() const;
 
@@ -89,6 +90,8 @@ public:
     void set_max_concurrency(std::optional<int32_t> concurrency) noexcept;
     std::optional<int32_t> max_concurrency() const noexcept;
 
+    std::vector<Pollutant> included_pollutants() const;
+
     const SectorInventory& sectors() const noexcept;
     const PollutantInventory& pollutants() const noexcept;
     const CountryInventory& countries() const noexcept;
@@ -113,6 +116,7 @@ private:
     date::year _year;
     date::year _reportYear;
     std::string _scenario;
+    std::vector<Pollutant> _includedPollutants;
     SectorInventory _sectorInventory;
     PollutantInventory _pollutantInventory;
     CountryInventory _countryInventory;

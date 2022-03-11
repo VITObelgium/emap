@@ -29,6 +29,7 @@ RunConfiguration::RunConfiguration(
     date::year year,
     date::year reportYear,
     std::string_view scenario,
+    std::vector<Pollutant> includedPollutants,
     SectorInventory sectors,
     PollutantInventory pollutants,
     CountryInventory countries,
@@ -41,6 +42,7 @@ RunConfiguration::RunConfiguration(
 , _year(year)
 , _reportYear(reportYear)
 , _scenario(scenario)
+, _includedPollutants(std::move(includedPollutants))
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
 , _countryInventory(std::move(countries))
@@ -58,9 +60,9 @@ fs::path RunConfiguration::point_source_emissions_path(const Country& country, c
     return emissions_dir_path() / "pointsources" / country.iso_code() / fmt::format("emap_{}_{}_{}_aangevuld.csv", pol.code(), static_cast<int>(_year), static_cast<int>(_reportYear));
 }
 
-fs::path RunConfiguration::total_emissions_path_nfr() const
+fs::path RunConfiguration::total_emissions_path_nfr(date::year year) const
 {
-    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(_year), static_cast<int>(_reportYear));
+    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(_reportYear));
 }
 
 fs::path RunConfiguration::total_extra_emissions_path_nfr() const
@@ -68,9 +70,9 @@ fs::path RunConfiguration::total_extra_emissions_path_nfr() const
     return emissions_dir_path() / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(_reportYear));
 }
 
-fs::path RunConfiguration::total_emissions_path_gnfr() const
+fs::path RunConfiguration::total_emissions_path_gnfr(date::year reportYear) const
 {
-    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(_reportYear));
+    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(reportYear));
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr_belgium(const Country& belgianRegian) const
@@ -176,6 +178,15 @@ void RunConfiguration::set_max_concurrency(std::optional<int32_t> concurrency) n
 std::optional<int32_t> RunConfiguration::max_concurrency() const noexcept
 {
     return _concurrency;
+}
+
+std::vector<Pollutant> RunConfiguration::included_pollutants() const
+{
+    if (_includedPollutants.empty()) {
+        return container_as_vector(_pollutantInventory.list());
+    }
+
+    return _includedPollutants;
 }
 
 const SectorInventory& RunConfiguration::sectors() const noexcept

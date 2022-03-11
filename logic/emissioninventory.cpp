@@ -1,6 +1,7 @@
 #include "emissioninventory.h"
 #include "emap/scalingfactors.h"
 #include "infra/algo.h"
+#include "infra/chrono.h"
 #include "infra/log.h"
 #include "runsummary.h"
 
@@ -65,7 +66,13 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
 
             summary.add_gnfr_correction(id, *gnfrBasedTotal, nfrBasedTotal, correction);
         } else {
-            summary.add_gnfr_correction(id, {}, nfrBasedTotal, 1.0);
+            if (id.pollutant.code() != "TSP") {
+                // If no gnfr data is reported, this is a validated 0
+                // so set the scale factor to 0 so the nfr is not used (except for TSP pollutant)
+                correction = 0.0;
+            }
+
+            summary.add_gnfr_correction(id, {}, nfrBasedTotal, correction);
         }
 
         result[id] = correction;
@@ -74,19 +81,14 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
     return result;
 }
 
-EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
-                                            const SingleEmissions& totalEmissionsGnfr,
-                                            const SingleEmissions& pointSourceEmissions,
-                                            const ScalingFactors& diffuseScalings,
-                                            const ScalingFactors& pointScalings,
-                                            RunSummary& runSummary)
+static EmissionInventory create_emission_inventory_impl(const SingleEmissions& totalEmissionsNfr,
+                                                        const std::optional<SingleEmissions>& extraEmissions,
+                                                        const SingleEmissions& pointSourceEmissions,
+                                                        const ScalingFactors& diffuseScalings,
+                                                        const ScalingFactors& pointScalings,
+                                                        const std::unordered_map<EmissionIdentifier, double>& correctionRatios)
 {
-    EmissionInventory result;
-
-    // Create gnfr sum of the actual reported nfr values
-    // Create gnfr sum of the validated gnfr values (put in map)
-    // Then calculate the ratio between the two
-    auto nfrCorrectionRatios = create_nfr_correction_ratios(create_nfr_sums(totalEmissionsNfr), create_gnfr_sums(totalEmissionsGnfr), runSummary);
+    EmissionInventory result(totalEmissionsNfr.year());
 
     for (const auto& em : totalEmissionsNfr) {
         assert(em.sector().type() == EmissionSector::Type::Nfr);
@@ -120,7 +122,7 @@ EmissionInventory create_emission_inventory(const SingleEmissions& totalEmission
                 diffuseEmission = 0.0;
             }
 
-            diffuseEmission *= find_in_map_optional(nfrCorrectionRatios, convert_emission_id_to_gnfr_level(em.id())).value_or(1.0);
+            diffuseEmission *= find_in_map_optional(correctionRatios, convert_emission_id_to_gnfr_level(em.id())).value_or(1.0);
         }
 
         EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
@@ -129,7 +131,73 @@ EmissionInventory create_emission_inventory(const SingleEmissions& totalEmission
         result.add_emission(std::move(entry));
     }
 
+    if (extraEmissions.has_value()) {
+        for (const auto& em : *extraEmissions) {
+            if (em.sector().type() != EmissionSector::Type::Nfr) {
+                throw RuntimeError("Additional emission should be for NFR sectors");
+            }
+
+            if (em.value().amount().has_value()) {
+                result.update_or_add_emission(EmissionInventoryEntry(em.id(), *em.value().amount()));
+            }
+        }
+    }
+
     return result;
+}
+
+EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
+                                            const SingleEmissions& totalEmissionsGnfr,
+                                            const std::optional<SingleEmissions>& extraEmissions,
+                                            const SingleEmissions& pointSourceEmissions,
+                                            const ScalingFactors& diffuseScalings,
+                                            const ScalingFactors& pointScalings,
+                                            RunSummary& runSummary)
+{
+    chrono::ScopedDurationLog d("Create emission inventory");
+
+    // Create the GNFR totals of the nfr sectors
+    const auto nfrSums  = create_nfr_sums(totalEmissionsNfr);
+    const auto gnfrSums = create_gnfr_sums(totalEmissionsGnfr);
+
+    // Create gnfr sum of the actual reported nfr values
+    // Create gnfr sum of the validated gnfr values (put in map)
+    // Then calculate the ratio between the two
+    const auto nfrCorrectionRatios = create_nfr_correction_ratios(nfrSums, gnfrSums, runSummary);
+
+    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios);
+}
+
+EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
+                                            const SingleEmissions& totalEmissionsNfrOlder,
+                                            const SingleEmissions& totalEmissionsGnfr,
+                                            const std::optional<SingleEmissions>& extraEmissions,
+                                            const SingleEmissions& pointSourceEmissions,
+                                            const ScalingFactors& diffuseScalings,
+                                            const ScalingFactors& pointScalings,
+                                            RunSummary& runSummary)
+{
+    chrono::ScopedDurationLog d("Create emission inventory");
+
+    const auto nfrSums      = create_nfr_sums(totalEmissionsNfr);
+    const auto nfrSumsOlder = create_nfr_sums(totalEmissionsNfrOlder);
+    const auto gnfrSums     = create_gnfr_sums(totalEmissionsGnfr);
+
+    SingleEmissions extrapolatedTotalEmissionsGnfr(totalEmissionsGnfr.year() + date::years(1));
+    for (auto& [id, gnfrSum] : gnfrSums) {
+        auto nfrSum      = find_in_map_optional(nfrSums, id).value_or(0.0);
+        auto olderNfrSum = find_in_map_optional(nfrSumsOlder, id).value_or(0.0);
+
+        double extrapolatedGnfr = 0.0;
+        if (olderNfrSum != 0.0) {
+            extrapolatedGnfr = (nfrSum / olderNfrSum) * gnfrSum;
+        }
+
+        runSummary.add_gnfr_correction(id, gnfrSum, extrapolatedGnfr, nfrSum, olderNfrSum);
+        extrapolatedTotalEmissionsGnfr.add_emission(EmissionEntry(id, EmissionValue(extrapolatedGnfr)));
+    }
+
+    return create_emission_inventory(totalEmissionsNfr, extrapolatedTotalEmissionsGnfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, runSummary);
 }
 
 }

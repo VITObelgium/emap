@@ -19,7 +19,7 @@ TEST_CASE("Emission inventory")
 
     SUBCASE("Subtract point sources in Belgium")
     {
-        SingleEmissions totalEmissions, pointEmissions;
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::ES, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(222.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(100.0)));
@@ -27,7 +27,7 @@ TEST_CASE("Emission inventory")
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), EmissionValue(500.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr2C7d), pollutants::CO), EmissionValue(300.0)));
 
-        SingleEmissions gnfrTotals;
+        SingleEmissions gnfrTotals(date::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), EmissionValue(111.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::ES, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), EmissionValue(200.0)));
 
@@ -51,7 +51,7 @@ TEST_CASE("Emission inventory")
         diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 0.5));
         pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 2.0));
 
-        const auto inventory = create_emission_inventory(totalEmissions, gnfrTotals, pointEmissions, diffuseScalings, pointScalings, summary);
+        const auto inventory = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, summary);
 
         auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
             const auto emissions = inventory.emissions_with_id(id);

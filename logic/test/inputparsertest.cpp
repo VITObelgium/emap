@@ -22,7 +22,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, ModelGrid::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, ModelGrid::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")
@@ -38,10 +38,10 @@ TEST_CASE("Input parsers")
         SUBCASE("nfr sectors")
         {
             // year == 2016, no results
-            CHECK(parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg).empty());
+            CHECK(parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg).empty());
             cfg.set_year(1990_y);
 
-            auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg);
+            auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg);
             REQUIRE(emissions.size() == 6);
 
             for (auto& em : emissions) {
@@ -61,7 +61,7 @@ TEST_CASE("Input parsers")
         {
             cfg.set_year(1990_y);
 
-            auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg);
+            auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg.year(), cfg);
             REQUIRE(emissions.size() == 4);
 
             for (auto& em : emissions) {
