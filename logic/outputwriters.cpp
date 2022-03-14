@@ -28,7 +28,7 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
 {
     for (const auto& entry : entries) {
         //                           index     x     y        q      hc       h     d       s    dv   cat  area    sd comp     temp     flow
-        fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>14.8g}{:>7.3f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>5d}{:>5d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
+        fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>14.8e}{:>7.3f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>4d}{:>4d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
                    _index,
                    entry.x_m,
                    entry.y_m,
@@ -51,7 +51,7 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
 
 void BrnOutputWriter::write_header()
 {
-    fmt::print(_fp, "   ssn    x(m)    y(m)        q(g/s) hc(MW)  h(m)   d(m)  s(m)  dv  cat area  sd comp        temp flow Emap: v" EMAP_VERSION "\n");
+    fmt::print(_fp, "   ssn    x(m)    y(m)   q(g/s)     hc(MW)  h(m)   d(m)  s(m)  dv cat area  sd  comp temp flow Emap: v" EMAP_VERSION "\n");
 }
 
 void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& path)
