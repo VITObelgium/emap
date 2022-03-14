@@ -129,8 +129,10 @@ void BrnOutputBuilder::write_to_disk(const RunConfiguration& cfg, WriteMode mode
                 }
             }
 
-            BrnOutputWriter writer(cfg.output_path() / create_vlops_output_name(pol, cfg.year(), cfg.output_filename_suffix()), convertMode(mode));
-            if (mode == WriteMode::Create) {
+            const auto outputPath = cfg.output_path() / create_vlops_output_name(pol, cfg.year(), cfg.output_filename_suffix());
+            bool writeHeader      = !fs::exists(outputPath);
+            BrnOutputWriter writer(outputPath, convertMode(mode));
+            if (writeHeader) {
                 writer.write_header();
             }
             writer.append_entries(entries);
