@@ -27,7 +27,7 @@ BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode)
 void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
 {
     for (const auto& entry : entries) {
-        //                           index     x     y        q      hc       h     d       s    dv   cat  area    sd comp     temp     flow
+        //                           index     x     y      q      hc       h     d       s    dv   cat  area    sd comp     temp     flow
         fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>13e}{:>7.3f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>4d}{:>4d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
                    _index,
                    entry.x_m,

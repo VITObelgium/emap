@@ -365,7 +365,7 @@ public:
     void add_emissions(std::span<const TEmission> emissions)
     {
         // Make sure the emissions remain sorted
-        append_to_container(_emissions, emissions);
+        inf::append_to_container(_emissions, emissions);
         sort_emissions();
     }
 
