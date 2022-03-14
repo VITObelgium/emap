@@ -493,7 +493,7 @@ static SingleEmissions read_nfr_emissions(date::year year, const RunConfiguratio
 
     for (auto* region : belgianRegions) {
         const auto& path = cfg.total_emissions_path_nfr_belgium(*region);
-        merge_emissions(nfrTotalEmissions, parse_emissions_belgium(path, year, cfg));
+        merge_unique_emissions(nfrTotalEmissions, parse_emissions_belgium(path, year, cfg));
         runSummary.add_totals_source(path);
     }
 

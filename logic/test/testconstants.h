@@ -21,6 +21,7 @@ namespace nfr {
 const NfrSector Nfr1A1a("1A1a", NfrId(7001), gnfr::PublicPower, "Public electricity and heat production", EmissionDestination::Land);
 const NfrSector Nfr1A2a("1A2a", NfrId(7004), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Iron and steel", EmissionDestination::Land);
 const NfrSector Nfr1A2b("1A2b", NfrId(7005), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Non-ferrous metals", EmissionDestination::Land);
+const NfrSector Nfr1A2c("1A2c", NfrId(7006), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Chemicals", EmissionDestination::Land);
 const NfrSector Nfr1A3bi("1A3bi", NfrId(7014), gnfr::RoadTransport, "Road transport: Passenger cars", EmissionDestination::Land);
 const NfrSector Nfr1A3bii("1A3bii", NfrId(7015), gnfr::RoadTransport, "Road transport: Light duty vehicles", EmissionDestination::Land);
 const NfrSector Nfr1A3biii("1A3biii", NfrId(7016), gnfr::RoadTransport, "Road transport: Heavy duty vehicles and buses", EmissionDestination::Land);

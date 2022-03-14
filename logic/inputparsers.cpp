@@ -172,9 +172,8 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
     const auto& pollutantInv = cfg.pollutants();
 
     try {
-        SingleEmissions result(requestYear);
         Log::debug("Parse emissions: {}", emissionsCsv);
-
+        std::vector<EmissionEntry> entries;
         std::unordered_map<EmissionIdentifier, int32_t> usedSectorPriories;
 
         using namespace io;
@@ -208,8 +207,12 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
                         // Sector was already processed, check if the current priority is higher
                         if (priority > iter->second && emissionValue > 0.0) {
                             // the current entry has a higher priority, update the map
-                            iter->second = priority;
-                            result.update_emission(std::move(info));
+                            iter->second   = priority;
+                            auto entryIter = std::find_if(entries.begin(), entries.end(), [&id](const EmissionEntry& entry) {
+                                return entry.id() == id;
+                            });
+                            assert(entryIter != entries.end());
+                            *entryIter = info;
                         } else {
                             // the current entry has a lower priority priority, skip it
                             continue;
@@ -217,7 +220,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
                     } else {
                         // first time we encounter this sector, add the current priority
                         usedSectorPriories.emplace(id, priority);
-                        result.add_emission(std::move(info));
+                        entries.push_back(info);
                     }
                 }
             } catch (const std::exception& e) {
@@ -225,7 +228,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
         }
 
-        return result;
+        return SingleEmissions(requestYear, std::move(entries));
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
     }

@@ -144,8 +144,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         }
         worksheet_write_string(ws, row, 6, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
 
-        worksheet_write_number(ws, row, 7, static_cast<int>(info.totalEmissions), formatNumber);
-        worksheet_write_number(ws, row, 8, static_cast<int>(info.pointEmissions), formatNumber);
+        worksheet_write_number(ws, row, 7, info.totalEmissions, formatNumber);
+        worksheet_write_number(ws, row, 8, info.pointEmissions, formatNumber);
     };
 
     for (const auto& info : sources) {

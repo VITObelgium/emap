@@ -7,6 +7,7 @@
 
 #include "testconfig.h"
 #include "testconstants.h"
+#include "testprinters.h"
 
 #include <doctest/doctest.h>
 
@@ -48,13 +49,13 @@ TEST_CASE("Input parsers")
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
             }
 
-            const auto& firstEmission = *emissions.begin();
+            const auto em = emissions.emission_with_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::PCBs));
             // DE;1990;1A1a;PCB;Gg;0.0003408784
-            CHECK(firstEmission.country() == countries::DE);
-            CHECK(firstEmission.sector().name() == "1A1a");
-            CHECK(firstEmission.pollutant() == pollutants::PCBs);
-            CHECK(firstEmission.value().amount() == Approx(0.0003408784));
-            CHECK(firstEmission.value().unit() == "Gg");
+            CHECK(em.country() == countries::DE);
+            CHECK(em.sector().name() == "1A1a");
+            CHECK(em.pollutant() == pollutants::PCBs);
+            CHECK(em.value().amount() == Approx(0.0003408784));
+            CHECK(em.value().unit() == "Gg");
         }
 
         SUBCASE("gnfr sectors")
@@ -68,13 +69,13 @@ TEST_CASE("Input parsers")
                 CHECK(em.sector().type() == EmissionSector::Type::Gnfr);
             }
 
-            const auto& firstEmission = *emissions.begin();
+            const auto em = emissions.emission_with_id(EmissionIdentifier(countries::TR, EmissionSector(sectors::gnfr::PublicPower), pollutants::CO));
             // TR;1990;A_PublicPower;CO;Gg;1.82364
-            CHECK(firstEmission.country() == countries::TR);
-            CHECK(firstEmission.sector().name() == "A_PublicPower");
-            CHECK(firstEmission.pollutant() == pollutants::CO);
-            CHECK(firstEmission.value().amount().value() == Approx(1.82364));
-            CHECK(firstEmission.value().unit() == "Gg");
+            CHECK(em.country() == countries::TR);
+            CHECK(em.sector().name() == "A_PublicPower");
+            CHECK(em.pollutant() == pollutants::CO);
+            CHECK(em.value().amount().value() == Approx(1.82364));
+            CHECK(em.value().unit() == "Gg");
         }
 
         SUBCASE("Belgian emissions xlsx (Brussels)")
@@ -158,14 +159,18 @@ TEST_CASE("Input parsers")
                 REQUIRE_MESSAGE(em.coordinate().has_value(), fmt::format("Line nr: {} pol {}", lineNr++, em.pollutant()));
             }
 
-            auto iter = emissions.begin();
-            CHECK(iter->coordinate() == Coordinate(95820, 173080));
-            ++iter;
-            CHECK(iter->coordinate() == Coordinate(148450, 197211));
-            ++iter;
-            CHECK(iter->coordinate() == Coordinate(205000, 209000));
-            ++iter;
-            CHECK(iter->coordinate() == Coordinate(130643, 159190));
+            {
+                auto noxEmissions = emissions.emissions_with_id(EmissionIdentifier(country::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx));
+                REQUIRE(noxEmissions.size() == 2);
+                CHECK(noxEmissions[0].coordinate().value() == Coordinate(148450, 197211));
+                CHECK(noxEmissions[1].coordinate().value() == Coordinate(95820, 173080));
+            }
+            {
+                auto nmvocEmissions = emissions.emissions_with_id(EmissionIdentifier(country::BEF, EmissionSector(sectors::nfr::Nfr1A2c), pollutants::NMVOC));
+                REQUIRE(nmvocEmissions.size() == 2);
+                CHECK(nmvocEmissions[0].coordinate().value() == Coordinate(130643, 159190));
+                CHECK(nmvocEmissions[1].coordinate().value() == Coordinate(205000, 209000));
+            }
         }
     }
 

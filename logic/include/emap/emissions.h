@@ -91,6 +91,21 @@ struct EmissionIdentifier
         return !(*this == other);
     }
 
+    bool operator<(const EmissionIdentifier& other) const noexcept
+    {
+        if (country.id() < other.country.id()) {
+            return true;
+        } else if (country.id() == other.country.id()) {
+            if (sector.id() < other.sector.id()) {
+                return true;
+            } else if (sector.id() == other.sector.id()) {
+                return pollutant.code() < other.pollutant.code();
+            }
+        }
+
+        return false;
+    }
+
     Country country;
     EmissionSector sector;
     Pollutant pollutant;
@@ -317,9 +332,22 @@ template <typename TEmission>
 class EmissionCollection
 {
 public:
+    using value_type     = TEmission;
+    using size_type      = std::size_t;
+    using pointer        = TEmission*;
+    using const_pointer  = const TEmission*;
+    using iterator       = typename std::vector<TEmission>::iterator;
+    using const_iterator = typename std::vector<TEmission>::const_iterator;
+
     EmissionCollection(date::year year)
     : _year(year)
     {
+    }
+
+    EmissionCollection(date::year year, std::vector<TEmission> emissions)
+    : _year(year)
+    {
+        set_emissions(std::move(emissions));
     }
 
     date::year year() const noexcept
@@ -329,32 +357,43 @@ public:
 
     void add_emission(TEmission&& info)
     {
-        _emissions.push_back(std::move(info));
+        // Make sure the emissions remain sorted
+        auto emissionIter = find_sorted(info.id());
+        _emissions.insert(emissionIter, std::move(info));
+    }
+
+    void add_emissions(std::span<const TEmission> emissions)
+    {
+        // Make sure the emissions remain sorted
+        append_to_container(_emissions, emissions);
+        sort_emissions();
+    }
+
+    void set_emissions(std::vector<TEmission> emissions)
+    {
+        // Sort the emissions after assignment
+        _emissions = std::move(emissions);
+        sort_emissions();
     }
 
     void update_emission(TEmission&& info)
     {
-        auto* emission = inf::find_in_container(_emissions, [&info](const TEmission& em) {
-            return em.id() == info.id();
-        });
-
-        if (!emission) {
+        auto emissionIter = find_sorted(info.id());
+        if (emissionIter != _emissions.end() && emissionIter->id() == info.id()) {
+            *emissionIter = info;
+        } else {
             throw inf::RuntimeError("Update of non existing emission");
         }
-
-        *emission = info;
     }
 
     void update_or_add_emission(TEmission&& info)
     {
-        auto* emission = inf::find_in_container(_emissions, [&info](const TEmission& em) {
-            return em.id() == info.id();
-        });
-
-        if (emission) {
-            *emission = info;
+        auto emissionIter = find_sorted(info.id());
+        if (emissionIter != _emissions.end() && emissionIter->id() == info.id()) {
+            // update the existing emission
+            *emissionIter = std::forward<TEmission&&>(info);
         } else {
-            add_emission(std::forward<TEmission&&>(info));
+            _emissions.insert(emissionIter, std::forward<TEmission&&>(info));
         }
     }
 
@@ -411,6 +450,11 @@ public:
         return _emissions.empty();
     }
 
+    auto data() const
+    {
+        return _emissions.data();
+    }
+
     size_t size() const noexcept
     {
         return _emissions.size();
@@ -437,6 +481,20 @@ public:
     }
 
 private:
+    void sort_emissions()
+    {
+        std::sort(_emissions.begin(), _emissions.end(), [](const TEmission& lhs, const TEmission& rhs) {
+            return lhs.id() < rhs.id();
+        });
+    }
+
+    auto find_sorted(const EmissionIdentifier& id)
+    {
+        return std::lower_bound(_emissions.begin(), _emissions.end(), id, [](const TEmission& lhs, const EmissionIdentifier& id) {
+            return lhs.id() < id;
+        });
+    }
+
     date::year _year;
     std::vector<TEmission> _emissions;
 };
@@ -456,6 +514,16 @@ void merge_emissions(EmissionCollection<T>& output, EmissionCollection<T>&& toMe
         for (auto& emission : toMerge) {
             output.update_or_add_emission(std::move(emission));
         }
+    }
+}
+
+template <typename T>
+void merge_unique_emissions(EmissionCollection<T>& output, EmissionCollection<T>&& toMerge)
+{
+    if (output.empty()) {
+        std::swap(output, toMerge);
+    } else {
+        output.add_emissions(toMerge);
     }
 }
 

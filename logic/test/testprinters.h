@@ -25,3 +25,12 @@ inline doctest::String toString(const EmissionSector::Type& type)
 }
 
 }
+
+namespace inf {
+
+inline doctest::String toString(const Point<double>& coordinate)
+{
+    return doctest::String(fmt::format("({}, {})", coordinate.x, coordinate.y).c_str());
+}
+
+}
