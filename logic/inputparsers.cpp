@@ -82,6 +82,16 @@ static std::optional<double> parse_emission_value(std::string_view emission)
     return str::to_double(emission);
 }
 
+static void update_entry(std::vector<EmissionEntry>& entries, const EmissionEntry& newEntry)
+{
+    auto entryIter = std::find_if(entries.begin(), entries.end(), [&](const EmissionEntry& entry) {
+        return entry.id() == newEntry.id();
+    });
+
+    assert(entryIter != entries.end());
+    *entryIter = newEntry;
+}
+
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
@@ -207,12 +217,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
                         // Sector was already processed, check if the current priority is higher
                         if (priority > iter->second && emissionValue > 0.0) {
                             // the current entry has a higher priority, update the map
-                            iter->second   = priority;
-                            auto entryIter = std::find_if(entries.begin(), entries.end(), [&id](const EmissionEntry& entry) {
-                                return entry.id() == id;
-                            });
-                            assert(entryIter != entries.end());
-                            *entryIter = info;
+                            update_entry(entries, info);
                         } else {
                             // the current entry has a lower priority priority, skip it
                             continue;
@@ -310,8 +315,6 @@ static std::string_view strip_newline(std::string_view str)
 
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg)
 {
-    SingleEmissions result(year);
-
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
 
@@ -337,6 +340,8 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
 
     std::unordered_map<int, PollutantData> pollutantColumns;
     std::unordered_map<NfrId, int32_t> usedSectorPriories;
+
+    std::vector<EmissionEntry> entries;
 
     int lineNr = 0;
     for (const auto& feature : layer) {
@@ -410,11 +415,9 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
 
                     if (sectorOverride) {
                         // update the existing emission with the higher priority version
-                        result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue)));
+                        update_entry(entries, EmissionEntry(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue)));
                     } else {
-                        result.add_emission(EmissionEntry(
-                            EmissionIdentifier(country, nfrSector, polData.pollutant),
-                            EmissionValue(*emissionValue)));
+                        entries.emplace_back(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue));
                     }
                 } else {
                     const auto value = feature.field_as<std::string>(index);
@@ -432,11 +435,9 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                         auto pmcVal = EmissionValue(*pm10 - *pm2_5);
                         if (sectorOverride) {
                             // update the existing emission with the higher priority version
-                            result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal));
+                            update_entry(entries, EmissionEntry(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal));
                         } else {
-                            result.add_emission(EmissionEntry(
-                                EmissionIdentifier(country, nfrSector, *pmCoarse),
-                                pmcVal));
+                            entries.emplace_back(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal);
                         }
                     } else {
                         throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, *pm2_5);
@@ -446,7 +447,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
         }
     }
 
-    return result;
+    return SingleEmissions(year, entries);
 }
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg)

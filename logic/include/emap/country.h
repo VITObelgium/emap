@@ -59,7 +59,7 @@ public:
 
     bool operator==(const Country& other) const noexcept
     {
-        return _isoCode == other._isoCode;
+        return _id == other._id;
     }
 
     bool operator!=(const Country& other) const noexcept

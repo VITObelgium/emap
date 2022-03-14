@@ -399,16 +399,22 @@ public:
 
     const TEmission& emission_with_id(const EmissionIdentifier& id) const
     {
-        return inf::find_in_container_required(_emissions, [&id](const TEmission& em) {
-            return em.id() == id;
-        });
+        auto emissionIter = find_sorted(id);
+        if (emissionIter != _emissions.end() && emissionIter->id() == id) {
+            return *emissionIter;
+        }
+
+        throw inf::RuntimeError("No emission found with id: {}", id);
     }
 
     std::optional<TEmission> try_emission_with_id(const EmissionIdentifier& id) const noexcept
     {
-        return inf::find_in_container_optional(_emissions, [&id](const TEmission& em) {
-            return em.id() == id;
-        });
+        auto emissionIter = find_sorted(id);
+        if (emissionIter != _emissions.end() && emissionIter->id() == id) {
+            return *emissionIter;
+        }
+
+        return {};
     }
 
     std::vector<TEmission> emissions_with_id(const EmissionIdentifier& id) const
@@ -417,30 +423,6 @@ public:
         std::copy_if(_emissions.begin(), _emissions.end(), std::back_inserter(result), [&id](const TEmission& em) {
             return em.id() == id;
         });
-
-        return result;
-    }
-
-    std::vector<const TEmission*> emissions_for_pollutant(Pollutant pol) const
-    {
-        std::vector<const TEmission*> result;
-        for (auto& emission : _emissions) {
-            if (emission.id().pollutant == pol) {
-                result.push_back(&emission);
-            }
-        }
-
-        return result;
-    }
-
-    std::vector<const TEmission*> emissions_for_pollutant_for_sector(Pollutant pol, EmissionSector sector) const
-    {
-        std::vector<const TEmission*> result;
-        for (auto& emission : _emissions) {
-            if (emission.id().pollutant == pol && emission.id().sector == sector) {
-                result.push_back(&emission);
-            }
-        }
 
         return result;
     }
@@ -489,6 +471,13 @@ private:
     }
 
     auto find_sorted(const EmissionIdentifier& id)
+    {
+        return std::lower_bound(_emissions.begin(), _emissions.end(), id, [](const TEmission& lhs, const EmissionIdentifier& id) {
+            return lhs.id() < id;
+        });
+    }
+
+    auto find_sorted(const EmissionIdentifier& id) const
     {
         return std::lower_bound(_emissions.begin(), _emissions.end(), id, [](const TEmission& lhs, const EmissionIdentifier& id) {
             return lhs.id() < id;
