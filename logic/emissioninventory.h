@@ -6,22 +6,25 @@ namespace emap {
 
 class RunSummary;
 class ScalingFactors;
+class RunConfiguration;
 
-EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
-                                            const SingleEmissions& totalEmissionsGnfr,
+EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
+                                            SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
                                             const ScalingFactors& diffuseScalings,
                                             const ScalingFactors& pointScalings,
+                                            const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 
-EmissionInventory create_emission_inventory(const SingleEmissions& totalEmissionsNfr,
-                                            const SingleEmissions& totalEmissionsNfrOlder,
-                                            const SingleEmissions& totalEmissionsGnfr,
+EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
+                                            SingleEmissions totalEmissionsNfrOlder,
+                                            SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
                                             const ScalingFactors& diffuseScalings,
                                             const ScalingFactors& pointScalings,
+                                            const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 
 }

@@ -25,14 +25,24 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
 {
-    _spatialPatterns.push_back(source);
+    SpatialPatternSummaryInfo info;
+    info.source         = source;
+    info.totalEmissions = totalEmissions;
+    info.pointEmissions = pointEmissions;
+
+    _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
 {
-    _spatialPatternsWithoutData.push_back(source);
+    SpatialPatternSummaryInfo info;
+    info.source         = source;
+    info.totalEmissions = totalEmissions;
+    info.pointEmissions = pointEmissions;
+
+    _spatialPatternsWithoutData.push_back(info);
 }
 
 void RunSummary::add_point_source(const fs::path& pointSource)
@@ -84,9 +94,9 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
     return "";
 }
 
-static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSource> sources, std::span<const SpatialPatternSource> sourcesWithoutData)
+void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const
 {
-    const std::array<ColumnInfo, 7> headers = {
+    const std::array<ColumnInfo, 9> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"Pollutant", 15.0},
@@ -94,6 +104,8 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
         ColumnInfo{"Uniform spread fallback", 25.0},
         ColumnInfo{"Year", 15.0},
         ColumnInfo{"Path", 125.0},
+        ColumnInfo{"Total emissions", 15.0},
+        ColumnInfo{"Point Emissions", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -105,6 +117,9 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
     format_set_bold(headerFormat);
     format_set_bg_color(headerFormat, 0xD5EBFF);
 
+    auto* formatNumber = workbook_add_format(wb);
+    format_set_num_format(formatNumber, "0.000000000");
+
     for (int i = 0; i < truncate<int>(headers.size()); ++i) {
         worksheet_set_column(ws, i, i, headers.at(i).width, nullptr);
         worksheet_write_string(ws, 0, i, headers.at(i).header, headerFormat);
@@ -112,31 +127,34 @@ static void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName,
 
     int row = 1;
 
-    auto addSource = [&](const SpatialPatternSource& sp, bool dataUsed) {
-        std::string country(sp.emissionId.country.iso_code());
-        std::string sector(sp.emissionId.sector.name());
-        std::string pollutant(sp.emissionId.pollutant.code());
-        std::string type = spatial_pattern_source_type_to_string(sp.type);
+    auto addSource = [&](const SpatialPatternSummaryInfo& info, bool dataUsed) {
+        std::string country(info.source.emissionId.country.iso_code());
+        std::string sector(info.source.emissionId.sector.name());
+        std::string pollutant(info.source.emissionId.pollutant.code());
+        std::string type = spatial_pattern_source_type_to_string(info.source.type);
 
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, sector.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 3, type.c_str(), nullptr);
         worksheet_write_boolean(ws, row, 4, !dataUsed, nullptr);
-        if (sp.type != SpatialPatternSource::Type::UnfiformSpread &&
-            sp.type != SpatialPatternSource::Type::RasterException) {
-            worksheet_write_number(ws, row, 5, static_cast<int>(sp.year), nullptr);
+        if (info.source.type != SpatialPatternSource::Type::UnfiformSpread &&
+            info.source.type != SpatialPatternSource::Type::RasterException) {
+            worksheet_write_number(ws, row, 5, static_cast<int>(info.source.year), nullptr);
         }
-        worksheet_write_string(ws, row, 6, str::from_u8(sp.path.generic_u8string()).c_str(), nullptr);
+        worksheet_write_string(ws, row, 6, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
+
+        worksheet_write_number(ws, row, 7, static_cast<int>(info.totalEmissions), formatNumber);
+        worksheet_write_number(ws, row, 8, static_cast<int>(info.pointEmissions), formatNumber);
     };
 
-    for (const auto& sp : sources) {
-        addSource(sp, true);
+    for (const auto& info : sources) {
+        addSource(info, true);
         ++row;
     }
 
-    for (const auto& sp : sourcesWithoutData) {
-        addSource(sp, false);
+    for (const auto& info : sourcesWithoutData) {
+        addSource(info, false);
         ++row;
     }
 

@@ -48,6 +48,8 @@ public:
     std::span<const GnfrSector> gnfr_sectors() const noexcept;
     std::span<const NfrSector> nfr_sectors() const noexcept;
 
+    std::vector<NfrSector> nfr_sectors_in_gnfr(GnfrId gnfr) const;
+
 private:
     std::optional<std::pair<GnfrSector, int32_t>> try_gnfr_sector_with_priority_from_string(std::string_view str) const noexcept;
     std::optional<std::pair<NfrSector, int32_t>> try_nfr_sector_with_priority_from_string(std::string_view str) const noexcept;

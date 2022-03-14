@@ -127,6 +127,11 @@ public:
         return id() < other.id();
     }
 
+    bool has_land_destination() const noexcept
+    {
+        return _destination == EmissionDestination::Land;
+    }
+
 private:
     NfrId _id;
     EmissionDestination _destination = EmissionDestination::Invalid;

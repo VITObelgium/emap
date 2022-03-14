@@ -34,7 +34,7 @@ RunConfiguration::RunConfiguration(
     PollutantInventory pollutants,
     CountryInventory countries,
     Output outputConfig)
-: _dataPath(dataPath)
+: _paths(dataPath, outputConfig.path)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _grid(grid)
 , _runType(runType)
@@ -50,74 +50,64 @@ RunConfiguration::RunConfiguration(
 {
 }
 
-fs::path RunConfiguration::emissions_dir_path() const
-{
-    return _dataPath / "01_data_emissions" / "inventory" / fs::u8path(fmt::format("reporting_{}", static_cast<int>(_reportYear)));
-}
-
 fs::path RunConfiguration::point_source_emissions_path(const Country& country, const Pollutant& pol) const
 {
-    return emissions_dir_path() / "pointsources" / country.iso_code() / fmt::format("emap_{}_{}_{}_aangevuld.csv", pol.code(), static_cast<int>(_year), static_cast<int>(_reportYear));
+    return _paths.point_source_emissions_path(country, pol, _year, _reportYear);
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr(date::year year) const
 {
-    return emissions_dir_path() / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(_reportYear));
+    return _paths.total_emissions_path_nfr(year, _reportYear);
 }
 
 fs::path RunConfiguration::total_extra_emissions_path_nfr() const
 {
-    return emissions_dir_path() / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(_reportYear));
+    return _paths.total_extra_emissions_path_nfr(_reportYear);
 }
 
 fs::path RunConfiguration::total_emissions_path_gnfr(date::year reportYear) const
 {
-    return emissions_dir_path() / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(reportYear));
+    return _paths.total_emissions_path_gnfr(reportYear);
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr_belgium(const Country& belgianRegian) const
 {
-    if (!belgianRegian.is_belgium()) {
-        throw std::logic_error("Internal error: a belgian region is required");
-    }
-
-    return emissions_dir_path() / "totals" / fmt::format("{}_{}.xlsx", belgianRegian.iso_code(), static_cast<int>(_reportYear));
+    return _paths.total_emissions_path_nfr_belgium(belgianRegian, _reportYear);
 }
 
 fs::path RunConfiguration::spatial_pattern_path() const
 {
-    return _dataPath / "03_spatial_disaggregation";
+    return _paths.spatial_pattern_path();
 }
 
 fs::path RunConfiguration::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
 {
-    return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));
+    return _paths.emission_output_raster_path(year, emissionId);
 }
 
-fs::path RunConfiguration::emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const
+fs::path RunConfiguration::emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const
 {
-    const int yearInt = static_cast<int>(year);
-    return output_path() / std::to_string(yearInt) / fs::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
+    return _paths.emission_brn_output_path(year, pol, sector);
 }
 
 fs::path RunConfiguration::diffuse_scalings_path() const
 {
-    return emissions_dir_path() / "scaling_diffuse.csv";
+    return _paths.diffuse_scalings_path(_reportYear);
 }
 
 fs::path RunConfiguration::point_source_scalings_path() const
 {
-    return emissions_dir_path() / "scaling_pointsources.csv";
+    return _paths.point_source_scalings_path(_reportYear);
 }
 
 const fs::path& RunConfiguration::data_root() const noexcept
 {
-    return _dataPath;
+    return _paths.data_root();
 }
 
 const fs::path& RunConfiguration::output_path() const noexcept
 {
-    return _outputConfig.path;
+    return _paths.output_path();
 }
 
 const fs::path& RunConfiguration::spatial_pattern_exceptions() const noexcept
@@ -127,7 +117,7 @@ const fs::path& RunConfiguration::spatial_pattern_exceptions() const noexcept
 
 fs::path RunConfiguration::countries_vector_path() const noexcept
 {
-    return _dataPath / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    return _paths.countries_vector_path();
 }
 
 std::string RunConfiguration::country_field_id() const noexcept
@@ -239,17 +229,17 @@ bool RunConfiguration::output_grid_rasters() const noexcept
 
 fs::path RunConfiguration::output_dir_for_rasters() const
 {
-    return output_path() / "rasters";
+    return _paths.output_dir_for_rasters();
 }
 
 fs::path RunConfiguration::output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const
 {
-    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+    return _paths.output_path_for_country_raster(id, grid);
 }
 
 fs::path RunConfiguration::output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const
 {
-    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
+    return _paths.output_path_for_grid_raster(pol, sector, grid);
 }
 
 }

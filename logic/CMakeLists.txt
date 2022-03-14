@@ -18,6 +18,7 @@ add_library(emaplogic
     include/emap/inputconversion.h
     include/emap/inputparsers.h inputparsers.cpp
     include/emap/modelrun.h modelrun.cpp
+    include/emap/modelpaths.h modelpaths.cpp
     include/emap/pollutant.h pollutant.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
     include/emap/sector.h sector.cpp

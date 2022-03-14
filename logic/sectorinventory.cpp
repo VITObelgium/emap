@@ -253,4 +253,18 @@ std::span<const NfrSector> SectorInventory::nfr_sectors() const noexcept
 {
     return _nfrSectors;
 }
+
+std::vector<NfrSector> SectorInventory::nfr_sectors_in_gnfr(GnfrId gnfr) const
+{
+    std::vector<NfrSector> result;
+
+    for (const auto& nfr : nfr_sectors()) {
+        if (nfr.gnfr().id() == gnfr) {
+            result.push_back(nfr);
+        }
+    }
+
+    return result;
+}
+
 }

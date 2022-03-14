@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
+#include "emap/modelpaths.h"
 #include "emap/sectorinventory.h"
 #include "infra/filesystem.h"
 
@@ -65,7 +66,7 @@ public:
     fs::path spatial_pattern_path() const;
 
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
-    fs::path emission_brn_output_path(date::year year, Pollutant pol, EmissionSector sector) const;
+    fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
     fs::path diffuse_scalings_path() const;
     fs::path point_source_scalings_path() const;
@@ -106,9 +107,7 @@ public:
     fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
 
 private:
-    fs::path emissions_dir_path() const;
-
-    fs::path _dataPath;
+    ModelPaths _paths;
     fs::path _spatialPatternExceptions;
     ModelGrid _grid;
     RunType _runType;

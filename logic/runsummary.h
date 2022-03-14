@@ -19,8 +19,8 @@ public:
     RunSummary() = default;
     RunSummary(const RunConfiguration& cfg);
 
-    void add_spatial_pattern_source(const SpatialPatternSource& source);
-    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source);
+    void add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions);
+    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions);
     void add_point_source(const fs::path& pointSource);
     void add_totals_source(const fs::path& totalsSource);
 
@@ -49,15 +49,23 @@ private:
         double olderNfrTotal      = 0.0;
     };
 
+    struct SpatialPatternSummaryInfo
+    {
+        SpatialPatternSource source;
+        double totalEmissions = 0.0;
+        double pointEmissions = 0.0;
+    };
+
     void gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const GnfrCorrection> corrections) const;
     void validated_gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const ValidatedGnfrCorrection> corrections) const;
     void validation_results_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const EmissionValidation::SummaryEntry> validationResults) const;
     void emission_sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName) const;
+    void sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const;
     void write_summary_spreadsheet(const fs::path& path) const;
 
     const RunConfiguration* _cfg = nullptr;
-    std::vector<SpatialPatternSource> _spatialPatterns;
-    std::vector<SpatialPatternSource> _spatialPatternsWithoutData;
+    std::vector<SpatialPatternSummaryInfo> _spatialPatterns;
+    std::vector<SpatialPatternSummaryInfo> _spatialPatternsWithoutData;
     std::vector<fs::path> _pointSources;
     std::vector<fs::path> _totalsSources;
     std::vector<GnfrCorrection> _gnfrCorrections;

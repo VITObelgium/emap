@@ -90,20 +90,6 @@ static gdx::DenseRaster<double> apply_spatial_pattern_ceip(const fs::path& ceipP
     return raster;
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern_table(const fs::path& tablePath, const EmissionIdentifier& emissionId, double emissionValue, const inf::GeoMetadata& outputGrid, const RunConfiguration& cfg)
-{
-    if (emissionId.country == country::BEF) {
-        auto raster = parse_spatial_pattern_flanders(tablePath, emissionId.sector, cfg);
-        gdx::write_raster(raster, cfg.output_path() / "spatial_patterns" / fmt::format("spatial_pattern_flanders_{}.tif", emissionId));
-        raster = gdx::resample_raster(raster, outputGrid, gdal::ResampleAlgorithm::Average);
-        normalize_raster(raster);
-        raster *= emissionValue;
-        return raster;
-    }
-
-    throw RuntimeError("Spatial pattern tables are only implemented for Flanders, not {}", emissionId.country);
-}
-
 static gdx::DenseRaster<double> apply_spatial_pattern_flanders(const gdx::DenseRaster<double>& pattern, double emissionValue, const inf::GeoMetadata& outputGrid)
 {
     if (gdx::sum(pattern) == 0.0) {
@@ -604,7 +590,7 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
     const auto scalingsDiffuse      = read_scaling_factors(cfg.diffuse_scalings_path(), cfg);
     const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
     const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
-    const auto nfrTotalEmissions    = read_nfr_emissions(cfg.year(), cfg, summary);
+    auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
 
     // Optional additional emissions that supllement or override existing emissions
     std::optional<SingleEmissions> extraEmissions;
@@ -615,14 +601,29 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
     }
 
     date::year gnfrReportYear;
-    const auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
+    auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
 
     if (gnfrReportYear < cfg.reporting_year()) {
         // no gnfr data was available for the reporting year, older data was read
         auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - date::years(1), cfg, summary);
-        return create_emission_inventory(nfrTotalEmissions, olderNfrTotalEmissions, gnfrTotalEmissions, extraEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
+        return create_emission_inventory(std::move(nfrTotalEmissions),
+                                         std::move(olderNfrTotalEmissions),
+                                         std::move(gnfrTotalEmissions),
+                                         extraEmissions,
+                                         pointSourcesFlanders,
+                                         scalingsDiffuse,
+                                         scalingsPointSource,
+                                         cfg,
+                                         summary);
     } else {
-        return create_emission_inventory(nfrTotalEmissions, gnfrTotalEmissions, extraEmissions, pointSourcesFlanders, scalingsDiffuse, scalingsPointSource, summary);
+        return create_emission_inventory(std::move(nfrTotalEmissions),
+                                         std::move(gnfrTotalEmissions),
+                                         extraEmissions,
+                                         pointSourcesFlanders,
+                                         scalingsDiffuse,
+                                         scalingsPointSource,
+                                         cfg,
+                                         summary);
     }
 }
 
@@ -649,10 +650,18 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
                 for (auto pol : cfg.included_pollutants()) {
                     EmissionIdentifier id(country, EmissionSector(nfr), pol);
                     const auto spatialPattern = spatPatInv.get_spatial_pattern(id);
+
+                    auto totalEmissions = 0.0;
+                    auto pointEmissions = 0.0;
+                    if (auto emissionEntry = inventory.try_emission_with_id(id); emissionEntry.has_value()) {
+                        totalEmissions = emissionEntry->scaled_total_emissions_sum();
+                        pointEmissions = emissionEntry->scaled_point_emissions_sum();
+                    }
+
                     if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {
-                        summary.add_spatial_pattern_source_without_data(spatialPattern);
+                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions);
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern);
+                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions);
                     }
                 }
             }

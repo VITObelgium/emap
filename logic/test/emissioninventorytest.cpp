@@ -1,5 +1,6 @@
 #include "emissioninventory.h"
 
+#include "emap/configurationparser.h"
 #include "emap/scalingfactors.h"
 
 #include "runsummary.h"
@@ -12,10 +13,25 @@ namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
+using namespace date::literals;
+
+static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
+{
+    RunConfiguration::Output outputConfig;
+    outputConfig.path            = "./out";
+    outputConfig.outputLevelName = "GNFR";
+
+    return RunConfiguration("./data", {}, ModelGrid::Invalid, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
+}
 
 TEST_CASE("Emission inventory")
 {
     RunSummary summary;
+
+    const auto sectorInventory    = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx", fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto countryInventory   = parse_countries(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
+    auto cfg                      = create_config(sectorInventory, pollutantInventory, countryInventory);
 
     SUBCASE("Subtract point sources in Belgium")
     {
@@ -51,7 +67,7 @@ TEST_CASE("Emission inventory")
         diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 0.5));
         pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 2.0));
 
-        const auto inventory = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, summary);
+        const auto inventory = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
 
         auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
             const auto emissions = inventory.emissions_with_id(id);
