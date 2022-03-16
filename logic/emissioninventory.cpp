@@ -222,8 +222,15 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     chrono::ScopedDurationLog d("Create emission inventory");
 
     // Create the GNFR totals of the nfr sectors
-    const auto nfrSums  = create_nfr_sums(totalEmissionsNfr);
+    auto nfrSums        = create_nfr_sums(totalEmissionsNfr);
     const auto gnfrSums = create_gnfr_sums(totalEmissionsGnfr);
+
+    for (auto& [id, sum] : gnfrSums) {
+        if (nfrSums.count(id) == 0) {
+            // No nfr emission available, set it to 0
+            nfrSums[id] = 0;
+        }
+    }
 
     // Create gnfr sum of the actual reported nfr values
     // Create gnfr sum of the validated gnfr values (put in map)

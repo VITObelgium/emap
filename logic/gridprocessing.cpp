@@ -193,7 +193,7 @@ static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const Ge
     return result;
 }
 
-static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages, GeoMetadata /*extent*/)
+static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages)
 {
     std::vector<CountryCellCoverage> result;
     result.reserve(cellCoverages.size());
@@ -443,7 +443,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     // Update the coverages on the country borders to get appropriate spreading of the emissions
     // e.g.: if one cell contains 25% water from ocean1 and 25% water from ocean2 and 50% land the coverage of
     // both oceans will be modified to 50% each, as they will both receive half of the emission for sea sectors
-    result = process_country_borders(result, outputExtent);
+    result = process_country_borders(result);
 
     return result;
 }
