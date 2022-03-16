@@ -20,6 +20,7 @@ public:
         }
 
         EmissionIdentifier id;
+        double gnfrTotal              = 0.0;
         double emissionInventoryTotal = 0.0;
         std::optional<double> spreadTotal;
     };

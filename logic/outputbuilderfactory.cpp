@@ -1,7 +1,8 @@
 #include "emap/outputbuilderfactory.h"
 
-#include "brnoutputbuilder.h"
+#include "chimereoutputbuilder.h"
 #include "emap/runconfiguration.h"
+#include "vlopsoutputbuilder.h"
 
 #include "infra/gdal.h"
 #include "infra/log.h"
@@ -26,9 +27,9 @@ static std::string layer_name_for_sector_level(SectorLevel level, std::string_vi
     throw RuntimeError("Invalid sector level");
 }
 
-std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName)
+static std::unordered_map<std::string, SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName)
 {
-    std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> result;
+    std::unordered_map<std::string, SectorParameterConfig> result;
 
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
     auto ds    = gdal::VectorDataSet::open(diffuseParametersPath);
@@ -46,7 +47,7 @@ std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_s
             break; // abort on empty lines
         }
 
-        BrnOutputBuilder::SectorParameterConfig config;
+        SectorParameterConfig config;
         config.hc_MW = feature.field_as<double>(colHc);
         config.h_m   = feature.field_as<double>(colH);
         config.s_m   = feature.field_as<double>(colS);
@@ -59,9 +60,35 @@ std::unordered_map<std::string, BrnOutputBuilder::SectorParameterConfig> parse_s
     return result;
 }
 
-std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> parse_pollutant_parameters_config(const fs::path& pollutantParametersPath, const PollutantInventory& pollutants)
+static std::unordered_map<CountryId, int32_t> parse_chimere_country_mapping(const fs::path& mappingPath, const CountryInventory& countryInv)
 {
-    std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> result;
+    std::unordered_map<CountryId, int32_t> result;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(mappingPath);
+    auto layer = ds.layer(0);
+
+    const auto colIso     = layer.layer_definition().required_field_index("country_iso_code");
+    const auto colChimere = layer.layer_definition().required_field_index("Chimere_country");
+
+    for (const auto& feature : layer) {
+        if (!feature.field_is_valid(0)) {
+            break; // skip empty lines
+        }
+
+        if (auto country = countryInv.try_country_from_string(feature.field_as<std::string_view>(colIso)); country.has_value()) {
+            result.emplace(country->id(), feature.field_as<int32_t>(colChimere));
+        } else {
+            Log::warn("Unknown country in chimere mapping file: {}", feature.field_as<std::string_view>(colIso));
+        }
+    }
+
+    return result;
+}
+
+std::unordered_map<std::string, VlopsOutputBuilder::PollutantParameterConfig> parse_pollutant_parameters_config(const fs::path& pollutantParametersPath, const PollutantInventory& pollutants)
+{
+    std::unordered_map<std::string, VlopsOutputBuilder::PollutantParameterConfig> result;
 
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
     auto ds = gdal::VectorDataSet::open(pollutantParametersPath);
@@ -76,7 +103,7 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
             continue; // skip empty lines
         }
 
-        BrnOutputBuilder::PollutantParameterConfig config;
+        VlopsOutputBuilder::PollutantParameterConfig config;
         config.sd = feature.field_as<int32_t>(colSd);
 
         if (auto pollutant = pollutants.try_pollutant_from_string(feature.field_as<std::string_view>(colPollutant)); pollutant.has_value()) {
@@ -91,14 +118,26 @@ std::unordered_map<std::string, BrnOutputBuilder::PollutantParameterConfig> pars
 
 std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
 {
-    if (cfg.model_grid() == ModelGrid::Vlops1km || cfg.model_grid() == ModelGrid::Vlops250m) {
-        const auto sectorParametersPath    = cfg.data_root() / "05_model_parameters" / "sector_parameters.xlsx";
+    auto modelGrid                  = cfg.model_grid();
+    const auto sectorParametersPath = cfg.data_root() / "05_model_parameters" / "sector_parameters.xlsx";
+    auto sectorParams               = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
+
+    if (modelGrid == ModelGrid::Vlops1km || modelGrid == ModelGrid::Vlops250m) {
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "pollutant_parameters.xlsx";
 
-        auto sectorParams    = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
         auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
 
-        return std::make_unique<BrnOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg);
+        return std::make_unique<VlopsOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg);
+    } else if (modelGrid == ModelGrid::Chimere05deg ||
+               modelGrid == ModelGrid::Chimere01deg ||
+               modelGrid == ModelGrid::Chimere005degLarge ||
+               modelGrid == ModelGrid::Chimere005degSmall ||
+               modelGrid == ModelGrid::Chimere0025deg ||
+               modelGrid == ModelGrid::ChimereEmep ||
+               modelGrid == ModelGrid::ChimereCams) {
+        const auto countryMappingPath = cfg.data_root() / "05_model_parameters" / "chimere_mapping_country.xlsx";
+        auto countryMapping           = parse_chimere_country_mapping(countryMappingPath, cfg.countries());
+        return std::make_unique<ChimereOutputBuilder>(std::move(sectorParams), std::move(countryMapping), cfg);
     }
 
     throw RuntimeError("No known output builder for the specified grid definition");

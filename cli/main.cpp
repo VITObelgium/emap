@@ -112,7 +112,12 @@ int main(int argc, char** argv)
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
-        fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
+        Log::error(e.what());
+        if (options.noProgress) {
+            fmt::print("{}\n", e.what());
+        } else {
+            fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
+        }
         return EXIT_FAILURE;
     }
 }

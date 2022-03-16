@@ -8,8 +8,15 @@
 namespace emap {
 
 using namespace inf;
+using namespace std::string_view_literals;
 
 BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode)
+: BrnOutputWriter(path, mode, 1)
+{
+}
+
+BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode, size_t index)
+: _index(index)
 {
     fs::create_directories(path.parent_path());
 
@@ -49,6 +56,11 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
     }
 }
 
+size_t BrnOutputWriter::current_index() const noexcept
+{
+    return _index;
+}
+
 void BrnOutputWriter::write_header()
 {
     fmt::print(_fp, "   ssn    x(m)    y(m)   q(g/s)     hc(MW)  h(m)   d(m)  s(m)  dv cat area  sd  comp temp flow Emap: v" EMAP_VERSION "\n");
@@ -58,6 +70,38 @@ void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& p
 {
     BrnOutputWriter writer(path, BrnOutputWriter::OpenMode::Replace);
     writer.append_entries(entries);
+}
+
+void write_dat_header(const fs::path& path, const std::vector<std::string>& sectors)
+{
+    file::write_as_text(path, fmt::format("country row col {}\n", str::join(sectors, ' ')));
+}
+
+void write_dat_output(const fs::path& path, std::span<const DatOutputEntry> entries)
+{
+    file::Handle fp(path, "wt");
+
+    for (const auto& entry : entries) {
+        fmt::print(fp, FMT_COMPILE("{:>4}{:>5}{:>5} {}\n"), entry.countryCode, entry.cell.r, entry.cell.c, str::join(entry.emissions, " "sv, [](double emission) {
+                       return fmt::format("{:>10.3e}", emission);
+                   }));
+    }
+}
+
+void write_dat_output(const fs::path& path, std::span<const DatPointSourceOutputEntry> entries, const std::vector<std::string>& pollutants)
+{
+    file::Handle fp(path, "wt");
+
+    fmt::print(fp, FMT_COMPILE("PIG      Long       Lat Country snap      temp     Vel  Height    Diam {}\n"), str::join(pollutants, " ", [](const std::string& pollutant) {
+                   return fmt::format("{:>9}", pollutant);
+               }));
+
+    for (const auto& entry : entries) {
+        //                           PIG     Long    Lat Country snap    temp     Vel  Height    Diam
+        fmt::print(fp, FMT_COMPILE("{:>3}{:>10.4f}{:>10.4f}{:>8}{:>5}{:>10.3f}{:>8.3f}{:>8.3f}{:>8.3f} {}\n"), entry.pig, entry.coordinate.longitude, entry.coordinate.latitude, entry.countryCode, entry.sectorId, entry.temperature, entry.velocity, entry.height, entry.diameter, str::join(entry.emissions, " ", [](double emission) {
+                       return fmt::format("{:>9.3f}", emission);
+                   }));
+    }
 }
 
 }

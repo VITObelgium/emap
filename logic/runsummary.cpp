@@ -25,22 +25,24 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal)
 {
     SpatialPatternSummaryInfo info;
     info.source         = source;
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
+    info.gnfrTotal      = gnfrTotal;
 
     _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal)
 {
     SpatialPatternSummaryInfo info;
     info.source         = source;
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
+    info.gnfrTotal      = gnfrTotal;
 
     _spatialPatternsWithoutData.push_back(info);
 }
@@ -96,7 +98,7 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
 
 void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const
 {
-    const std::array<ColumnInfo, 9> headers = {
+    const std::array<ColumnInfo, 10> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"Pollutant", 15.0},
@@ -106,6 +108,7 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         ColumnInfo{"Path", 125.0},
         ColumnInfo{"Total emissions", 15.0},
         ColumnInfo{"Point Emissions", 15.0},
+        ColumnInfo{"GNFR", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -146,6 +149,7 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
 
         worksheet_write_number(ws, row, 7, info.totalEmissions, formatNumber);
         worksheet_write_number(ws, row, 8, info.pointEmissions, formatNumber);
+        worksheet_write_number(ws, row, 9, info.gnfrTotal, formatNumber);
     };
 
     for (const auto& info : sources) {
@@ -222,11 +226,14 @@ void RunSummary::validated_gnfr_corrections_to_spreadsheet(lxw_workbook* wb, con
         return;
     }
 
-    std::string validatedHeader = fmt::format("Validated GNFR report year {}", static_cast<int>(_cfg->reporting_year() - date::years(1)));
-    std::string correctedHeader = fmt::format("Corrected GNFR year {}", static_cast<int>(_cfg->reporting_year()));
+    auto year       = static_cast<int>(_cfg->year());
+    auto reportYear = static_cast<int>(_cfg->reporting_year());
 
-    std::string nfrSumHeader      = fmt::format("NFR sum {}", static_cast<int>(_cfg->year()));
-    std::string nfrSumOlderHeader = fmt::format("NFR sum {}", static_cast<int>(_cfg->year() - date::years(1)));
+    std::string validatedHeader = fmt::format("Validated GNFR_{}_{}", year - 1, reportYear - 1);
+    std::string correctedHeader = fmt::format("Corrected GNFR_{}_{}", year, reportYear);
+
+    std::string nfrSumHeader      = fmt::format("NFR_{}_{} sum", year, reportYear);
+    std::string nfrSumOlderHeader = fmt::format("NFR_{}_{} sum", year - 1, reportYear);
 
     const std::array<ColumnInfo, 7> headers = {
         ColumnInfo{"Country", 15.0},
@@ -343,13 +350,14 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
         double width       = 0.0;
     };
 
-    const std::array<ColumnInfo, 6> headers = {
+    const std::array<ColumnInfo, 7> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"Input emission", 15.0},
         ColumnInfo{"Output emission", 15.0},
         ColumnInfo{"Diff", 15.0},
+        ColumnInfo{"GNFR", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -385,6 +393,8 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
             worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, formatNumber);
             worksheet_write_number(ws, row, 5, std::abs(summaryEntry.diff()), formatNumber);
         }
+
+        worksheet_write_number(ws, row, 6, summaryEntry.gnfrTotal, formatNumber);
 
         ++row;
     }

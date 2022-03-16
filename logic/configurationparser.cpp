@@ -285,12 +285,42 @@ struct NamedSection
 
 static ModelGrid model_grid_from_string(std::string_view grid)
 {
-    if (grid == "vlops1km") {
+    auto gridLowercase = str::lowercase(grid);
+
+    if (gridLowercase == "vlops1km") {
         return ModelGrid::Vlops1km;
     }
 
-    if (grid == "vlops250m") {
+    if (gridLowercase == "vlops250m") {
         return ModelGrid::Vlops250m;
+    }
+
+    if (gridLowercase == "chimere_05deg") {
+        return ModelGrid::Chimere05deg;
+    }
+
+    if (gridLowercase == "chimere_01deg") {
+        return ModelGrid::Chimere01deg;
+    }
+
+    if (gridLowercase == "chimere_005deg_large") {
+        return ModelGrid::Chimere005degLarge;
+    }
+
+    if (gridLowercase == "chimere_005deg_small") {
+        return ModelGrid::Chimere005degSmall;
+    }
+
+    if (gridLowercase == "chimere_0025deg") {
+        return ModelGrid::Chimere0025deg;
+    }
+
+    if (gridLowercase == "chimere_emep_01deg") {
+        return ModelGrid::ChimereEmep;
+    }
+
+    if (gridLowercase == "chimere_cams_01-005deg") {
+        return ModelGrid::ChimereCams;
     }
 
     throw RuntimeError("Invalid model grid type: '{}'", grid);

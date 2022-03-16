@@ -25,7 +25,11 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
     std::vector<EmissionValidation::SummaryEntry> result;
     result.reserve(emissionInv.size());
 
-    std::transform(emissionInv.begin(), emissionInv.end(), std::back_inserter(result), [this](const EmissionInventoryEntry& invEntry) {
+    for (const auto& invEntry : emissionInv) {
+        if (invEntry.id().sector.type() == EmissionSector::Type::Gnfr) {
+            continue;
+        }
+
         EmissionValidation::SummaryEntry summaryEntry;
         summaryEntry.id                     = invEntry.id();
         summaryEntry.emissionInventoryTotal = invEntry.scaled_total_emissions_sum();
@@ -34,8 +38,12 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
             summaryEntry.spreadTotal = iter->second;
         }
 
-        return summaryEntry;
-    });
+        if (auto gnfrEntry = emissionInv.try_emission_with_id(convert_emission_id_to_gnfr_level(invEntry.id())); gnfrEntry.has_value()) {
+            summaryEntry.gnfrTotal = gnfrEntry->diffuse_emissions();
+        }
+
+        result.push_back(summaryEntry);
+    }
 
     return result;
 }

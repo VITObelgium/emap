@@ -118,6 +118,7 @@ std::string to_geojson(const geos::geom::Geometry& geom)
     return writer.write(&geom);
 #endif
 
+    (void)geom;
     throw RuntimeError("Export to geojson not supported");
 }
 

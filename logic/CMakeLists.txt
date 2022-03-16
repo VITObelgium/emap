@@ -27,8 +27,9 @@ add_library(emaplogic
     include/emap/outputbuilderinterface.h
     include/emap/outputbuilderfactory.h outputbuilderfactory.cpp
     brnoutputentry.h
-    brnoutputbuilder.h brnoutputbuilder.cpp
+    chimereoutputbuilder.h chimereoutputbuilder.cpp
     configurationutil.h
+    datoutputentry.h
     enuminfo.h
     emissioninventory.h emissioninventory.cpp
     emissionvalidation.h emissionvalidation.cpp
@@ -39,6 +40,7 @@ add_library(emaplogic
     outputwriters.h outputwriters.cpp
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp
+    vlopsoutputbuilder.h vlopsoutputbuilder.cpp
     xlsxworkbook.h
     ${CMAKE_SOURCE_DIR}/GSL.natvis
     $<$<CXX_COMPILER_ID:MSVC>:${CMAKE_SOURCE_DIR}/emap.natvis>
