@@ -4,6 +4,7 @@
 #include "gdx/denseraster.h"
 
 #include <memory>
+#include <optional>
 
 namespace emap {
 
@@ -18,19 +19,23 @@ public:
         Append,
     };
 
-    EmissionsCollector(const RunConfiguration& cfg, const Pollutant& pol, const GridData& grid);
+    EmissionsCollector(const RunConfiguration& cfg);
     ~EmissionsCollector() noexcept;
+
+    void start_pollutant(const Pollutant& pol, const GridData& grid);
 
     void add_point_emissions(std::span<const EmissionEntry> entries);
     void add_diffuse_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> raster);
-    void write_to_disk(WriteMode mode);
+
+    void flush_pollutant_to_disk(WriteMode mode);
+    void final_flush_to_disk(WriteMode mode);
 
 private:
     std::mutex _mutex;
-    GridData _grid;
 
     const RunConfiguration& _cfg;
-    Pollutant _pollutant;
+    std::optional<Pollutant> _pollutant;
+    std::optional<GridData> _grid;
     std::unordered_map<std::string, gdx::DenseRaster<double>> _collectedEmissions;
     std::unique_ptr<IOutputBuilder> _outputBuilder;
 };

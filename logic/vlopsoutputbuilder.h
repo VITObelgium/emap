@@ -9,31 +9,23 @@
 
 namespace emap {
 
-class BrnOutputBuilder : public IOutputBuilder
+class VlopsOutputBuilder : public IOutputBuilder
 {
 public:
-    struct SectorParameterConfig
-    {
-        double hc_MW = 0.0;
-        double h_m   = 0.0;
-        double s_m   = 0.0;
-        double tb    = 0.0;
-        int32_t id   = 0;
-    };
-
     struct PollutantParameterConfig
     {
         int32_t sd = 0;
     };
 
-    BrnOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
-                     std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
-                     const RunConfiguration& cfg);
+    VlopsOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+                       std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
+                       const RunConfiguration& cfg);
 
     void add_point_output_entry(const EmissionEntry& emission) override;
     void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<int64_t> loc, double emission, int32_t cellSizeInM) override;
 
-    void write_to_disk(const RunConfiguration& cfg, WriteMode mode) override;
+    void flush_pollutant(const Pollutant& pol, WriteMode mode) override;
+    void flush(WriteMode mode) override;
 
 private:
     std::mutex _mutex;
@@ -51,6 +43,7 @@ private:
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
     std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
     std::unordered_map<std::string, PollutantParameterConfig> _pollutantParams;
+    std::unordered_map<Pollutant, size_t> _outputIndex;
 };
 
 }

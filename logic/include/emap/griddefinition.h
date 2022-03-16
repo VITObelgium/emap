@@ -10,6 +10,13 @@ enum class ModelGrid
 {
     Vlops1km,
     Vlops250m,
+    Chimere05deg,
+    Chimere01deg,
+    Chimere005degLarge,
+    Chimere005degSmall,
+    Chimere0025deg,
+    ChimereEmep,
+    ChimereCams,
     EnumCount,
     Invalid,
 };
@@ -27,7 +34,13 @@ enum class GridDefinition
     Rio4x4Extended,
     Flanders1km,
     CAMS,
+    Chimere05deg,
+    Chimere01deg,
+    Chimere005degLarge,
+    Chimere005degSmall,
+    Chimere0025deg,
     ChimereEmep,
+    ChimereCams,
     EnumCount,
     Invalid,
 };

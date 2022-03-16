@@ -202,6 +202,8 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
 
+    EmissionsCollector collector(cfg);
+
     for (auto gridIter = gridDefinitions.begin(); gridIter != gridDefinitions.end(); ++gridIter) {
         bool isCoursestGrid = gridIter == gridDefinitions.begin();
 
@@ -231,7 +233,7 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
         std::mutex mut, statusMut;
 
         for (const auto& pollutant : cfg.included_pollutants()) {
-            EmissionsCollector collector(cfg, pollutant, gridData);
+            collector.start_pollutant(pollutant, gridData);
 
             for (const auto& sector : cfg.sectors().nfr_sectors()) {
                 ModelProgressInfo info;
@@ -344,7 +346,6 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                 });
 
                 const auto sectors = cfg.sectors().nfr_sectors();
-                // std::for_each(sectors.begin(), sectors.end(), [&](const NfrSector& sector) {
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
                     EmissionIdentifier emissionId(country::BEF, EmissionSector(sector), pollutant);
 
@@ -396,8 +397,10 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                 });
             }
 
-            collector.write_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
+            collector.flush_pollutant_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
         }
+
+        collector.final_flush_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
     }
 
     return status;
@@ -658,10 +661,15 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
                         pointEmissions = emissionEntry->scaled_point_emissions_sum();
                     }
 
+                    double gnfr = 0.0;
+                    if (auto gnfrEntry = inventory.try_emission_with_id(convert_emission_id_to_gnfr_level(id)); gnfrEntry.has_value()) {
+                        gnfr = gnfrEntry->diffuse_emissions();
+                    }
+
                     if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {
-                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions);
+                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions, gnfr);
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions);
+                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions, gnfr);
                     }
                 }
             }

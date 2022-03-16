@@ -1,0 +1,173 @@
+#include "chimereoutputbuilder.h"
+
+#include "emap/emissions.h"
+#include "infra/cast.h"
+#include "infra/conversion.h"
+#include "outputwriters.h"
+
+namespace emap {
+
+using namespace inf;
+
+ChimereOutputBuilder::ChimereOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+                                           std::unordered_map<CountryId, int32_t> countryMapping,
+                                           const RunConfiguration& cfg)
+: _sectorLevel(cfg.output_sector_level())
+, _cfg(cfg)
+, _meta(grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta)
+, _countryMapping(std::move(countryMapping))
+, _sectorParams(std::move(sectorParams))
+{
+    size_t index = 0;
+    for (auto& pol : cfg.included_pollutants()) {
+        _pollutantIndexes.emplace(pol, index++);
+    }
+
+    std::vector<std::pair<std::string, SectorParameterConfig>> params(_sectorParams.begin(), _sectorParams.end());
+    std::sort(params.begin(), params.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.second.id < rhs.second.id;
+    });
+
+    index = 0;
+    for (auto& [name, param] : params) {
+        _sectorIndexes[name] = index++;
+    }
+}
+
+void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
+{
+    assert(emission.coordinate().has_value());
+    assert(emission.value().amount().has_value());
+
+    const auto& id = emission.id();
+
+    const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
+
+    DatPointSourceOutputEntry entry;
+    entry.coordinate  = to_coordinate(emission.coordinate().value());
+    entry.countryCode = _countryMapping.at(id.country.id());
+    entry.sectorId    = _sectorParams.at(mappedSectorName).id;
+    entry.temperature = emission.temperature();
+    entry.velocity    = 0.0;
+    entry.height      = emission.height();
+    entry.diameter    = emission.diameter();
+    entry.emissions.resize(_pollutantIndexes.size(), 0.0);
+    entry.emissions[_pollutantIndexes.at(id.pollutant)] = emission.value().amount().value_or(0.0) * 1000.0;
+
+    std::scoped_lock lock(_mutex);
+    _pointSources.push_back(entry);
+}
+
+void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<int64_t> loc, double emission, int32_t /*cellSizeInM*/)
+{
+    if (!_meta.is_on_map(loc)) {
+        return;
+    }
+
+    assert(id.sector.type() == EmissionSector::Type::Nfr);
+    std::string mappedSectorName(id.sector.name());
+    if (_sectorLevel != SectorLevel::NFR) {
+        mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
+    }
+
+    Cell gridCell = _meta.convert_point_to_cell(loc);
+    Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
+
+    std::scoped_lock lock(_mutex);
+    _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] = emission * 1000.0;
+}
+
+std::string_view grid_resolution_string(ModelGrid grid)
+{
+    switch (grid) {
+    case ModelGrid::Chimere05deg:
+        return "05deg";
+    case ModelGrid::Chimere01deg:
+        return "01deg";
+    case ModelGrid::Chimere005degLarge:
+        return "005deg_large";
+    case ModelGrid::Chimere005degSmall:
+        return "005deg_small";
+    case ModelGrid::Chimere0025deg:
+        return "0025deg";
+    case ModelGrid::ChimereEmep:
+        return "emep_01deg";
+    case ModelGrid::ChimereCams:
+        return "cams_01-005deg";
+    default:
+        break;
+    }
+
+    throw RuntimeError("Invalid chimere model grid");
+}
+
+static fs::path create_chimere_output_name(ModelGrid grid, const Pollutant& pol, date::year year, std::string_view suffix)
+{
+    // output_Chimere_resolutie_polluent_zichtjaar_suffix
+    return fs::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(grid), pol.code(), static_cast<int32_t>(year), suffix));
+}
+
+static fs::path create_chimere_point_source_output_name(date::year year, std::string_view suffix)
+{
+    // output_Chimere_pointsources_zichtjaar_suffix_ps
+    return fs::u8path(fmt::format("output_Chimere_pointsources_{}{}_ps.dat", static_cast<int32_t>(year), suffix));
+}
+
+void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mode*/)
+{
+    if (_diffuseSources.size() > 1) {
+        throw RuntimeError("Multiple pollutants?");
+    }
+
+    if ((!_diffuseSources.empty()) && _diffuseSources.count(pol) != 1) {
+        throw RuntimeError("Different pollutant?");
+    }
+
+    std::vector<std::string> sectorNames(_sectorIndexes.size());
+    for (auto& [name, index] : _sectorIndexes) {
+        sectorNames[index] = str::replace(name, " ", "");
+    }
+
+    write_dat_header(_cfg.output_path() / "output_Chimere_header.dat", sectorNames);
+
+    for (const auto& [pol, countryData] : _diffuseSources) {
+        std::vector<DatOutputEntry> entries;
+
+        for (const auto& [countryId, cellData] : countryData) {
+            auto mappedCountry = _countryMapping.at(countryId);
+
+            for (const auto& [cell, sectorData] : cellData) {
+                DatOutputEntry entry;
+
+                entry.countryCode = mappedCountry;
+                entry.cell        = cell;
+                entry.emissions.resize(_sectorIndexes.size(), 0.0);
+
+                for (auto& [name, index] : _sectorIndexes) {
+                    entry.emissions[index] += find_in_map_optional(sectorData, name).value_or(0.0);
+                }
+
+                entries.push_back(entry);
+            }
+        }
+
+        const auto outputPath = _cfg.output_path() / create_chimere_output_name(_cfg.model_grid(), pol, _cfg.year(), _cfg.output_filename_suffix());
+        write_dat_output(outputPath, entries);
+    }
+
+    _diffuseSources.clear();
+}
+
+void ChimereOutputBuilder::flush(WriteMode /*mode*/)
+{
+    std::vector<std::string> pollutants(_pollutantIndexes.size());
+    for (auto& [pol, index] : _pollutantIndexes) {
+        pollutants[index] = pol.code();
+    }
+
+    const auto pointSourceOutputPath = _cfg.output_path() / create_chimere_point_source_output_name(_cfg.year(), _cfg.output_filename_suffix());
+    write_dat_output(pointSourceOutputPath, _pointSources, pollutants);
+    _pointSources.clear();
+}
+
+}
