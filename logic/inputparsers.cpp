@@ -550,6 +550,9 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
     auto colEmission = layer.layer_definition().required_field_index("emission");
     // auto colUnit     = layer.layer_definition().required_field_index("unit");
 
+    const double centerOffsetX = gridData.meta.cell_size_x() / 2.0;
+    const double centerOffsetY = (-gridData.meta.cell_size_y()) / 2.0;
+
     gdx::DenseRaster<double> raster(gridData.meta, gridData.meta.nodata.value());
     std::unordered_set<std::string> invalidSectors;
     for (const auto& feature : layer) {
@@ -575,9 +578,8 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
             continue;
         }
 
-        // Log::info("{}: {} {} {} ({})", f, sectorName, feature.field_as<double>(colX), feature.field_as<double>(colY), feature.field_as<double>(colEmission));
-
-        const Point<double> point(feature.field_as<double>(colX), feature.field_as<double>(colY));
+        // Coordinates are lower left cell corners: put the point in the cell center for determining the cell
+        const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
         const Cell cell = gridData.meta.convert_point_to_cell(point);
         if (gridData.meta.is_on_map(cell)) {
             raster[cell] = feature.field_as<double>(colEmission);

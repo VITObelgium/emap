@@ -30,7 +30,8 @@ const NfrSector Nfr1A3biv("1A3biv", NfrId(7017), gnfr::RoadTransport, "Road tran
 const NfrSector Nfr1A3bv("1A3bv", NfrId(7018), gnfr::RoadTransport, "Road transport: Gasoline evaporation", EmissionDestination::Land);
 const NfrSector Nfr1A3bvi("1A3bvi", NfrId(7019), gnfr::RoadTransport, "Road transport: Automobile tyre and brake wear", EmissionDestination::Land);
 const NfrSector Nfr1A3bvii("1A3bvii", NfrId(7020), gnfr::RoadTransport, "Road transport: Automobile road abrasion", EmissionDestination::Land);
-const NfrSector Nfr1A3di_ii("1A3di(ii)", NfrId(7022), gnfr::Shipping, "International inland waterways", EmissionDestination::Sea);
+const NfrSector Nfr1A3di_ii("1A3di(ii)", NfrId(7022), gnfr::Shipping, "International inland waterways", EmissionDestination::Land);
+const NfrSector Nfr1A3dii("1A3dii", NfrId(7023), gnfr::Shipping, "National navigation (shipping)", EmissionDestination::Sea);
 const NfrSector Nfr1B2b("1B2b", NfrId(7041), gnfr::Fugitive, "Fugitive emissions from natural gas (exploration, production, processing, transmission, storage, distribution and other)", EmissionDestination::Land);
 const NfrSector Nfr1A4bi("1A4bi", NfrId(7028), gnfr::Offroad, "Residential: Stationary", EmissionDestination::Land);
 const NfrSector Nfr1A5b("1A5b", NfrId(7034), gnfr::Offroad, "Other, Mobile (including military, land based and recreational boats)", EmissionDestination::Land);

@@ -226,6 +226,12 @@ TEST_CASE("Input parsers")
             CHECK(gdx::sum(spatialPattern) == Approx(432.989391850553).epsilon(1e-4));
         }
 
+        SUBCASE("Sea sector")
+        {
+            const auto spatialPattern = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM10.xlsx", EmissionSector(sectors::nfr::Nfr1A3dii), cfg);
+            CHECK(spatialPattern(139, 79) == Approx(0.020608247775289));
+        }
+
         // SUBCASE("Flanders")
         //{
         //     const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_CO.xlsx", cfg);

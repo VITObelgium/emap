@@ -341,6 +341,11 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
             exception = find_in_container_optional(_exceptions, [&fallbackId](const SpatialPatternException& ex) {
                 return ex.emissionId == fallbackId;
             });
+
+            if (exception.has_value()) {
+                // make sure the original pollutant gets used, not the fallback
+                exception->emissionId.pollutant = emissionId.pollutant;
+            }
         }
     }
 
