@@ -16,7 +16,9 @@ public:
     SectorInventory(std::vector<GnfrSector> gnfrSectors,
                     std::vector<NfrSector> nfrSectors,
                     InputConversions gnfrSectorConversions,
-                    InputConversions nfrSectorConversions);
+                    InputConversions nfrSectorConversions,
+                    std::vector<std::string> ignoredGnfrSectors,
+                    std::vector<std::string> ignoredNfrSectors);
 
     void set_output_mapping(std::unordered_map<NfrId, std::string> mapping);
 
@@ -43,7 +45,9 @@ public:
     size_t gnfr_sector_count() const noexcept;
     size_t nfr_sector_count() const noexcept;
 
-    bool is_ignored_sector(std::string_view str) const noexcept;
+    bool is_ignored_nfr_sector(std::string_view str) const noexcept;
+    bool is_ignored_gnfr_sector(std::string_view str) const noexcept;
+    bool is_ignored_sector(EmissionSector::Type type, std::string_view str) const noexcept;
 
     std::span<const GnfrSector> gnfr_sectors() const noexcept;
     std::span<const NfrSector> nfr_sectors() const noexcept;
@@ -61,6 +65,10 @@ private:
     // Mapping from all possible sector names in reported files to the emap names
     InputConversions _gnfrConversions;
     InputConversions _nfrConversions;
+
+    // List of sectors sector names that need to be ignored and never warned about
+    std::vector<std::string> _ignoredGnfrSectors;
+    std::vector<std::string> _ignoredNfrSectors;
 
     std::unordered_map<NfrId, std::string> _outputMapping;
 };

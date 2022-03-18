@@ -31,11 +31,15 @@ static auto find_sector_with_code(std::string_view code, const SectorInfo& secto
 SectorInventory::SectorInventory(std::vector<GnfrSector> gnfrSectors,
                                  std::vector<NfrSector> nfrSectors,
                                  InputConversions gnfrSectorConversions,
-                                 InputConversions nfrSectorConversions)
+                                 InputConversions nfrSectorConversions,
+                                 std::vector<std::string> ignoredGnfrSectors,
+                                 std::vector<std::string> ignoredNfrSectors)
 : _gnfrSectors(std::move(gnfrSectors))
 , _nfrSectors(std::move(nfrSectors))
 , _gnfrConversions(std::move(gnfrSectorConversions))
 , _nfrConversions(std::move(nfrSectorConversions))
+, _ignoredGnfrSectors(std::move(ignoredGnfrSectors))
+, _ignoredNfrSectors(std::move(ignoredNfrSectors))
 {
 }
 
@@ -231,17 +235,30 @@ size_t SectorInventory::nfr_sector_count() const noexcept
     return _nfrSectors.size();
 }
 
-bool SectorInventory::is_ignored_sector(std::string_view str) const noexcept
+bool SectorInventory::is_ignored_nfr_sector(std::string_view str) const noexcept
 {
-    return str::iequals(str, "1A3ai(ii)") ||
-           str::iequals(str, "1A3aii(ii)") ||
-           str::iequals(str, "1A3di(i)") ||
-           str::iequals(str, "1A5c") ||
-           str::iequals(str, "6B") ||
-           str::iequals(str, "1A3") ||
-           str::iequals(str, "11A") ||
-           str::iequals(str, "11B") ||
-           str::iequals(str, "11C");
+    return std::any_of(_ignoredNfrSectors.begin(), _ignoredNfrSectors.end(), [=](const std::string& ign) {
+        return str::iequals(ign, str);
+    });
+}
+
+bool SectorInventory::is_ignored_gnfr_sector(std::string_view str) const noexcept
+{
+    return std::any_of(_ignoredGnfrSectors.begin(), _ignoredGnfrSectors.end(), [=](const std::string& ign) {
+        return str::iequals(ign, str);
+    });
+}
+
+bool SectorInventory::is_ignored_sector(EmissionSector::Type type, std::string_view str) const noexcept
+{
+    switch (type) {
+    case EmissionSector::Type::Nfr:
+        return is_ignored_nfr_sector(str);
+    case EmissionSector::Type::Gnfr:
+        return is_ignored_gnfr_sector(str);
+    }
+
+    return false;
 }
 
 std::span<const GnfrSector> SectorInventory::gnfr_sectors() const noexcept

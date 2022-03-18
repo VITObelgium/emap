@@ -14,13 +14,15 @@ using namespace date;
 
 TEST_CASE("Spatial pattern selection test")
 {
-    const auto sectorInventory = parse_sectors(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
-                                               fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    const auto parametersPath  = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    const auto sectorInventory = parse_sectors(parametersPath / "id_nummers.xlsx",
+                                               parametersPath / "code_conversions.xlsx",
+                                               parametersPath / "names_to_be_ignored.xlsx");
 
-    auto pollutantInventory = parse_pollutants(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx",
-                                               fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "code_conversions.xlsx");
+    auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx",
+                                               parametersPath / "code_conversions.xlsx");
 
-    auto countryInventory = parse_countries(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
+    auto countryInventory = parse_countries(parametersPath / "id_nummers.xlsx");
 
     pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
 

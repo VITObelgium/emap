@@ -207,7 +207,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             try {
-                if (!sectorInv.is_ignored_sector(sectorName)) {
+                if (!sectorInv.is_ignored_sector(sectorType, sectorName)) {
                     auto [sector, priority] = sectorInv.sector_with_priority_from_string(sectorType, sectorName);
                     EmissionIdentifier id(*country, sectorInv.sector_from_string(sectorType, sectorName), pollutantInv.pollutant_from_string(pollutant));
 
@@ -559,7 +559,7 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
         EmissionSector currentSector;
         auto sectorName = str::trimmed_view(feature.field_as<std::string_view>(colSector));
 
-        if (sectorName.empty() || sectorInv.is_ignored_sector(sectorName)) {
+        if (sectorName.empty() || sectorInv.is_ignored_nfr_sector(sectorName)) {
             continue;
         }
 

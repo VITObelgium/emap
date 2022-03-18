@@ -59,7 +59,32 @@ CountryInventory parse_countries(const fs::path& countriesSpec)
     return CountryInventory(std::move(countries));
 }
 
-SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec)
+static std::vector<std::string> parse_ignore_list(const fs::path& ignoreSpec, const std::string& tab)
+{
+    std::vector<std::string> ignored;
+
+    if (fs::is_regular_file(ignoreSpec)) {
+        CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+        auto ds    = gdal::VectorDataSet::open(ignoreSpec);
+        auto layer = ds.layer(tab);
+
+        const auto colName = layer.layer_definition().required_field_index("names");
+
+        for (const auto& feature : layer) {
+            if (!feature.field_is_valid(0)) {
+                continue; // skip empty lines
+            }
+
+            ignored.emplace_back(feature.field_as<std::string_view>(colName));
+        }
+    }
+
+    return ignored;
+}
+
+SectorInventory parse_sectors(const fs::path& sectorSpec,
+                              const fs::path& conversionSpec,
+                              const fs::path& ignoreSpec)
 {
     std::vector<GnfrSector> gnfrSectors;
     std::vector<NfrSector> nfrSectors;
@@ -161,7 +186,12 @@ SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conver
         }
     }
 
-    return SectorInventory(std::move(gnfrSectors), std::move(nfrSectors), std::move(gnfrConversions), std::move(nfrConversions));
+    auto ignoredNfrSectors  = parse_ignore_list(ignoreSpec, "nfr");
+    auto ignoredGnfrSectors = parse_ignore_list(ignoreSpec, "gnfr");
+
+    return SectorInventory(std::move(gnfrSectors), std::move(nfrSectors),
+                           std::move(gnfrConversions), std::move(nfrConversions),
+                           std::move(ignoredGnfrSectors), std::move(ignoredNfrSectors));
 }
 
 PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec)
@@ -501,7 +531,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         const auto dataPath = read_path(model, "datapath", basePath);
 
         const auto parametersPath = basePath / dataPath / "05_model_parameters";
-        auto sectorInventory      = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
+        auto sectorInventory      = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
         auto pollutantInventory   = parse_pollutants(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
         auto countryInventory     = parse_countries(parametersPath / "id_nummers.xlsx");
 

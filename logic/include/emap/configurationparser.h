@@ -9,7 +9,7 @@
 namespace emap {
 
 CountryInventory parse_countries(const fs::path& countrySpec);
-SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec);
+SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec, const fs::path& ignoreSpec);
 PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec);
 std::unordered_map<NfrId, std::string> parse_sector_mapping(const fs::path& mappingSpec, const SectorInventory& inv, const std::string& outputLevel);
 
