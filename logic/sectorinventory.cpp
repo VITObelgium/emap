@@ -50,6 +50,10 @@ void SectorInventory::set_output_mapping(std::unordered_map<NfrId, std::string> 
 
 std::string SectorInventory::map_nfr_to_output_name(const NfrSector& nfr) const
 {
+    if (_outputMapping.empty()) {
+        return std::string(nfr.name());
+    }
+
     try {
         return _outputMapping.at(nfr.id());
     } catch (const std::out_of_range&) {

@@ -37,6 +37,7 @@ private:
     std::optional<Pollutant> _pollutant;
     std::optional<GridData> _grid;
     std::unordered_map<std::string, gdx::DenseRaster<double>> _collectedEmissions;
+    std::map<std::pair<std::string, std::string>, gdx::DenseRaster<double>> _collectedCountryEmissions;
     std::unique_ptr<IOutputBuilder> _outputBuilder;
 };
 

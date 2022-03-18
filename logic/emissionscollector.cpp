@@ -72,11 +72,7 @@ void EmissionsCollector::add_diffuse_emissions(const Country& country, const Nfr
         _outputBuilder->add_diffuse_output_entry(emissionId, Point(truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y)), raster[cell], truncate<int32_t>(meta.cell_size_x()));
     }
 
-    if (_cfg.output_sector_level() == SectorLevel::NFR) {
-        if (_cfg.output_country_rasters()) {
-            gdx::write_raster(std::move(raster), _cfg.output_path_for_country_raster(emissionId, *_grid));
-        }
-    } else if (_cfg.output_grid_rasters()) {
+    if (_cfg.output_grid_rasters()) {
         // The emissions need to be aggregated
         auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(nfr);
 
@@ -87,6 +83,24 @@ void EmissionsCollector::add_diffuse_emissions(const Country& country, const Nfr
             gdx::DenseRaster<double> total(_grid->meta, std::numeric_limits<double>::quiet_NaN());
             add_to_raster(total, raster);
             _collectedEmissions.emplace(mappedSectorName, std::move(total));
+        }
+    }
+
+    if (_cfg.output_country_rasters()) {
+        if (_cfg.output_sector_level() == SectorLevel::NFR) {
+            // Sectors can be dumped without aggregation
+            gdx::write_raster(std::move(raster), _cfg.output_path_for_country_raster(emissionId, *_grid));
+        } else {
+            // Aggregate the country data per mapped sector
+            // The emissions need to be aggregated
+            auto id = std::make_pair(std::string(emissionId.country.iso_code()), _cfg.sectors().map_nfr_to_output_name(nfr));
+
+            std::scoped_lock lock(_mutex);
+            if (auto iter = _collectedCountryEmissions.find(id); iter != _collectedCountryEmissions.end()) {
+                add_to_raster(iter->second, raster);
+            } else {
+                _collectedCountryEmissions.emplace(id, std::move(raster));
+            }
         }
     }
 }
@@ -108,7 +122,13 @@ void EmissionsCollector::flush_pollutant_to_disk(WriteMode mode)
         gdx::write_raster(std::move(raster), outputPath);
     }
 
+    for (auto& [id, raster] : _collectedCountryEmissions) {
+        const auto outputPath = _cfg.output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}.tif", _pollutant->code(), id.second, id.first, _grid->name));
+        gdx::write_raster(std::move(raster), outputPath);
+    }
+
     _collectedEmissions.clear();
+    _collectedCountryEmissions.clear();
     _pollutant.reset();
     _grid.reset();
 }
@@ -117,5 +137,4 @@ void EmissionsCollector::final_flush_to_disk(WriteMode mode)
 {
     _outputBuilder->flush(convert_write_mode(mode));
 }
-
 }
