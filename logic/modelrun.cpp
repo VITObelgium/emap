@@ -256,7 +256,6 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
 
                         const auto emission = emissionInv.try_emission_with_id(emissionId);
                         if (!emission.has_value()) {
-                            Log::debug("No emissions available for pollutant {} in sector: {} in {}", pollutant, EmissionSector(sector), cellCoverageInfo.country);
                             return;
                         }
 
@@ -361,7 +360,6 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
 
                     auto emission = emissionInv.try_emission_with_id(emissionId);
                     if (!emission.has_value()) {
-                        Log::debug("No emissions available for pollutant {} in sector: {} in BEF", pollutant, EmissionSector(sector));
                         return;
                     }
 

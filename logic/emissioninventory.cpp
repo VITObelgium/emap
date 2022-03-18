@@ -61,7 +61,7 @@ static SingleEmissions handle_missing_nfr_data(date::year nfrYear,
         if (sum == 0.0) {
             if (auto gnfrSum = find_in_map_optional(gnfrTotals, id); gnfrSum > 0.0) {
                 // Search older years for nfr data
-                Log::info("No nfr data for {}", id);
+                Log::debug("No nfr data for {}", id);
                 if (!id.country.is_belgium()) {
                     bool dataFound = false;
 
