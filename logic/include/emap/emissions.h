@@ -238,6 +238,22 @@ private:
     double _flowRate       = 0.0;
     std::string _sourceId; // optional source identifier
 };
+}
+
+namespace std {
+template <>
+struct hash<emap::EmissionIdentifier>
+{
+    size_t operator()(const emap::EmissionIdentifier& id) const
+    {
+        size_t seed = 0;
+        inf::hash_combine(seed, id.country.id(), id.pollutant.code(), id.sector.id());
+        return seed;
+    }
+};
+}
+
+namespace emap {
 
 class EmissionInventoryEntry
 {
@@ -355,6 +371,18 @@ public:
         return _year;
     }
 
+    bool validate_uniqueness() const noexcept
+    {
+        std::unordered_set<EmissionIdentifier> set;
+        for (auto& em : _emissions) {
+            if (set.count(em.id()) > 0) {
+                return false;
+            }
+
+            set.insert(em.id());
+        }
+    }
+
     void add_emission(TEmission&& info)
     {
         // Make sure the emissions remain sorted
@@ -365,6 +393,7 @@ public:
     void add_emissions(std::span<const TEmission> emissions)
     {
         // Make sure the emissions remain sorted
+
         inf::append_to_container(_emissions, emissions);
         sort_emissions();
     }
@@ -576,19 +605,6 @@ struct formatter<emap::EmissionSector::Type>
     auto format(const emap::EmissionSector::Type& val, FormatContext& ctx)
     {
         return format_to(ctx.out(), emission_sector_type_name(val));
-    }
-};
-}
-
-namespace std {
-template <>
-struct hash<emap::EmissionIdentifier>
-{
-    size_t operator()(const emap::EmissionIdentifier& id) const
-    {
-        size_t seed = 0;
-        inf::hash_combine(seed, id.country.id(), id.pollutant.code(), id.sector.id());
-        return seed;
     }
 };
 }

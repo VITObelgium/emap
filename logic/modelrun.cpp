@@ -593,6 +593,7 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
     const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
     const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
     auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
+    assert(nfrTotalEmissions.validate_uniqueness());
 
     // Optional additional emissions that supllement or override existing emissions
     std::optional<SingleEmissions> extraEmissions;
@@ -604,6 +605,7 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
 
     date::year gnfrReportYear;
     auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
+    assert(gnfrTotalEmissions.validate_uniqueness());
 
     if (gnfrReportYear < cfg.reporting_year()) {
         // no gnfr data was available for the reporting year, older data was read
@@ -640,8 +642,10 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     clean_output_directory(cfg.output_path());
 
-    auto validator          = make_validator(cfg);
-    const auto inventory    = make_emission_inventory(cfg, summary);
+    auto validator       = make_validator(cfg);
+    const auto inventory = make_emission_inventory(cfg, summary);
+    assert(inventory.validate_uniqueness());
+
     const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
 
     {
