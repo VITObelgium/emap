@@ -174,6 +174,17 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM2_5));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM2,5.xlsx");
+        CHECK(spSource.emissionId.pollutant == pollutants::PM2_5);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
+        CHECK(spSource.year == 2019_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
+    }
+
+    {
+        // Flanders excel data
         const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::As));
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissie per km2_met NFR_As 2019_juli 2021.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::As);

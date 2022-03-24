@@ -91,8 +91,8 @@ SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorIn
 , _countryInventory(countryInventory)
 , _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
 , _spatialPatternCeipRegex("(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)_(\\d{4})_GRID_(\\d{4})")
-, _spatialPatternBelgium1Regex("Emissies per km2 excl puntbrongegevens_(\\d{4})_(\\w+)")
-, _spatialPatternBelgium2Regex("Emissie per km2_met NFR_([\\w ]+) (\\d{4})_(\\w+) (\\d{4})")
+, _spatialPatternBelgium1Regex("Emissies per km2 excl puntbrongegevens_(\\d{4})_([\\w,]+)")
+, _spatialPatternBelgium2Regex("Emissie per km2_met NFR_([\\w ,]+) (\\d{4})_(\\w+) (\\d{4})")
 {
 }
 
