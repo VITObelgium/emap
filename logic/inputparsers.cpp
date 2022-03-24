@@ -573,7 +573,8 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
 
     int lineNr = 1;
 
-    const auto extent = grid_data(GridDefinition::ChimereEmep).meta;
+    const auto extent     = grid_data(GridDefinition::ChimereEmep).meta;
+    const auto gnfrSector = convert_sector_to_gnfr_level(id.sector);
 
     gdx::DenseRaster<double> result(extent, extent.nodata.value());
 
@@ -583,11 +584,20 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
         auto curPollutant    = pollutants.pollutant_from_string(pollutant);
         auto country         = countries.try_country_from_string(countryStr);
 
-        if (country != id.country) {
+        if (country != id.country || id.pollutant != curPollutant) {
+            ++lineNr;
             continue;
         }
 
-        if (id.pollutant == curPollutant && id.sector == sectors.sector_from_string(process_ceip_sector(sector))) {
+        const auto emissionSector = sectors.sector_from_string(process_ceip_sector(sector));
+        bool sectorMatch          = false;
+        if (emissionSector.type() == EmissionSector::Type::Gnfr) {
+            sectorMatch = id.sector.gnfr_sector() == emissionSector.gnfr_sector();
+        } else {
+            sectorMatch = id.sector == emissionSector;
+        }
+
+        if (sectorMatch) {
             const auto lon = str::to_double(lonStr);
             const auto lat = str::to_double(latStr);
 
@@ -596,7 +606,7 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
                 continue;
             }
 
-            const auto cell = extent.convert_point_to_cell(Point(*lat, *lon));
+            const auto cell = extent.convert_point_to_cell(Point(*lon, *lat));
             if (extent.is_on_map(cell)) {
                 result.add_to_cell(cell, emissionValue);
             } else {
