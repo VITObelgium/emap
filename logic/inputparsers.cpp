@@ -439,9 +439,9 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
             if (const auto pmCoarse = pollutantInv.try_pollutant_from_string(constants::pollutant::PMCoarse); pmCoarse.has_value()) {
                 // This config has a PMCoarse pollutant, add it as difference of PM10 and PM2.5
 
-                if (pm2_5.has_value() && pm10.has_value()) {
-                    if (pm10 >= pm2_5) {
-                        auto pmcVal = EmissionValue(*pm10 - *pm2_5);
+                if (pm10.has_value()) {
+                    if (*pm10 >= pm2_5.value_or(0.0)) {
+                        auto pmcVal = EmissionValue(*pm10 - pm2_5.value_or(0.0));
                         if (sectorOverride) {
                             // update the existing emission with the higher priority version
                             update_entry(entries, EmissionEntry(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal));
@@ -449,7 +449,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                             entries.emplace_back(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal);
                         }
                     } else {
-                        throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, *pm2_5);
+                        throw RuntimeError("Invalid PM data for sector {} (PM10: {}, PM2.5 {})", nfrSector, *pm10, pm2_5.value_or(0.0));
                     }
                 }
             }

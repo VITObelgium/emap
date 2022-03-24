@@ -441,21 +441,22 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
             });
 
             for (auto& pm10Entry : pm10Emissions) {
-                auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
-                    return entry.source_id() < srcId;
-                });
+                auto pm10Val = pm10Entry.value().amount();
+                if (pm10Val.has_value()) {
+                    auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
+                        return entry.source_id() < srcId;
+                    });
 
-                if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
-                    auto pm10Val  = pm10Entry.value().amount();
-                    auto pm2_5Val = iter->value().amount();
+                    double pm2_5Val = 0.0;
+                    if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
+                        pm2_5Val = iter->value().amount().value_or(0.0);
+                    }
 
-                    if (pm10Val.has_value() && pm2_5Val.has_value()) {
-                        if (pm10Val >= pm2_5Val) {
-                            auto pmCoarseVal = EmissionValue(*pm10Val - *pm2_5Val);
-                            result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
-                        } else {
-                            throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, *pm2_5Val);
-                        }
+                    if (*pm10Val >= pm2_5Val) {
+                        auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
+                        result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
+                    } else {
+                        throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
                     }
                 }
             }
