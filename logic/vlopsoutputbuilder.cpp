@@ -29,6 +29,12 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     const auto& id              = emission.id();
     const auto& pollutantParams = _pollutantParams.at(std::string(id.pollutant.code()));
 
+    const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
+    auto sectorParamsIter       = _sectorParams.find(mappedSectorName);
+    if (sectorParamsIter == _sectorParams.end()) {
+        throw RuntimeError("No sector parameters configured for sector {}", id.sector.name());
+    }
+
     BrnOutputEntry entry;
     entry.x_m   = truncate<int64_t>(emission.coordinate()->x);
     entry.y_m   = truncate<int64_t>(emission.coordinate()->y);
@@ -38,7 +44,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.d_m   = 0;
     entry.s_m   = 0;
     entry.dv    = 1;
-    entry.cat   = static_cast<int32_t>(id.sector.id());
+    entry.cat   = sectorParamsIter->second.id;
     entry.area  = static_cast<int32_t>(id.country.id());
     entry.sd    = pollutantParams.sd;
     entry.comp  = id.pollutant.code();
@@ -52,10 +58,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 void VlopsOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<int64_t> loc, double emission, int32_t cellSizeInM)
 {
     assert(id.sector.type() == EmissionSector::Type::Nfr);
-    std::string mappedSectorName(id.sector.name());
-    if (_sectorLevel != SectorLevel::NFR) {
-        mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
-    }
+    const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
 
     std::scoped_lock lock(_mutex);
     auto& current = _diffuseSources[id.pollutant][mappedSectorName][id.country.id()][loc];
