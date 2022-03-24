@@ -253,7 +253,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary)
 {
-    chrono::ScopedDurationLog d("Create emission inventory");
+    chrono::ScopedDurationLog durLog("Create emission inventory");
 
     const auto nfrSums      = create_nfr_sums(totalEmissionsNfr);
     const auto nfrSumsOlder = create_nfr_sums(totalEmissionsNfrOlder);
@@ -262,14 +262,11 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     // Extrapolate the emissions based on the previous GNFR emissions
     SingleEmissions extrapolatedTotalEmissionsGnfr(totalEmissionsGnfr.year() + date::years(1));
 
-    std::set<GnfrId> gnfrSectorsWithoutNfrData;
-
     std::unordered_map<EmissionIdentifier, double> correctedGnfrSums;
 
     for (auto& [id, gnfrSum] : gnfrSums) {
-        auto nfrSum = find_in_map_optional(nfrSums, id).value_or(0.0);
-        if (nfrSum == 0.0) {
-            gnfrSectorsWithoutNfrData.insert(id.sector.gnfr_sector().id());
+        auto nfrSum = find_in_map_optional(nfrSums, id);
+        if (!nfrSum.has_value()) {
             continue;
         }
 
@@ -277,10 +274,10 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
 
         double extrapolatedGnfr = gnfrSum;
         if (olderNfrSum != 0.0) {
-            extrapolatedGnfr = (nfrSum / olderNfrSum) * gnfrSum;
+            extrapolatedGnfr = (*nfrSum / olderNfrSum) * gnfrSum;
         }
 
-        runSummary.add_gnfr_correction(id, gnfrSum, extrapolatedGnfr, nfrSum, olderNfrSum);
+        runSummary.add_gnfr_correction(id, gnfrSum, extrapolatedGnfr, *nfrSum, olderNfrSum);
         extrapolatedTotalEmissionsGnfr.add_emission(EmissionEntry(id, EmissionValue(extrapolatedGnfr)));
         correctedGnfrSums[id] = extrapolatedGnfr;
     }
