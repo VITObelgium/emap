@@ -143,7 +143,6 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
 }
 
 static EmissionInventory create_emission_inventory_impl(const SingleEmissions& totalEmissionsNfr,
-                                                        const SingleEmissions& totalEmissionsGnfr,
                                                         const std::optional<SingleEmissions>& extraEmissions,
                                                         const SingleEmissions& pointSourceEmissions,
                                                         const ScalingFactors& diffuseScalings,
@@ -194,11 +193,6 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
         entries.push_back(entry);
     }
 
-    for (const auto& em : totalEmissionsGnfr) {
-        assert(em.sector().type() == EmissionSector::Type::Gnfr);
-        entries.emplace_back(em.id(), em.value().amount().value_or(0.0));
-    }
-
     result.set_emissions(std::move(entries));
 
     if (extraEmissions.has_value()) {
@@ -246,7 +240,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     // Add missing nfr data to the nfr emissions
     merge_unique_emissions(totalEmissionsNfr, handle_missing_nfr_data(totalEmissionsNfr.year(), nfrSums, gnfrSums, cfg));
 
-    return create_emission_inventory_impl(totalEmissionsNfr, totalEmissionsGnfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios);
+    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios);
 }
 
 EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
