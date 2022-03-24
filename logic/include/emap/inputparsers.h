@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emap/emissioninventory.h"
 #include "emap/emissions.h"
 #include "gdx/denseraster.h"
 #include "infra/filesystem.h"

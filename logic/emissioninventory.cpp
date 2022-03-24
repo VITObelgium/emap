@@ -1,4 +1,4 @@
-#include "emissioninventory.h"
+#include "emap/emissioninventory.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
 #include "infra/algo.h"

@@ -36,6 +36,11 @@ public:
         return _code == other._code;
     }
 
+    bool operator!=(const Pollutant& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
 private:
     std::string _code;
     std::string _name;

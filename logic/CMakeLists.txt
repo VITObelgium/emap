@@ -13,6 +13,7 @@ add_library(emaplogic
     include/emap/countryborders.h countryborders.cpp
     include/emap/debugtools.h debugtools.cpp
     include/emap/emissions.h emissions.cpp
+    include/emap/emissioninventory.h emissioninventory.cpp
     include/emap/griddefinition.h griddefinition.cpp
     include/emap/gridprocessing.h gridprocessing.cpp
     include/emap/inputconversion.h
@@ -31,7 +32,6 @@ add_library(emaplogic
     configurationutil.h
     datoutputentry.h
     enuminfo.h
-    emissioninventory.h emissioninventory.cpp
     emissionvalidation.h emissionvalidation.cpp
     unitconversion.h
     geometry.h geometry.cpp

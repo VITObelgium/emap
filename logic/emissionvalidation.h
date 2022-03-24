@@ -1,6 +1,6 @@
 #pragma once
 
-#include "emap/emissions.h"
+#include "emap/emissioninventory.h"
 #include "emap/runconfiguration.h"
 #include "gdx/denseraster.h"
 

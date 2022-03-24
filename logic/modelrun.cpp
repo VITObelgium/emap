@@ -2,10 +2,10 @@
 
 #include "emap/configurationparser.h"
 #include "emap/countryborders.h"
+#include "emap/emissioninventory.h"
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
-#include "emissioninventory.h"
 #include "emissionscollector.h"
 #include "emissionvalidation.h"
 #include "gridrasterbuilder.h"
@@ -247,7 +247,7 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         return;
                     }
 
-                    /*if (cellCoverageInfo.country.iso_code() != "MD" || sector.name() != "1A4bi" || pollutant.code() != "NMVOC") {
+                    /*if (cellCoverageInfo.country.iso_code() != "GB" || sector.name() != "2C7c" || pollutant.code() != "Hg") {
                         return;
                     }*/
 
