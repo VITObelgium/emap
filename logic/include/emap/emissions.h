@@ -512,7 +512,7 @@ void merge_unique_emissions(EmissionCollection<T>& output, EmissionCollection<T>
     if (output.empty()) {
         std::swap(output, toMerge);
     } else {
-        output.add_emissions(toMerge);
+        output.add_emissions(std::forward<EmissionCollection<T>>(toMerge));
     }
 }
 

@@ -659,15 +659,10 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
                         pointEmissions = emissionEntry->scaled_point_emissions_sum();
                     }
 
-                    double gnfr = 0.0;
-                    if (auto gnfrEntry = inventory.try_emission_with_id(convert_emission_id_to_gnfr_level(id)); gnfrEntry.has_value()) {
-                        gnfr = gnfrEntry->diffuse_emissions();
-                    }
-
                     if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {
-                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions, gnfr);
+                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions);
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions, gnfr);
+                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions);
                     }
                 }
             }

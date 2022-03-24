@@ -19,8 +19,8 @@ public:
     RunSummary() = default;
     RunSummary(const RunConfiguration& cfg);
 
-    void add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal);
-    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal);
+    void add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions);
+    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions);
     void add_point_source(const fs::path& pointSource);
     void add_totals_source(const fs::path& totalsSource);
 
@@ -54,7 +54,6 @@ private:
         SpatialPatternSource source;
         double totalEmissions = 0.0;
         double pointEmissions = 0.0;
-        double gnfrTotal      = 0.0;
     };
 
     void gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const GnfrCorrection> corrections) const;

@@ -25,24 +25,22 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
 {
     SpatialPatternSummaryInfo info;
     info.source         = source;
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
-    info.gnfrTotal      = gnfrTotal;
 
     _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions, double gnfrTotal)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double pointEmissions)
 {
     SpatialPatternSummaryInfo info;
     info.source         = source;
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
-    info.gnfrTotal      = gnfrTotal;
 
     _spatialPatternsWithoutData.push_back(info);
 }
@@ -101,6 +99,7 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
     const std::array<ColumnInfo, 10> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"GNFR", 15.0},
         ColumnInfo{"Pollutant", 15.0},
         ColumnInfo{"Type", 15.0},
         ColumnInfo{"Uniform spread fallback", 25.0},
@@ -108,7 +107,6 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         ColumnInfo{"Path", 125.0},
         ColumnInfo{"Total emissions", 15.0},
         ColumnInfo{"Point Emissions", 15.0},
-        ColumnInfo{"GNFR", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -133,23 +131,24 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
     auto addSource = [&](const SpatialPatternSummaryInfo& info, bool dataUsed) {
         std::string country(info.source.emissionId.country.iso_code());
         std::string sector(info.source.emissionId.sector.name());
+        std::string gnfr(info.source.emissionId.sector.gnfr_name());
         std::string pollutant(info.source.emissionId.pollutant.code());
         std::string type = spatial_pattern_source_type_to_string(info.source.type);
 
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, sector.c_str(), nullptr);
-        worksheet_write_string(ws, row, 2, pollutant.c_str(), nullptr);
-        worksheet_write_string(ws, row, 3, type.c_str(), nullptr);
-        worksheet_write_boolean(ws, row, 4, !dataUsed, nullptr);
+        worksheet_write_string(ws, row, 2, gnfr.c_str(), nullptr);
+        worksheet_write_string(ws, row, 3, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, 4, type.c_str(), nullptr);
+        worksheet_write_boolean(ws, row, 5, !dataUsed, nullptr);
         if (info.source.type != SpatialPatternSource::Type::UnfiformSpread &&
             info.source.type != SpatialPatternSource::Type::RasterException) {
-            worksheet_write_number(ws, row, 5, static_cast<int>(info.source.year), nullptr);
+            worksheet_write_number(ws, row, 6, static_cast<int>(info.source.year), nullptr);
         }
-        worksheet_write_string(ws, row, 6, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
+        worksheet_write_string(ws, row, 7, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
 
-        worksheet_write_number(ws, row, 7, info.totalEmissions, formatNumber);
-        worksheet_write_number(ws, row, 8, info.pointEmissions, formatNumber);
-        worksheet_write_number(ws, row, 9, info.gnfrTotal, formatNumber);
+        worksheet_write_number(ws, row, 8, info.totalEmissions, formatNumber);
+        worksheet_write_number(ws, row, 9, info.pointEmissions, formatNumber);
     };
 
     for (const auto& info : sources) {
@@ -171,10 +170,11 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
         return;
     }
 
-    const std::array<ColumnInfo, 6> headers = {
+    const std::array<ColumnInfo, 7> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
-        ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"NFR", 15.0},
+        ColumnInfo{"GNFR", 15.0},
         ColumnInfo{"Validated GNFR", 15.0},
         ColumnInfo{"NFR Sum", 15.0},
         ColumnInfo{"Scaling factor", 15.0},
@@ -206,12 +206,13 @@ void RunSummary::gnfr_corrections_to_spreadsheet(lxw_workbook* wb, const std::st
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
+        worksheet_write_string(ws, row, 3, sector.c_str(), nullptr);
         if (correction.validatedGnfrTotal.has_value()) {
-            worksheet_write_number(ws, row, 3, *correction.validatedGnfrTotal, formatNumber);
+            worksheet_write_number(ws, row, 4, *correction.validatedGnfrTotal, formatNumber);
         }
-        worksheet_write_number(ws, row, 4, correction.summedGnfrTotal, formatNumber);
+        worksheet_write_number(ws, row, 5, correction.summedGnfrTotal, formatNumber);
         if (std::isfinite(correction.correction)) {
-            worksheet_write_number(ws, row, 5, correction.correction, formatNumber);
+            worksheet_write_number(ws, row, 6, correction.correction, formatNumber);
         }
 
         ++row;
@@ -235,10 +236,11 @@ void RunSummary::validated_gnfr_corrections_to_spreadsheet(lxw_workbook* wb, con
     std::string nfrSumHeader      = fmt::format("NFR_{}_{} sum", year, reportYear);
     std::string nfrSumOlderHeader = fmt::format("NFR_{}_{} sum", year - 1, reportYear);
 
-    const std::array<ColumnInfo, 7> headers = {
+    const std::array<ColumnInfo, 8> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
-        ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"NFR", 15.0},
+        ColumnInfo{"GNFR", 15.0},
         ColumnInfo{validatedHeader.c_str(), 30.0},
         ColumnInfo{nfrSumHeader.c_str(), 15.0},
         ColumnInfo{nfrSumOlderHeader.c_str(), 15.0},
@@ -266,15 +268,17 @@ void RunSummary::validated_gnfr_corrections_to_spreadsheet(lxw_workbook* wb, con
     for (const auto& correction : corrections) {
         std::string country(correction.id.country.iso_code());
         std::string sector(correction.id.sector.gnfr_sector().name());
+        std::string gnfr(correction.id.sector.gnfr_name());
         std::string pollutant(correction.id.pollutant.code());
 
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
-        worksheet_write_number(ws, row, 3, correction.validatedGnfrTotal, formatNumber);
-        worksheet_write_number(ws, row, 4, correction.nfrTotal, formatNumber);
-        worksheet_write_number(ws, row, 5, correction.olderNfrTotal, formatNumber);
-        worksheet_write_number(ws, row, 6, correction.correctedGnfrTotal, formatNumber);
+        worksheet_write_string(ws, row, 3, gnfr.c_str(), nullptr);
+        worksheet_write_number(ws, row, 4, correction.validatedGnfrTotal, formatNumber);
+        worksheet_write_number(ws, row, 5, correction.nfrTotal, formatNumber);
+        worksheet_write_number(ws, row, 6, correction.olderNfrTotal, formatNumber);
+        worksheet_write_number(ws, row, 7, correction.correctedGnfrTotal, formatNumber);
 
         ++row;
     }
@@ -353,11 +357,11 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
     const std::array<ColumnInfo, 7> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
-        ColumnInfo{"Sector", 15.0},
+        ColumnInfo{"NFR", 15.0},
+        ColumnInfo{"GNFR", 15.0},
         ColumnInfo{"Input emission", 15.0},
         ColumnInfo{"Output emission", 15.0},
         ColumnInfo{"Diff", 15.0},
-        ColumnInfo{"GNFR", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -382,19 +386,19 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
         const auto& emissionId = summaryEntry.id;
 
         std::string sector(emissionId.sector.name());
+        std::string gnfr(emissionId.sector.gnfr_name());
         std::string pollutant(emissionId.pollutant.code());
         std::string country(emissionId.country.iso_code());
 
         worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
         worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
         worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
-        worksheet_write_number(ws, row, 3, summaryEntry.emissionInventoryTotal, formatNumber);
+        worksheet_write_string(ws, row, 3, gnfr.c_str(), nullptr);
+        worksheet_write_number(ws, row, 4, summaryEntry.emissionInventoryTotal, formatNumber);
         if (summaryEntry.spreadTotal.has_value()) {
-            worksheet_write_number(ws, row, 4, *summaryEntry.spreadTotal, formatNumber);
-            worksheet_write_number(ws, row, 5, std::abs(summaryEntry.diff()), formatNumber);
+            worksheet_write_number(ws, row, 5, *summaryEntry.spreadTotal, formatNumber);
+            worksheet_write_number(ws, row, 6, std::abs(summaryEntry.diff()), formatNumber);
         }
-
-        worksheet_write_number(ws, row, 6, summaryEntry.gnfrTotal, formatNumber);
 
         ++row;
     }
