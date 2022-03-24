@@ -121,7 +121,13 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
 
             summary.add_gnfr_correction(id, *gnfrBasedTotal, nfrBasedTotal, correction);
         } else {
-            if (id.pollutant.code() != "TSP") {
+            if (id.pollutant.code() != "TSP" ||
+                id.pollutant.code() != "Zn" ||
+                id.pollutant.code() != "As" ||
+                id.pollutant.code() != "Ni" ||
+                id.pollutant.code() != "Cu" ||
+                id.pollutant.code() != "Cr" ||
+                id.pollutant.code() != "Se") {
                 // If no gnfr data is reported, this is a validated 0
                 // so set the scale factor to 0 so the nfr is not used (except for TSP pollutant)
                 correction = 0.0;
