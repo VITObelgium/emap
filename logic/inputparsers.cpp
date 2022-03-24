@@ -128,9 +128,14 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
         size_t lineNr = 2;
         for (auto& line : csv) {
+            const auto sectorName = line.get_string(colSector);
+            /*if (sectorInv.is_ignored_sector(sectorType, sectorName)) {
+                continue;
+            }*/
+
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
 
-            auto sector    = sectorInv.try_sector_from_string(sectorType, line.get_string(colSector));
+            auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
             auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
             auto pollutant = pollutantInv.try_pollutant_from_string(line.get_string(colPollutant));
             if (sector.has_value() && country.has_value() && pollutant.has_value()) {
@@ -360,6 +365,10 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
         }
 
         if (auto nfrSectorName = feature.field_as<std::string_view>(1); !nfrSectorName.empty()) {
+            if (sectorInv.is_ignored_nfr_sector(nfrSectorName)) {
+                continue;
+            }
+
             EmissionSector nfrSector;
             bool sectorOverride = false;
 
