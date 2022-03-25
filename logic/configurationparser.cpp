@@ -68,14 +68,15 @@ static std::vector<std::string> parse_ignore_list(const fs::path& ignoreSpec, co
         auto ds    = gdal::VectorDataSet::open(ignoreSpec);
         auto layer = ds.layer(tab);
 
-        const auto colName = layer.layer_definition().required_field_index("names");
+        // When no ignores are present, gdal gets confused and does not recognise the header
+        if (const auto colName = layer.layer_definition().field_index("names"); colName >= 0) {
+            for (const auto& feature : layer) {
+                if (!feature.field_is_valid(0)) {
+                    continue; // skip empty lines
+                }
 
-        for (const auto& feature : layer) {
-            if (!feature.field_is_valid(0)) {
-                continue; // skip empty lines
+                ignored.emplace_back(feature.field_as<std::string_view>(colName));
             }
-
-            ignored.emplace_back(feature.field_as<std::string_view>(colName));
         }
     }
 
