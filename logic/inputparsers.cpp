@@ -128,16 +128,18 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
         size_t lineNr = 2;
         for (auto& line : csv) {
-            const auto sectorName = line.get_string(colSector);
-            /*if (sectorInv.is_ignored_sector(sectorType, sectorName)) {
+            const auto sectorName    = line.get_string(colSector);
+            const auto pollutantName = line.get_string(colPollutant);
+            if (sectorInv.is_ignored_sector(sectorType, sectorName) ||
+                pollutantInv.is_ignored_pollutant(pollutantName)) {
                 continue;
-            }*/
+            }
 
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
 
             auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
             auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
-            auto pollutant = pollutantInv.try_pollutant_from_string(line.get_string(colPollutant));
+            auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
             if (sector.has_value() && country.has_value() && pollutant.has_value()) {
                 EmissionEntry info(
                     EmissionIdentifier(*country, *sector, *pollutant),
@@ -177,6 +179,35 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     }
 }
 
+static SingleEmissions calculate_pmcoarse_emissions(const PollutantInventory& inv, const SingleEmissions& emissions)
+{
+    std::vector<EmissionEntry> entries;
+
+    try {
+        auto pm10     = inv.pollutant_from_string(constants::pollutant::PM10);
+        auto pm2_5    = inv.pollutant_from_string(constants::pollutant::PM2_5);
+        auto pmCoarse = inv.pollutant_from_string(constants::pollutant::PMCoarse);
+
+        for (auto& em : emissions) {
+            if (em.pollutant() == pm10 && em.value().amount().has_value()) {
+                auto pm25Id      = em.id();
+                pm25Id.pollutant = pm2_5;
+
+                double pm25Value = 0.0;
+                if (auto pm2_5Emission = emissions.try_emission_with_id(em.id().with_pollutant(pm2_5)); pm2_5Emission.has_value()) {
+                    pm25Value = pm2_5Emission->value().amount().value_or(0.0);
+                }
+
+                entries.emplace_back(em.id().with_pollutant(pmCoarse), EmissionValue((*em.value().amount()) - pm25Value));
+            }
+        }
+    } catch (const std::exception&) {
+        // Not all required pollutants are part of this configuration
+    }
+
+    return SingleEmissions(emissions.year(), std::move(entries));
+}
+
 SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg)
 {
     // First lines are comments
@@ -212,7 +243,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             try {
-                if (!sectorInv.is_ignored_sector(sectorType, sectorName)) {
+                if (!sectorInv.is_ignored_sector(sectorType, sectorName) && !pollutantInv.is_ignored_pollutant(pollutant)) {
                     auto [sector, priority] = sectorInv.sector_with_priority_from_string(sectorType, sectorName);
                     EmissionIdentifier id(*country, sectorInv.sector_from_string(sectorType, sectorName), pollutantInv.pollutant_from_string(pollutant));
 
@@ -238,7 +269,9 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
         }
 
-        return SingleEmissions(requestYear, std::move(entries));
+        SingleEmissions emissions(requestYear, std::move(entries));
+        merge_unique_emissions(emissions, calculate_pmcoarse_emissions(pollutantInv, emissions));
+        return emissions;
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
     }
@@ -301,7 +334,9 @@ static std::optional<Pollutant> detect_pollutant_name_from_header(std::string_vi
     std::optional<Pollutant> pol;
 
     try {
-        pol = pollutantInv.pollutant_from_string(hdr);
+        if (!pollutantInv.is_ignored_pollutant(hdr)) {
+            pol = pollutantInv.pollutant_from_string(hdr);
+        }
     } catch (const std::exception&) {
     }
 
@@ -416,9 +451,9 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 }
 
                 if (emissionValue.has_value()) {
-                    if (polData.pollutant.code() == "PM10") {
+                    if (polData.pollutant.code() == constants::pollutant::PM10) {
                         pm10 = emissionValue;
-                    } else if (polData.pollutant.code() == "PM2.5") {
+                    } else if (polData.pollutant.code() == constants::pollutant::PM2_5) {
                         pm2_5 = emissionValue;
                     }
 

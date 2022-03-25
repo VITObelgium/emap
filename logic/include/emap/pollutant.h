@@ -64,7 +64,7 @@ namespace emap {
 class PollutantInventory
 {
 public:
-    PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions);
+    PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions, std::vector<std::string> ignoredPollutants);
 
     Pollutant pollutant_from_string(std::string_view str) const;
     std::optional<Pollutant> try_pollutant_from_string(std::string_view str) const noexcept;
@@ -75,12 +75,14 @@ public:
     std::optional<Pollutant> pollutant_fallback(const Pollutant& pollutant) const noexcept;
 
     void add_fallback_for_pollutant(const Pollutant& pollutant, const Pollutant& fallback);
+    bool is_ignored_pollutant(std::string_view str) const noexcept;
 
     std::span<const Pollutant> list() const noexcept;
 
 private:
     std::vector<Pollutant> _pollutants;
     std::unordered_map<Pollutant, Pollutant> _pollutantFallbacks;
+    std::vector<std::string> _ignoredPollutants;
     InputConversions _conversions;
 };
 

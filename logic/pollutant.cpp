@@ -16,8 +16,9 @@ namespace emap {
 
 using namespace inf;
 
-PollutantInventory::PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions)
+PollutantInventory::PollutantInventory(std::vector<Pollutant> pollutants, InputConversions conversions, std::vector<std::string> ignoredPollutants)
 : _pollutants(std::move(pollutants))
+, _ignoredPollutants(std::move(ignoredPollutants))
 , _conversions(std::move(conversions))
 {
 }
@@ -64,4 +65,12 @@ void PollutantInventory::add_fallback_for_pollutant(const Pollutant& pollutant, 
 {
     _pollutantFallbacks[pollutant] = fallback;
 }
+
+bool PollutantInventory::is_ignored_pollutant(std::string_view str) const noexcept
+{
+    return std::any_of(_ignoredPollutants.begin(), _ignoredPollutants.end(), [=](const std::string& ign) {
+        return str::iequals(ign, str);
+    });
+}
+
 }

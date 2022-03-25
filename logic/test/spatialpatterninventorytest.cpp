@@ -20,7 +20,8 @@ TEST_CASE("Spatial pattern selection test")
                                                parametersPath / "names_to_be_ignored.xlsx");
 
     auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx",
-                                               parametersPath / "code_conversions.xlsx");
+                                               parametersPath / "code_conversions.xlsx",
+                                               parametersPath / "names_to_be_ignored.xlsx");
 
     auto countryInventory = parse_countries(parametersPath / "id_nummers.xlsx");
 

@@ -194,7 +194,9 @@ SectorInventory parse_sectors(const fs::path& sectorSpec,
                            std::move(ignoredGnfrSectors), std::move(ignoredNfrSectors));
 }
 
-PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::path& conversionSpec)
+PollutantInventory parse_pollutants(const fs::path& pollutantSpec,
+                                    const fs::path& conversionSpec,
+                                    const fs::path& ignoreSpec)
 {
     std::vector<Pollutant> pollutants;
     InputConversions conversions;
@@ -239,7 +241,7 @@ PollutantInventory parse_pollutants(const fs::path& pollutantSpec, const fs::pat
         }
     }
 
-    return PollutantInventory(std::move(pollutants), std::move(conversions));
+    return PollutantInventory(std::move(pollutants), std::move(conversions), parse_ignore_list(ignoreSpec, "pollutant"));
 }
 
 std::unordered_map<NfrId, std::string> parse_sector_mapping(const fs::path& mappingSpec, const SectorInventory& inv, const std::string& outputLevel)
@@ -530,10 +532,14 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 
         const auto dataPath = read_path(model, "datapath", basePath);
 
-        const auto parametersPath = basePath / dataPath / "05_model_parameters";
-        auto sectorInventory      = parse_sectors(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
-        auto pollutantInventory   = parse_pollutants(parametersPath / "id_nummers.xlsx", dataPath / "05_model_parameters" / "code_conversions.xlsx");
-        auto countryInventory     = parse_countries(parametersPath / "id_nummers.xlsx");
+        const auto parametersPath             = basePath / dataPath / "05_model_parameters";
+        const auto idNumbersPath              = parametersPath / "id_nummers.xlsx";
+        const auto codeConversionsNumbersPath = parametersPath / "code_conversions.xlsx";
+        const auto ignorePath                 = parametersPath / "names_to_be_ignored.xlsx";
+
+        auto sectorInventory    = parse_sectors(idNumbersPath, codeConversionsNumbersPath, ignorePath);
+        auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath);
+        auto countryInventory   = parse_countries(idNumbersPath);
 
         const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
         const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());

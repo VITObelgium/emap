@@ -31,7 +31,7 @@ TEST_CASE("Input parsers")
 {
     const auto parametersPath     = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
     const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
-    const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx");
+    const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
     const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
 
     auto cfg = create_config(sectorInventory, pollutantInventory, countryInventory);
@@ -45,7 +45,7 @@ TEST_CASE("Input parsers")
             cfg.set_year(1990_y);
 
             auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg);
-            REQUIRE(emissions.size() == 6);
+            REQUIRE(emissions.size() == 11);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
@@ -58,6 +58,15 @@ TEST_CASE("Input parsers")
             CHECK(em.pollutant() == pollutants::PCBs);
             CHECK(em.value().amount() == Approx(0.0003408784));
             CHECK(em.value().unit() == "Gg");
+
+            // PMCoarse equals to PM10 when no PM2.5 is available (PMcoarse from the input is not used because it is on the ignore list)
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10)).value().amount() == 2.0);
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PMcoarse)).value().amount() == 2.0);
+
+            // PMCoarse equals to PM10 - PM2.5
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PM10)).value().amount() == 5.5);
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PM2_5)).value().amount() == 2.0);
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PMcoarse)).value().amount() == 3.5);
         }
 
         SUBCASE("gnfr sectors")
@@ -180,7 +189,7 @@ TEST_CASE("Input parsers")
     {
         const auto parametersPath     = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
         const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
-        const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx");
+        const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx");
         const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
 
         const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "scaling_diffuse.csv", cfg);

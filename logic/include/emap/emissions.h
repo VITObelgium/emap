@@ -106,6 +106,11 @@ struct EmissionIdentifier
         return false;
     }
 
+    EmissionIdentifier with_pollutant(const Pollutant& pol) const noexcept
+    {
+        return EmissionIdentifier(country, sector, pol);
+    }
+
     Country country;
     EmissionSector sector;
     Pollutant pollutant;

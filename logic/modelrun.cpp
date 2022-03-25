@@ -1,6 +1,7 @@
 #include "emap/modelrun.h"
 
 #include "emap/configurationparser.h"
+#include "emap/constants.h"
 #include "emap/countryborders.h"
 #include "emap/emissioninventory.h"
 #include "emap/gridprocessing.h"
@@ -419,9 +420,9 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
     }
 
     try {
-        const auto pm10     = cfg.pollutants().try_pollutant_from_string("PM10");
-        const auto pm2_5    = cfg.pollutants().try_pollutant_from_string("PM2.5");
-        const auto pmCoarse = cfg.pollutants().try_pollutant_from_string("PMcoarse");
+        const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
+        const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
+        const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
 
         if (pm10.has_value() &&
             pm2_5.has_value() &&

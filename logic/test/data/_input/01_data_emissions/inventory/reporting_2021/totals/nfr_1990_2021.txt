@@ -9,3 +9,7 @@ EE;1990;1A3biii;PCB;Gg;1.7e-11
 AT;1990;3Da2a;benzo(b);Gg;NA
 DE;1990;1A3bi(fu);benzo(b);Gg;NR
 DE;1990;1A3bvi(fu);benzo(b);Gg;NR
+NL;1990;1A2a;PM10;Gg;2.0
+NL;1990;1A2a;PMcoarse;Gg;10.0
+NL;1990;1A2b;PM10;Gg;5.5
+NL;1990;1A2b;PM2.5;Gg;2.0
