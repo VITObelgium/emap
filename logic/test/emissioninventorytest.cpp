@@ -124,6 +124,48 @@ TEST_CASE("Emission inventory")
         checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bvii), pollutants::PM10), 10.0, 0.0);
         checkNoEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bviii), pollutants::PM10));
     }
+
+    SUBCASE("Correct NFR values based on GNFR")
+    {
+        ScalingFactors diffuseScalings, pointScalings;
+
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        // all aviation sectors have a value
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::NOx), EmissionValue(111.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::NOx), EmissionValue(222.0)));
+        // 2 out of 7 offroad sectors have a value
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::NOx), EmissionValue(50.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A4bi), pollutants::NOx), EmissionValue(60.0)));
+        // pollutant emissions should not corrected to 0.0 when GNFR is missing (GNFR is considered to be a validated 0.0)
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::Cd), EmissionValue(111.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::Cd), EmissionValue(222.0)));
+        // TSP, As pollutant emissions should not be corrected to 0.0 when GNFR is missing
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::TSP), EmissionValue(111.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::TSP), EmissionValue(222.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), EmissionValue(111.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::As), EmissionValue(222.0)));
+
+        SingleEmissions gnfrTotals(date::year(2019));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Aviation), pollutants::NOx), EmissionValue(70.0)));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Offroad), pollutants::NOx), EmissionValue(80.0)));
+
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::NOx), (70.0 / (111.0 + 222.0)) * 111.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::NOx), (70.0 / (111.0 + 222.0)) * 222.0, 0.0);
+
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::NOx), (80.0 / (50.0 + 60.0)) * 50.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A4bi), pollutants::NOx), (80.0 / (50.0 + 60.0)) * 60.0, 0.0);
+
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::Cd), 0.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::Cd), 0.0, 0.0);
+
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::TSP), 111.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::TSP), 222.0, 0.0);
+
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), 111.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::As), 222.0, 0.0);
+    }
 }
 
 }

@@ -11,6 +11,7 @@ const GnfrSector Fugitive("D_Fugitive", GnfrId(604), "D", "Fugitive", EmissionDe
 const GnfrSector Solvents("E_Solvents", GnfrId(605), "E", "Solvents", EmissionDestination::Land);
 const GnfrSector RoadTransport("F_RoadTransport", GnfrId(606), "F", "Road transport", EmissionDestination::Land);
 const GnfrSector Shipping("G_Shipping", GnfrId(607), "G", "Shipping", EmissionDestination::Sea);
+const GnfrSector Aviation("H_Aviation", GnfrId(608), "H", "Aviation", EmissionDestination::Land);
 const GnfrSector Offroad("I_Offroad", GnfrId(609), "I", "Offroad", EmissionDestination::Land);
 const GnfrSector Waste("J_Waste", GnfrId(610), "J", "Waste", EmissionDestination::Land);
 const GnfrSector AgriOther("L_AgriOther", GnfrId(612), "L", "Agricultural other", EmissionDestination::Land);
@@ -22,6 +23,9 @@ const NfrSector Nfr1A1a("1A1a", NfrId(7001), gnfr::PublicPower, "Public electric
 const NfrSector Nfr1A2a("1A2a", NfrId(7004), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Iron and steel", EmissionDestination::Land);
 const NfrSector Nfr1A2b("1A2b", NfrId(7005), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Non-ferrous metals", EmissionDestination::Land);
 const NfrSector Nfr1A2c("1A2c", NfrId(7006), gnfr::Industry, "Stationary combustion in manufacturing industries and construction: Chemicals", EmissionDestination::Land);
+
+const NfrSector Nfr1A3ai_i("1A3ai(i)", NfrId(7012), gnfr::Aviation, "International aviation LTO (civil)", EmissionDestination::Land);
+const NfrSector Nfr1A3aii_i("1A3aii(i)", NfrId(7013), gnfr::Aviation, "Domestic aviation LTO (civil)", EmissionDestination::Land);
 
 const NfrSector Nfr1A3bi("1A3bi", NfrId(7014), gnfr::RoadTransport, "Road transport: Passenger cars", EmissionDestination::Land);
 const NfrSector Nfr1A3bii("1A3bii", NfrId(7015), gnfr::RoadTransport, "Road transport: Light duty vehicles", EmissionDestination::Land);
