@@ -34,6 +34,18 @@ TEST_CASE("Emission inventory")
     const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
     auto cfg                      = create_config(sectorInventory, pollutantInventory, countryInventory);
 
+    auto checkEmission([](const EmissionInventory& inventory, EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
+        const auto emissions = inventory.emissions_with_id(id);
+        REQUIRE(emissions.size() == 1);
+        CHECK_MESSAGE(emissions.front().scaled_diffuse_emissions_sum() == expectedDiffuse, fmt::format("{}", id));
+        CHECK_MESSAGE(emissions.front().scaled_point_emissions_sum() == expectedPoint, fmt::format("{}", id));
+        CHECK_MESSAGE(emissions.front().scaled_total_emissions_sum() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
+    });
+
+    auto checkNoEmission([](const EmissionInventory& inventory, EmissionIdentifier id) {
+        CHECK(inventory.emissions_with_id(id).empty());
+    });
+
     SUBCASE("Subtract point sources in Belgium")
     {
         SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
@@ -68,23 +80,50 @@ TEST_CASE("Emission inventory")
         diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 0.5));
         pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 2.0));
 
-        const auto inventory = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
 
-        auto checkEmission([&inventory](EmissionIdentifier id, double expectedDiffuse, double expectedPoint) {
-            const auto emissions = inventory.emissions_with_id(id);
-            REQUIRE(emissions.size() == 1);
-            CHECK_MESSAGE(emissions.front().scaled_diffuse_emissions_sum() == expectedDiffuse, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().scaled_point_emissions_sum() == expectedPoint, fmt::format("{}", id));
-            CHECK_MESSAGE(emissions.front().scaled_total_emissions_sum() == expectedDiffuse + expectedPoint, fmt::format("{}", id));
-        });
+        checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 55.5, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::ES, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 200.0, 0.0); // correction factor should be applied
 
-        checkEmission(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 55.5, 0.0);
-        checkEmission(EmissionIdentifier(countries::ES, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 200.0, 0.0); // correction factor should be applied
+        checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 88.0, 12.0 /*5 + 7*/);
+        checkEmission(inv, EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), 99.5, 100.5);
+        checkEmission(inv, EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 450, 100.0);
+        checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr2C7d), pollutants::CO), 300.0, 0.0);
+    }
 
-        checkEmission(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 88.0, 12.0 /*5 + 7*/);
-        checkEmission(EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), 99.5, 100.5);
-        checkEmission(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 450, 100.0);
-        checkEmission(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr2C7d), pollutants::CO), 300.0, 0.0);
+    SUBCASE("Spread GNFR emissions when no NFR data is available")
+    {
+        // empty NFR emissions
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        ScalingFactors diffuseScalings, pointScalings;
+
+        SingleEmissions gnfrTotals(date::year(2019));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::ATL, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::NL, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PM10), EmissionValue(70.0)));
+
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+
+        // The emission value (100.0) should be spread evenly over the two shipping sectors with type sea for seas
+        checkEmission(inv, EmissionIdentifier(countries::ATL, EmissionSector(sectors::nfr::Nfr1A3di_i), pollutants::PM10), 100.0, 0.0);
+        checkNoEmission(inv, EmissionIdentifier(countries::ATL, EmissionSector(sectors::nfr::Nfr1A3di_ii), pollutants::PM10));
+        checkNoEmission(inv, EmissionIdentifier(countries::ATL, EmissionSector(sectors::nfr::Nfr1A3dii), pollutants::PM10));
+
+        // The emission value (100.0) should be spread evenly over the two shipping sectors with type land for countries
+        checkNoEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3di_i), pollutants::PM10));
+        checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3di_ii), pollutants::PM10), 50.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3dii), pollutants::PM10), 50.0, 0.0);
+
+        // Exclude resuspension from Road transport
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3biii), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3biv), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bv), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bvi), pollutants::PM10), 10.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bvii), pollutants::PM10), 10.0, 0.0);
+        checkNoEmission(inv, EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A3bviii), pollutants::PM10));
     }
 }
+
 }

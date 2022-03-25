@@ -82,11 +82,23 @@ static SingleEmissions handle_missing_nfr_data(date::year nfrYear,
 
                     if (!dataFound) {
                         auto nfrSectors = cfg.sectors().nfr_sectors_in_gnfr(id.sector.gnfr_sector().id());
-                        if (id.country.is_sea() && !id.sector.is_land_sector()) {
-                            // For shipping sector the full emission is spread evenly only over the sea sectors
+                        if (id.sector.is_land_sector()) {
                             remove_from_container(nfrSectors, [](const NfrSector& sector) {
-                                return sector.has_land_destination();
+                                return sector.name() == "1A3bviii";
                             });
+                        } else {
+                            // Special sea sector handling
+                            if (id.country.is_sea()) {
+                                // For shipping sector the full emission is spread evenly only over the sea sectors with sea destination
+                                remove_from_container(nfrSectors, [](const NfrSector& sector) {
+                                    return sector.has_land_destination();
+                                });
+                            } else {
+                                // For shipping sector the full emission is spread evenly only over the sea sectors with land destination
+                                remove_from_container(nfrSectors, [](const NfrSector& sector) {
+                                    return !sector.has_land_destination();
+                                });
+                            }
                         }
 
                         auto emissionPerSector = *gnfrSum / nfrSectors.size();
