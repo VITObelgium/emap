@@ -5,6 +5,6 @@
 
 namespace emap {
 
-void debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel);
+int debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel);
 
 }

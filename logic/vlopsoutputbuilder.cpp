@@ -7,7 +7,7 @@
 namespace emap {
 
 static constexpr const int64_t s_secondsPerYear    = 31'536'000;
-static constexpr const double s_toGramPerYearRatio = 1'000'000'000.0 / 31'536'000;
+static constexpr const double s_toGramPerYearRatio = 1'000'000'000.0 / s_secondsPerYear;
 
 using namespace inf;
 

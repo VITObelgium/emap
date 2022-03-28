@@ -48,7 +48,7 @@ static fs::path throw_if_not_exists(const fs::path& path)
     return path;
 }
 
-void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
+int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
 {
     auto runConfig = parse_run_configuration_file(runConfigPath);
     runConfig.set_max_concurrency(concurrency);
@@ -632,24 +632,22 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
     }
 }
 
-void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
+int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
-    tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
+    try {
+        tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
 
-    RunSummary summary(cfg);
+        RunSummary summary(cfg);
 
-    SpatialPatternInventory spatPatInv(cfg);
-    spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
+        SpatialPatternInventory spatPatInv(cfg);
+        spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
-    clean_output_directory(cfg.output_path());
+        clean_output_directory(cfg.output_path());
 
-    auto validator       = make_validator(cfg);
-    const auto inventory = make_emission_inventory(cfg, summary);
-    assert(inventory.validate_uniqueness());
+        auto validator          = make_validator(cfg);
+        const auto inventory    = make_emission_inventory(cfg, summary);
+        const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
 
-    const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
-
-    {
         chrono::ScopedDurationLog d("Write model run summary");
         // Create the list of spatial patterns that will be used in the model
         for (auto country : cfg.countries().list()) {
@@ -672,13 +670,19 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
                     }
                 }
             }
+
+            if (validator) {
+                summary.set_validation_results(validator->create_summary(inventory));
+            }
+
+            summary.write_summary(cfg.output_path());
         }
 
-        if (validator) {
-            summary.set_validation_results(validator->create_summary(inventory));
-        }
-
-        summary.write_summary(cfg.output_path());
+        return EXIT_SUCCESS;
+    } catch (const std::exception& e) {
+        Log::error(e.what());
+        fmt::print("{}\n", e.what());
+        return EXIT_FAILURE;
     }
 }
 }

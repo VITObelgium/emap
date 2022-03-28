@@ -25,7 +25,7 @@ struct ModelProgressInfo
 
 using ModelProgress = inf::ProgressTracker<ModelProgressInfo>;
 
-void run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb);
-void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb);
+int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb);
+int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb);
 
 }
