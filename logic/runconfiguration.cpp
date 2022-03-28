@@ -115,14 +115,24 @@ const fs::path& RunConfiguration::spatial_pattern_exceptions() const noexcept
     return _spatialPatternExceptions;
 }
 
-fs::path RunConfiguration::countries_vector_path() const noexcept
+fs::path RunConfiguration::boundaries_vector_path() const noexcept
 {
-    return _paths.countries_vector_path();
+    return _paths.boundaries_vector_path();
 }
 
-std::string RunConfiguration::country_field_id() const noexcept
+fs::path RunConfiguration::eez_boundaries_vector_path() const noexcept
+{
+    return _paths.eez_boundaries_vector_path();
+}
+
+std::string RunConfiguration::boundaries_field_id() const noexcept
 {
     return "Code3";
+}
+
+std::string RunConfiguration::eez_boundaries_field_id() const noexcept
+{
+    return "ISO_TER1";
 }
 
 ModelGrid RunConfiguration::model_grid() const noexcept

@@ -234,7 +234,7 @@ void debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel)
     const auto gridProjection = grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
 
     Log::info("Create country geometries");
-    const auto countries = create_country_geometries(runConfig.countries_vector_path(), runConfig.country_field_id(), runConfig.countries(), outputDir, gridProjection);
+    const auto countries = create_country_geometries(runConfig.boundaries_vector_path(), runConfig.boundaries_field_id(), runConfig.countries(), outputDir, gridProjection);
     store_grid("Spatial pattern grid CAMS", grid_data(GridDefinition::CAMS).meta, outputDir / "spatial_pattern_grid_cams.gpkg");
     store_grid("Spatial pattern grid CEIP", grid_data(GridDefinition::ChimereEmep).meta, outputDir / "spatial_pattern_grid_ceip.gpkg");
     store_grid("Spatial pattern grid Flanders", grid_data(GridDefinition::Flanders1km).meta, outputDir / "spatial_pattern_grid_flanders.gpkg");

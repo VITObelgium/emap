@@ -54,6 +54,9 @@ TEST_CASE("Parse run configuration")
         CHECK(config.validation_type() == ValidationType::SumValidation);
 
         CHECK(config.included_pollutants() == container_as_vector(config.pollutants().list()));
+
+        CHECK(config.sectors().nfr_sector_from_string("1A3di(ii)").destination() == EmissionDestination::Eez);
+        CHECK(config.sectors().nfr_sector_from_string("1A3di(ii)").has_land_destination());
     }
 
     SUBCASE("valid file with specified pollutants")

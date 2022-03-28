@@ -6,6 +6,7 @@ enum class EmissionDestination
 {
     Land,
     Sea,
+    Eez,
     Invalid,
 };
 

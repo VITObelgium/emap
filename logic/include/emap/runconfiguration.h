@@ -74,8 +74,10 @@ public:
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
     const fs::path& spatial_pattern_exceptions() const noexcept;
-    fs::path countries_vector_path() const noexcept;
-    std::string country_field_id() const noexcept;
+    fs::path boundaries_vector_path() const noexcept;
+    fs::path eez_boundaries_vector_path() const noexcept;
+    std::string boundaries_field_id() const noexcept;
+    std::string eez_boundaries_field_id() const noexcept;
 
     ModelGrid model_grid() const noexcept;
     RunType run_type() const noexcept;

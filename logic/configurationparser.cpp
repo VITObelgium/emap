@@ -17,12 +17,16 @@ using namespace std::string_view_literals;
 
 static EmissionDestination emission_destination_from_string(std::string_view str)
 {
-    if (str == "land") {
+    if (str::iequals(str, "land")) {
         return EmissionDestination::Land;
     }
 
-    if (str == "sea") {
+    if (str::iequals(str, "sea")) {
         return EmissionDestination::Sea;
+    }
+
+    if (str::iequals(str, "eez")) {
+        return EmissionDestination::Eez;
     }
 
     throw RuntimeError("Invalid emission destination type: {}", str);

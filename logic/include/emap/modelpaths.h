@@ -30,7 +30,8 @@ public:
 
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;
-    fs::path countries_vector_path() const noexcept;
+    fs::path boundaries_vector_path() const noexcept;
+    fs::path eez_boundaries_vector_path() const noexcept;
 
     fs::path output_dir_for_rasters() const;
     fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;

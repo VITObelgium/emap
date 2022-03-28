@@ -62,7 +62,12 @@ public:
 
     bool has_land_destination() const noexcept
     {
-        return _destination == EmissionDestination::Land;
+        return _destination == EmissionDestination::Land || _destination == EmissionDestination::Eez;
+    }
+
+    EmissionDestination destination() const noexcept
+    {
+        return _destination;
     }
 
     bool operator==(const GnfrSector& other) const noexcept
@@ -129,7 +134,12 @@ public:
 
     bool has_land_destination() const noexcept
     {
-        return _destination == EmissionDestination::Land;
+        return _destination == EmissionDestination::Land || _destination == EmissionDestination::Eez;
+    }
+
+    EmissionDestination destination() const noexcept
+    {
+        return _destination;
     }
 
 private:
