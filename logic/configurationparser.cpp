@@ -360,6 +360,18 @@ static ModelGrid model_grid_from_string(std::string_view grid)
         return ModelGrid::ChimereCams;
     }
 
+    if (gridLowercase == "chimere_rio1") {
+        return ModelGrid::ChimereRio1;
+    }
+
+    if (gridLowercase == "chimere_rio4") {
+        return ModelGrid::ChimereRio4;
+    }
+
+    if (gridLowercase == "chimere_rio16") {
+        return ModelGrid::ChimereRio16;
+    }
+
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 

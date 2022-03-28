@@ -17,6 +17,9 @@ enum class ModelGrid
     Chimere0025deg,
     ChimereEmep,
     ChimereCams,
+    ChimereRio1,
+    ChimereRio4,
+    ChimereRio16,
     EnumCount,
     Invalid,
 };
@@ -41,6 +44,9 @@ enum class GridDefinition
     Chimere0025deg,
     ChimereEmep,
     ChimereCams,
+    ChimereRio1,
+    ChimereRio4,
+    ChimereRio16,
     EnumCount,
     Invalid,
 };
