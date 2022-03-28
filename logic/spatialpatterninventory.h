@@ -13,6 +13,7 @@ namespace emap {
 
 class SectorInventory;
 class PollutantInventory;
+class RunConfiguration;
 
 struct SpatialPatternSource
 {
@@ -77,7 +78,7 @@ struct SpatialPatternSource
 class SpatialPatternInventory
 {
 public:
-    SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory, const CountryInventory& countryInventory, const fs::path& exceptionsFile);
+    SpatialPatternInventory(const RunConfiguration& cfg);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
     SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId) const;
@@ -128,10 +129,7 @@ private:
 
     std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
 
-    fs::path _exceptionsFile;
-    const SectorInventory& _sectorInventory;
-    const PollutantInventory& _pollutantInventory;
-    const CountryInventory& _countryInventory;
+    const RunConfiguration& _cfg;
     std::regex _spatialPatternCamsRegex;
     std::regex _spatialPatternCeipRegex;
     std::regex _spatialPatternBelgium1Regex;

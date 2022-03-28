@@ -638,7 +638,7 @@ void run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progr
 
     RunSummary summary(cfg);
 
-    SpatialPatternInventory spatPatInv(cfg.sectors(), cfg.pollutants(), cfg.countries(), cfg.spatial_pattern_exceptions());
+    SpatialPatternInventory spatPatInv(cfg);
     spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
     clean_output_directory(cfg.output_path());

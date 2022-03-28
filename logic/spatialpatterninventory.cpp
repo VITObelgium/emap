@@ -1,12 +1,16 @@
 #include "spatialpatterninventory.h"
 
+#include "emap/inputparsers.h"
 #include "emap/pollutant.h"
+#include "emap/runconfiguration.h"
 #include "emap/sectorinventory.h"
 
 #include "infra/enumutils.h"
 #include "infra/gdal.h"
 #include "infra/log.h"
 #include "infra/string.h"
+
+#include "gdx/algo/sum.h"
 
 #include <deque>
 #include <tuple>
@@ -84,11 +88,8 @@ static Range<date::year> parse_year_range(std::string_view yearRange)
     throw RuntimeError("Invalid year range specification: {}", yearRange);
 }
 
-SpatialPatternInventory::SpatialPatternInventory(const SectorInventory& sectorInventory, const PollutantInventory& pollutantInventory, const CountryInventory& countryInventory, const fs::path& exceptionsFile)
-: _exceptionsFile(exceptionsFile)
-, _sectorInventory(sectorInventory)
-, _pollutantInventory(pollutantInventory)
-, _countryInventory(countryInventory)
+SpatialPatternInventory::SpatialPatternInventory(const RunConfiguration& cfg)
+: _cfg(cfg)
 , _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
 , _spatialPatternCeipRegex("(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)_(\\d{4})_GRID_(\\d{4})")
 , _spatialPatternBelgium1Regex("Emissies per km2 excl puntbrongegevens_(\\d{4})_([\\w,]+)")
@@ -104,8 +105,8 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
             // const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
-            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
-            const auto sector    = _sectorInventory.sector_from_string(baseMatch[3].str());
+            const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[2].str());
+            const auto sector    = _cfg.sectors().sector_from_string(baseMatch[3].str());
 
             return SpatialPatternFile{
                 SpatialPatternFile::Source::Cams,
@@ -127,8 +128,8 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCeipRegex)) {
         try {
-            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[1].str());
-            const auto sector    = _sectorInventory.sector_from_string(baseMatch[2].str());
+            const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[1].str());
+            const auto sector    = _cfg.sectors().sector_from_string(baseMatch[2].str());
             // const auto reportYear = date::year(str::to_int32_value(baseMatch[3].str()));
             // const auto year = date::year(str::to_int32_value(baseMatch[4].str()));
 
@@ -152,7 +153,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 
     if (std::regex_match(filename, baseMatch, _spatialPatternBelgium1Regex)) {
         try {
-            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[2].str());
+            const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[2].str());
 
             return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
         } catch (const std::exception& e) {
@@ -160,7 +161,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
         }
     } else if (std::regex_match(filename, baseMatch, _spatialPatternBelgium2Regex)) {
         try {
-            const auto pollutant = _pollutantInventory.pollutant_from_string(baseMatch[1].str());
+            const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[1].str());
 
             return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
         } catch (const std::exception& e) {
@@ -267,7 +268,7 @@ void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year star
 {
     std::vector<SpatialPatternSource> result;
 
-    _exceptions = parse_spatial_pattern_exceptions(_exceptionsFile);
+    _exceptions = parse_spatial_pattern_exceptions(_cfg.spatial_pattern_exceptions());
     // remove all the exceptions that are not relevant for the configured year
     inf::remove_from_container(_exceptions, [=](const SpatialPatternException& ex) {
         return !ex.yearRange.contains(startYear);
@@ -336,7 +337,7 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
 
     if (!exception.has_value()) {
         // Try the fallback pollutant
-        if (auto fallbackPollutant = _pollutantInventory.pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
+        if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
             EmissionIdentifier fallbackId(emissionId.country, emissionId.sector, *fallbackPollutant);
             exception = find_in_container_optional(_exceptions, [&fallbackId](const SpatialPatternException& ex) {
                 return ex.emissionId == fallbackId;
@@ -361,6 +362,12 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
     return exception;
 }
 
+static bool table_spatial_pattern_contains_data_for_sector(const EmissionSector& sector, const fs::path& path, const RunConfiguration& cfg)
+{
+    const auto pattern = parse_spatial_pattern_flanders(path, sector, cfg);
+    return gdx::sum(pattern) > 0.0;
+}
+
 SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const EmissionIdentifier& emissionId) const
 
 {
@@ -379,18 +386,18 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
                 return spf.pollutant == emissionId.pollutant;
             });
 
-            if (iter != patterns.end()) {
+            if (iter != patterns.end() && table_spatial_pattern_contains_data_for_sector(emissionId.sector, iter->path, _cfg)) {
                 return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
             }
 
             // Try the fallback pollutant
-            if (auto fallbackPollutant = _pollutantInventory.pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
+            if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
                 // A fallback is defined, search for the pattern
                 iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
                     return spf.pollutant == *fallbackPollutant;
                 });
 
-                if (iter != patterns.end()) {
+                if (iter != patterns.end() && table_spatial_pattern_contains_data_for_sector(emissionId.sector, iter->path, _cfg)) {
                     return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
                 }
             }
@@ -401,7 +408,7 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
                 return *source;
             } else {
                 // Try the fallback pollutant
-                if (auto fallbackPollutant = _pollutantInventory.pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
+                if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
                     // A fallback is defined, search for the pattern
                     if (auto source = search_spatial_pattern_within_year(emissionId.country, *fallbackPollutant, emissionId.pollutant, emissionId.sector, year, patterns); source.has_value()) {
                         return *source;
@@ -441,15 +448,15 @@ std::vector<SpatialPatternInventory::SpatialPatternException> SpatialPatternInve
         }
 
         try {
-            auto country   = _countryInventory.country_from_string(feature.field_as<std::string_view>(colCountry));
-            auto pollutant = _pollutantInventory.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
+            auto country   = _cfg.countries().country_from_string(feature.field_as<std::string_view>(colCountry));
+            auto pollutant = _cfg.pollutants().pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
             std::optional<EmissionSector> sector;
             if (feature.field_is_valid(colGnfr)) {
-                sector = EmissionSector(_sectorInventory.gnfr_sector_from_code_string(feature.field_as<std::string_view>(colGnfr)));
+                sector = EmissionSector(_cfg.sectors().gnfr_sector_from_code_string(feature.field_as<std::string_view>(colGnfr)));
             }
 
             if (feature.field_is_valid(colNfr)) {
-                sector = EmissionSector(_sectorInventory.nfr_sector_from_string(feature.field_as<std::string_view>(colNfr)));
+                sector = EmissionSector(_cfg.sectors().nfr_sector_from_string(feature.field_as<std::string_view>(colNfr)));
             }
 
             if (sector.has_value()) {

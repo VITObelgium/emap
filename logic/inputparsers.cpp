@@ -586,6 +586,63 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     return result;
 }
 
+gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg)
+{
+    const auto& sectorInv = cfg.sectors();
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(spatialPatternPath);
+    auto layer = ds.layer(0);
+
+    const auto gridData = grid_data(GridDefinition::Flanders1km);
+
+    auto colSector   = layer.layer_definition().required_field_index("nfr_sector");
+    auto colX        = layer.layer_definition().required_field_index("x_lambert");
+    auto colY        = layer.layer_definition().required_field_index("y_lambert");
+    auto colEmission = layer.layer_definition().required_field_index("emission");
+    // auto colUnit     = layer.layer_definition().required_field_index("unit");
+
+    const double centerOffsetX = gridData.meta.cell_size_x() / 2.0;
+    const double centerOffsetY = (-gridData.meta.cell_size_y()) / 2.0;
+
+    gdx::DenseRaster<double> raster(gridData.meta, gridData.meta.nodata.value());
+    std::unordered_set<std::string> invalidSectors;
+    for (const auto& feature : layer) {
+        EmissionSector currentSector;
+        auto sectorName = str::trimmed_view(feature.field_as<std::string_view>(colSector));
+
+        if (sectorName.empty() || sectorInv.is_ignored_nfr_sector(sectorName)) {
+            continue;
+        }
+
+        try {
+            currentSector = EmissionSector(sectorInv.nfr_sector_from_string(sectorName));
+        } catch (const std::exception& e) {
+            std::string sector(sectorName);
+            if (invalidSectors.count(sector) == 0) {
+                invalidSectors.emplace(sectorName);
+                Log::warn(e.what());
+            }
+            continue;
+        }
+
+        if (currentSector != sector) {
+            continue;
+        }
+
+        // Coordinates are lower left cell corners: put the point in the cell center for determining the cell
+        const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
+        const Cell cell = gridData.meta.convert_point_to_cell(point);
+        if (gridData.meta.is_on_map(cell)) {
+            raster[cell] = feature.field_as<double>(colEmission);
+        } else {
+            Log::warn("Point outside of flanders extent: {}", point);
+        }
+    }
+
+    return raster;
+}
+
 static std::string process_ceip_sector(std::string_view str)
 {
     if (str::starts_with(str, "N14 ")) {

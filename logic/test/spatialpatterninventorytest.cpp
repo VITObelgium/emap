@@ -12,6 +12,15 @@ using namespace inf;
 using namespace doctest;
 using namespace date;
 
+static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, const fs::path& exceptionsPath)
+{
+    RunConfiguration::Output outputConfig;
+    outputConfig.path            = "./out";
+    outputConfig.outputLevelName = "NFR";
+
+    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, ModelGrid::Vlops1km, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
+}
+
 TEST_CASE("Spatial pattern selection test")
 {
     const auto parametersPath  = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
@@ -28,8 +37,9 @@ TEST_CASE("Spatial pattern selection test")
     pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
 
     auto exceptionsPath = fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "exceptions_spatial_disaggregation.xlsx";
+    auto cfg            = create_config(sectorInventory, pollutantInventory, countryInventory, exceptionsPath);
 
-    SpatialPatternInventory inv(sectorInventory, pollutantInventory, countryInventory, exceptionsPath);
+    SpatialPatternInventory inv(cfg);
     inv.scan_dir(2021_y, 2016_y, fs::u8path(TEST_DATA_DIR) / "spatialinventory");
 
     {
@@ -170,6 +180,17 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
         CHECK(spSource.year == 2015_y);
+        CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
+    }
+
+    {
+        // Flanders excel data, 2015 does not containd valid data for the sector, so 2019 neefs to be used
+        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx));
+        CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NOx.xlsx");
+        CHECK(spSource.emissionId.pollutant == pollutants::NOx);
+        CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
+        CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
+        CHECK(spSource.year == 2019_y);
         CHECK(spSource.type == SpatialPatternSource::Type::SpatialPatternTable);
     }
 
