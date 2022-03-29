@@ -6,6 +6,7 @@
 #include "emissionvalidation.h"
 #include "spatialpatterninventory.h"
 
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -64,6 +65,7 @@ private:
     void write_summary_spreadsheet(const fs::path& path) const;
 
     const RunConfiguration* _cfg = nullptr;
+    std::mutex _mutex;
     std::vector<SpatialPatternSummaryInfo> _spatialPatterns;
     std::vector<SpatialPatternSummaryInfo> _spatialPatternsWithoutData;
     std::vector<fs::path> _pointSources;

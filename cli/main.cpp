@@ -86,7 +86,7 @@ int main(int argc, char** argv)
         inf::gdal::RegistrationConfig gdalCfg;
         gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path() / "data";
         inf::gdal::Registration reg(gdalCfg);
-        inf::gdal::set_log_handler();
+        inf::gdal::set_log_handler(inf::Log::Level::Debug);
 
         if (options.consoleLog || options.debugGrids) {
             inf::Log::add_console_sink(inf::Log::Colored::On);

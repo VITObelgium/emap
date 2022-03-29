@@ -32,6 +32,7 @@ void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, 
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
 
+    std::scoped_lock lock(_mutex);
     _spatialPatterns.push_back(info);
 }
 
@@ -42,6 +43,7 @@ void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSou
     info.totalEmissions = totalEmissions;
     info.pointEmissions = pointEmissions;
 
+    std::scoped_lock lock(_mutex);
     _spatialPatternsWithoutData.push_back(info);
 }
 

@@ -59,15 +59,17 @@ struct SpatialPatternSource
         return source;
     }
 
-    static SpatialPatternSource create_with_uniform_spread(const Country& country, const EmissionSector& sector, const Pollutant& pol)
+    static SpatialPatternSource create_with_uniform_spread(const Country& country, const EmissionSector& sector, const Pollutant& pol, bool dueToMissingData)
     {
         SpatialPatternSource source;
-        source.type       = Type::UnfiformSpread;
-        source.emissionId = EmissionIdentifier(country, sector, pol);
+        source.type                           = Type::UnfiformSpread;
+        source.emissionId                     = EmissionIdentifier(country, sector, pol);
+        source.patternAvailableButWithoutData = dueToMissingData;
         return source;
     }
 
-    Type type = Type::SpatialPatternCAMS;
+    Type type                           = Type::SpatialPatternCAMS;
+    bool patternAvailableButWithoutData = false;
     fs::path path;
     EmissionIdentifier emissionId;
     // These fields are only relevant when the type is SpatialPattern
@@ -128,6 +130,7 @@ private:
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
     std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
+    static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const EmissionIdentifier& id);
 
     const RunConfiguration& _cfg;
     std::regex _spatialPatternCamsRegex;

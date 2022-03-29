@@ -224,24 +224,49 @@ TEST_CASE("Input parsers")
         CHECK(iter->factor() == 1.5);
     }
 
+    auto rasterForNfrSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {
+        return find_in_container_required(spd, [&sector](const SpatialPatternData& d) {
+                   return d.id.sector.nfr_sector() == sector;
+               })
+            .raster;
+    };
+
+    auto rasterForGnfrSector = [](const std::vector<SpatialPatternData>& spd, const GnfrSector& sector) -> const gdx::DenseRaster<double>& {
+        return find_in_container_required(spd, [&sector](const SpatialPatternData& d) {
+                   return d.id.sector.gnfr_sector() == sector;
+               })
+            .raster;
+    };
+
     SUBCASE("Load spatial pattern")
     {
-        auto rasterForSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {
-            return find_in_container_required(spd, [&sector](const SpatialPatternData& d) {
-                       return d.id.sector.nfr_sector() == sector;
-                   })
-                .raster;
-        };
-
         const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM10.xlsx", cfg);
         CHECK(spatialPatterns.size() == 52);
 
         // Flanders
-        CHECK(gdx::sum(rasterForSector(spatialPatterns, sectors::nfr::Nfr1A1a)) == Approx(23.5972773909986).epsilon(1e-4));
+        CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A1a)) == Approx(23.5972773909986).epsilon(1e-4));
         // Flanders sector at end of file
-        CHECK(gdx::sum(rasterForSector(spatialPatterns, sectors::nfr::Nfr5E)) == Approx(432.989391850553).epsilon(1e-4));
+        CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr5E)) == Approx(432.989391850553).epsilon(1e-4));
         // Sea sector
-        CHECK(rasterForSector(spatialPatterns, sectors::nfr::Nfr1A3dii)(139, 79) == Approx(0.020608247775289));
+        CHECK(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A3dii)(139, 79) == Approx(0.020608247775289));
+    }
+
+    SUBCASE("Load spatial patterns with gnfr sector")
+    {
+        const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg);
+        CHECK(spatialPatterns.size() == 2);
+
+        // Flanders
+        CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A1a)) == Approx(7.47416E-05).epsilon(1e-4));
+        // Flanders sector at end of file
+        CHECK(gdx::sum(rasterForGnfrSector(spatialPatterns, sectors::gnfr::AgriLiveStock)) == Approx(18.0750674).epsilon(1e-4));
+    }
+
+    SUBCASE("Load spatial pattern with gnfr sector fallback")
+    {
+        // Nfr3B1a is not present in the file, but K_AgriLiveStock is
+        const auto spatialPattern = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", EmissionSector(sectors::nfr::Nfr3B1a), cfg);
+        CHECK(gdx::sum(spatialPattern) == Approx(18.0750674).epsilon(1e-4));
     }
 }
 }

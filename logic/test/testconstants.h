@@ -14,6 +14,7 @@ const GnfrSector Shipping("G_Shipping", GnfrId(607), "G", "Shipping", EmissionDe
 const GnfrSector Aviation("H_Aviation", GnfrId(608), "H", "Aviation", EmissionDestination::Land);
 const GnfrSector Offroad("I_Offroad", GnfrId(609), "I", "Offroad", EmissionDestination::Land);
 const GnfrSector Waste("J_Waste", GnfrId(610), "J", "Waste", EmissionDestination::Land);
+const GnfrSector AgriLiveStock("K_AgriLivestock", GnfrId(611), "K", "Agricultural live stock", EmissionDestination::Land);
 const GnfrSector AgriOther("L_AgriOther", GnfrId(612), "L", "Agricultural other", EmissionDestination::Land);
 
 }
@@ -46,6 +47,9 @@ const NfrSector Nfr1A4bi("1A4bi", NfrId(7030), gnfr::Offroad, "Residential: Stat
 const NfrSector Nfr1A5b("1A5b", NfrId(7036), gnfr::Offroad, "Other, Mobile (including military, land based and recreational boats)", EmissionDestination::Land);
 const NfrSector Nfr2C7d("2C7d", NfrId(7070), gnfr::Industry, "Storage, handling and transport of metal products", EmissionDestination::Land);
 const NfrSector Nfr2D3d("2D3d", NfrId(7074), gnfr::Solvents, "Coating applications", EmissionDestination::Land);
+
+const NfrSector Nfr3B1a("3B1a", NfrId(7088), gnfr::AgriLiveStock, "Manure management - Dairy cattle", EmissionDestination::Land);
+
 const NfrSector Nfr3Da1("3Da1", NfrId(7101), gnfr::AgriOther, "Inorganic N-fertilizers (includes also urea application)", EmissionDestination::Land);
 const NfrSector Nfr3Dc("3Dc", NfrId(7108), gnfr::AgriOther, "Farm-level agricultural operations including storage, handling and transport of agricultural products", EmissionDestination::Land);
 const NfrSector Nfr5C1bii("5C1bii", NfrId(7119), gnfr::Waste, "Hazardous waste incineration", EmissionDestination::Land);

@@ -183,17 +183,9 @@ static void add_point_sources_to_grid(std::span<const EmissionEntry> pointEmissi
     }
 }
 
-struct SpreadEmissionStatus
-{
-    // For these id's there was a spatial pattern, but it contained no infomation for this county, uniform spread was used
-    std::unordered_set<EmissionIdentifier> idsWithoutSpatialPatternData;
-};
-
-SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, const ModelProgress::Callback& progressCb)
+void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, RunSummary& summary, const ModelProgress::Callback& progressCb)
 {
     chrono::ScopedDurationLog d("Spread emissions");
-
-    SpreadEmissionStatus status;
 
     const auto gridDefinitions = grids_for_model_grid(cfg.model_grid());
 
@@ -231,7 +223,7 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
         Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
         progress.reset(cfg.included_pollutants().size() * cfg.sectors().nfr_sectors().size());
-        std::mutex mut, statusMut;
+        std::mutex mut;
 
         for (const auto& pollutant : cfg.included_pollutants()) {
             collector.start_pollutant(pollutant, gridData);
@@ -277,10 +269,14 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                         }
 
                         SpatialPatternStatus spatPatStatus;
-                        auto countryRaster = apply_spatial_pattern(spatialPatternInv.get_spatial_pattern(emissionId), emissionId, emissionToSpread, cellCoverageInfo, cfg, spatPatStatus);
-                        if (spatPatStatus == SpatialPatternStatus::FallbackToUniformSpread) {
-                            std::scoped_lock lock(statusMut);
-                            status.idsWithoutSpatialPatternData.insert(emissionId);
+                        const auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId);
+                        auto countryRaster        = apply_spatial_pattern(spatialPattern, emissionId, emissionToSpread, cellCoverageInfo, cfg, spatPatStatus);
+                        if (isCoursestGrid) {
+                            if (spatPatStatus == SpatialPatternStatus::FallbackToUniformSpread) {
+                                summary.add_spatial_pattern_source_without_data(spatialPattern, emission->scaled_total_emissions_sum(), emission->point_emission_sum());
+                            } else {
+                                summary.add_spatial_pattern_source(spatialPattern, emission->scaled_total_emissions_sum(), emission->point_emission_sum());
+                            }
                         }
 
                         if (countryRaster.empty()) {
@@ -365,23 +361,25 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
                     }
 
                     gdx::DenseRaster<double> raster;
+                    const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
                         const auto* spatPat = inf::find_in_container(spatialPatterns, [&](const SpatialPatternData& src) {
                             return src.id == emissionId;
                         });
 
                         if (spatPat != nullptr) {
-                            raster = apply_spatial_pattern_flanders(spatPat->raster, emission->scaled_diffuse_emissions_sum(), gridData.meta);
+                            raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);
                         }
                     } else if (spatialPattern.type == SpatialPatternSource::Type::RasterException) {
-                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission->id(), emission->scaled_diffuse_emissions_sum(), flandersCoverage);
+                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission->id(), diffuseEmissions, flandersCoverage);
                     }
 
                     if (raster.empty()) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-                        raster = apply_uniform_spread(emission->scaled_diffuse_emissions_sum(), flandersCoverage);
-                        std::scoped_lock lock(statusMut);
-                        status.idsWithoutSpatialPatternData.insert(emissionId);
+                        raster = apply_uniform_spread(diffuseEmissions, flandersCoverage);
+                        summary.add_spatial_pattern_source_without_data(spatialPattern, emission->scaled_total_emissions_sum(), emission->point_emission_sum());
+                    } else {
+                        summary.add_spatial_pattern_source(spatialPattern, emission->scaled_total_emissions_sum(), emission->point_emission_sum());
                     }
 
                     if (validator) {
@@ -401,8 +399,6 @@ SpreadEmissionStatus spread_emissions(const EmissionInventory& emissionInv, cons
 
         collector.final_flush_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
     }
-
-    return status;
 }
 
 static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
@@ -644,33 +640,12 @@ int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progre
 
         clean_output_directory(cfg.output_path());
 
-        auto validator          = make_validator(cfg);
-        const auto inventory    = make_emission_inventory(cfg, summary);
-        const auto spreadStatus = spread_emissions(inventory, spatPatInv, cfg, validator.get(), progressCb);
+        auto validator       = make_validator(cfg);
+        const auto inventory = make_emission_inventory(cfg, summary);
+        spread_emissions(inventory, spatPatInv, cfg, validator.get(), summary, progressCb);
 
-        chrono::ScopedDurationLog d("Write model run summary");
-        // Create the list of spatial patterns that will be used in the model
-        for (auto country : cfg.countries().list()) {
-            for (auto& nfr : cfg.sectors().nfr_sectors()) {
-                for (auto pol : cfg.included_pollutants()) {
-                    EmissionIdentifier id(country, EmissionSector(nfr), pol);
-                    const auto spatialPattern = spatPatInv.get_spatial_pattern(id);
-
-                    auto totalEmissions = 0.0;
-                    auto pointEmissions = 0.0;
-                    if (auto emissionEntry = inventory.try_emission_with_id(id); emissionEntry.has_value()) {
-                        totalEmissions = emissionEntry->scaled_total_emissions_sum();
-                        pointEmissions = emissionEntry->scaled_point_emissions_sum();
-                    }
-
-                    if (spreadStatus.idsWithoutSpatialPatternData.count(id) > 0) {
-                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, pointEmissions);
-                    } else {
-                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, pointEmissions);
-                    }
-                }
-            }
-
+        {
+            chrono::ScopedDurationLog d("Write model run summary");
             if (validator) {
                 summary.set_validation_results(validator->create_summary(inventory));
             }

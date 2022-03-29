@@ -494,6 +494,43 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
     return SingleEmissions(year, entries);
 }
 
+static std::optional<EmissionSector> emission_sector_from_feature(const gdal::Feature& feature, int colNfr, int colGnfr, const SectorInventory& sectorInv)
+{
+    try {
+        std::string nfrSectorName(str::trimmed_view(feature.field_as<std::string_view>(colNfr)));
+        if (!nfrSectorName.empty()) {
+            // Nfr sector
+            if (sectorInv.is_ignored_nfr_sector(nfrSectorName)) {
+                return {};
+            }
+
+            return EmissionSector(sectorInv.nfr_sector_from_string(nfrSectorName));
+        } else if (colGnfr >= 0) {
+            // Gnfr sector
+            std::string gnfrSectorName(str::trimmed_view(feature.field_as<std::string_view>(colGnfr)));
+            if (sectorInv.is_ignored_gnfr_sector(gnfrSectorName)) {
+                return {};
+            }
+
+            return EmissionSector(sectorInv.gnfr_sector_from_string(gnfrSectorName));
+        }
+    } catch (const std::exception& e) {
+        Log::warn(e.what());
+    }
+
+    return {};
+}
+
+static Cell cell_for_emission_feature(const gdal::Feature& feature, int colX, int colY, const GeoMetadata& meta)
+{
+    const double centerOffsetX = meta.cell_size_x() / 2.0;
+    const double centerOffsetY = (-meta.cell_size_y()) / 2.0;
+
+    // Coordinates are lower left cell corners: put the point in the cell center for determining the cell
+    const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
+    return meta.convert_point_to_cell(point);
+}
+
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg)
 {
     std::vector<SpatialPatternData> result;
@@ -511,16 +548,13 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     EmissionIdentifier id;
     id.country = country::BEF;
 
-    auto colYear      = layer.layer_definition().required_field_index("year");
-    auto colSector    = layer.layer_definition().required_field_index("nfr_sector");
-    auto colPollutant = layer.layer_definition().required_field_index("pollutant");
-    auto colX         = layer.layer_definition().required_field_index("x_lambert");
-    auto colY         = layer.layer_definition().required_field_index("y_lambert");
-    auto colEmission  = layer.layer_definition().required_field_index("emission");
-    // auto colUnit      = layer.layer_definition().required_field_index("unit");
-
-    const double centerOffsetX = gridData.meta.cell_size_x() / 2.0;
-    const double centerOffsetY = (-gridData.meta.cell_size_y()) / 2.0;
+    auto colYear       = layer.layer_definition().required_field_index("year");
+    auto colNfrSector  = layer.layer_definition().required_field_index("nfr_sector");
+    auto colGnfrSector = layer.layer_definition().field_index("gnfr_sector");
+    auto colPollutant  = layer.layer_definition().required_field_index("pollutant");
+    auto colX          = layer.layer_definition().required_field_index("x_lambert");
+    auto colY          = layer.layer_definition().required_field_index("y_lambert");
+    auto colEmission   = layer.layer_definition().required_field_index("emission");
 
     std::optional<EmissionSector> currentSector;
     gdx::DenseRaster<double> currentRaster(gridData.meta, gridData.meta.nodata.value());
@@ -530,48 +564,34 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
             continue; // skip empy lines
         }
 
-        auto sectorName = feature.field_as<std::string_view>(colSector);
-        if (sectorInv.is_ignored_nfr_sector(sectorName)) {
-            continue;
-        }
+        if (auto sector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, sectorInv); sector.has_value()) {
+            id.sector    = *sector;
+            id.pollutant = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
+            year         = date::year(feature.field_as<int>(colYear));
 
-        year         = date::year(feature.field_as<int>(colYear));
-        id.pollutant = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
+            if (currentSector != id.sector) {
+                if (currentSector.has_value()) {
+                    // Store the current raster and start a new one
 
-        try {
-            id.sector = EmissionSector(sectorInv.nfr_sector_from_string(sectorName));
-        } catch (const std::exception& e) {
-            std::string sector(feature.field_as<std::string_view>(colSector));
-            if (invalidSectors.count(sector) == 0) {
-                invalidSectors.emplace(feature.field_as<std::string_view>(colSector));
-                Log::warn(e.what());
-            }
-            continue;
-        }
+                    SpatialPatternData spData;
+                    spData.id     = EmissionIdentifier(id.country, *currentSector, id.pollutant);
+                    spData.year   = *year;
+                    spData.raster = std::move(currentRaster);
+                    result.push_back(std::move(spData));
 
-        if (currentSector != id.sector) {
-            if (currentSector.has_value()) {
-                // Store the current raster and start a new one
+                    // reset the raster
+                    currentRaster = gdx::DenseRaster<double>(gridData.meta, gridData.meta.nodata.value());
+                }
 
-                SpatialPatternData spData;
-                spData.id     = EmissionIdentifier(id.country, *currentSector, id.pollutant);
-                spData.year   = *year;
-                spData.raster = std::move(currentRaster);
-                result.push_back(std::move(spData));
-
-                // reset the raster
-                currentRaster = gdx::DenseRaster<double>(gridData.meta, gridData.meta.nodata.value());
+                currentSector = id.sector;
             }
 
-            currentSector = id.sector;
-        }
-
-        const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
-        const Cell cell = gridData.meta.convert_point_to_cell(point);
-        if (gridData.meta.is_on_map(cell)) {
-            currentRaster[cell] = feature.field_as<double>(colEmission);
-        } else {
-            Log::warn("Point outside of flanders extent: {}", point);
+            const auto cell = cell_for_emission_feature(feature, colX, colY, gridData.meta);
+            if (gridData.meta.is_on_map(cell)) {
+                currentRaster[cell] = feature.field_as<double>(colEmission);
+            } else {
+                Log::warn("Point outside of flanders extent: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
+            }
         }
     }
 
@@ -596,51 +616,43 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
 
     const auto gridData = grid_data(GridDefinition::Flanders1km);
 
-    auto colSector   = layer.layer_definition().required_field_index("nfr_sector");
-    auto colX        = layer.layer_definition().required_field_index("x_lambert");
-    auto colY        = layer.layer_definition().required_field_index("y_lambert");
-    auto colEmission = layer.layer_definition().required_field_index("emission");
-    // auto colUnit     = layer.layer_definition().required_field_index("unit");
+    auto colNfrSector  = layer.layer_definition().required_field_index("nfr_sector");
+    auto colGnfrSector = layer.layer_definition().field_index("gnfr_sector");
+    auto colX          = layer.layer_definition().required_field_index("x_lambert");
+    auto colY          = layer.layer_definition().required_field_index("y_lambert");
+    auto colEmission   = layer.layer_definition().required_field_index("emission");
 
     const double centerOffsetX = gridData.meta.cell_size_x() / 2.0;
     const double centerOffsetY = (-gridData.meta.cell_size_y()) / 2.0;
 
-    gdx::DenseRaster<double> raster(gridData.meta, gridData.meta.nodata.value());
-    std::unordered_set<std::string> invalidSectors;
+    gdx::DenseRaster<double> nfrRaster(gridData.meta, gridData.meta.nodata.value());
+    gdx::DenseRaster<double> gnfrRaster(gridData.meta, gridData.meta.nodata.value());
+
+    bool nfrAvailable = false;
     for (const auto& feature : layer) {
-        EmissionSector currentSector;
-        auto sectorName = str::trimmed_view(feature.field_as<std::string_view>(colSector));
-
-        if (sectorName.empty() || sectorInv.is_ignored_nfr_sector(sectorName)) {
-            continue;
-        }
-
-        try {
-            currentSector = EmissionSector(sectorInv.nfr_sector_from_string(sectorName));
-        } catch (const std::exception& e) {
-            std::string sector(sectorName);
-            if (invalidSectors.count(sector) == 0) {
-                invalidSectors.emplace(sectorName);
-                Log::warn(e.what());
+        if (auto currentSector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, sectorInv); currentSector.has_value()) {
+            gdx::DenseRaster<double>* rasterPtr = nullptr;
+            if (*currentSector == sector) {
+                rasterPtr = &nfrRaster;
+            } else if (currentSector->type() == EmissionSector::Type::Gnfr && currentSector->gnfr_sector() == sector.gnfr_sector()) {
+                rasterPtr = &gnfrRaster;
             }
-            continue;
-        }
 
-        if (currentSector != sector) {
-            continue;
-        }
-
-        // Coordinates are lower left cell corners: put the point in the cell center for determining the cell
-        const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
-        const Cell cell = gridData.meta.convert_point_to_cell(point);
-        if (gridData.meta.is_on_map(cell)) {
-            raster[cell] = feature.field_as<double>(colEmission);
-        } else {
-            Log::warn("Point outside of flanders extent: {}", point);
+            if (rasterPtr) {
+                const auto cell = cell_for_emission_feature(feature, colX, colY, gridData.meta);
+                if (gridData.meta.is_on_map(cell)) {
+                    (*rasterPtr)[cell] = feature.field_as<double>(colEmission);
+                    if (rasterPtr == &nfrRaster) {
+                        nfrAvailable = true;
+                    }
+                } else {
+                    Log::warn("Point outside of flanders extent: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
+                }
+            }
         }
     }
 
-    return raster;
+    return nfrAvailable ? std::move(nfrRaster) : std::move(gnfrRaster);
 }
 
 static std::string process_ceip_sector(std::string_view str)
