@@ -1,0 +1,21 @@
+diff -Naur a/ogr/ogrsf_frmts/xlsx/ogrxlsxdatasource.cpp b/ogr/ogrsf_frmts/xlsx/ogrxlsxdatasource.cpp
+--- a/ogr/ogrsf_frmts/xlsx/ogrxlsxdatasource.cpp	2022-03-08 11:11:20.000000000 +0100
++++ b/ogr/ogrsf_frmts/xlsx/ogrxlsxdatasource.cpp	2022-03-29 20:33:20.026420100 +0200
+@@ -918,17 +918,6 @@
+             if (apoCurLineValues.size() >
+                 (size_t)poCurLayer->GetLayerDefn()->GetFieldCount())
+             {
+-                GIntBig nFeatureCount = poCurLayer->GetFeatureCount(false);
+-                if( nFeatureCount > 0 &&
+-                    static_cast<size_t>(apoCurLineValues.size() -
+-                        poCurLayer->GetLayerDefn()->GetFieldCount()) >
+-                            static_cast<size_t>(100000 / nFeatureCount) )
+-                {
+-                    CPLError(CE_Failure, CPLE_NotSupported,
+-                             "Adding too many columns to too many "
+-                             "existing features");
+-                    return;
+-                }
+                 for( size_t i = (size_t)poCurLayer->GetLayerDefn()->GetFieldCount();
+                      i < apoCurLineValues.size();
+                      i++ )

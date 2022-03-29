@@ -25,7 +25,6 @@
         "indicators",
         "onedpl",
         "spdlog",
-        "tabulate",
         "tbb",
         "tomlplusplus",
         "type-safe",
