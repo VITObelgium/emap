@@ -401,7 +401,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     }
 }
 
-static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
+static SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
 {
     SingleEmissions result(cfg.year());
 
@@ -409,7 +409,7 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
         for (const auto& pollutant : cfg.included_pollutants()) {
             const auto path = cfg.point_source_emissions_path(country, pollutant);
             if (fs::is_regular_file(path)) {
-                merge_emissions(result, parse_point_sources(path, cfg));
+                merge_unique_emissions(result, parse_point_sources(path, cfg));
                 runSummary.add_point_source(path);
             }
         }
@@ -451,7 +451,7 @@ static SingleEmissions read_point_sources(const RunConfiguration& cfg, const Cou
 
                     if (*pm10Val >= pm2_5Val) {
                         auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
-                        result.update_or_add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
+                        result.add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
                     } else {
                         throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
                     }
@@ -588,11 +588,11 @@ static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, Ru
     // Read scaling factors
     const auto scalingsDiffuse      = read_scaling_factors(cfg.diffuse_scalings_path(), cfg);
     const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
-    const auto pointSourcesFlanders = read_point_sources(cfg, country::BEF, summary);
+    const auto pointSourcesFlanders = read_country_point_sources(cfg, country::BEF, summary);
     auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
     assert(nfrTotalEmissions.validate_uniqueness());
 
-    // Optional additional emissions that supllement or override existing emissions
+    // Optional additional emissions that suplement or override existing emissions
     std::optional<SingleEmissions> extraEmissions;
     const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
     if (fs::exists(extraNfrPath)) {

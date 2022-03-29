@@ -186,7 +186,7 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                     // Minor difference caused by rounding, make them the same
                     pointEmissionSum = diffuseEmission;
                 } else {
-                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {}", pointEmissionSum, em.country(), diffuseEmission, em.sector());
+                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the diffuse emissions ({}) for sector {} and pollutant {}", pointEmissionSum, em.country(), diffuseEmission, em.sector(), em.pollutant());
                 }
             }
         } else {

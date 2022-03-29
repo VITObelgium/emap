@@ -622,9 +622,6 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
     auto colY          = layer.layer_definition().required_field_index("y_lambert");
     auto colEmission   = layer.layer_definition().required_field_index("emission");
 
-    const double centerOffsetX = gridData.meta.cell_size_x() / 2.0;
-    const double centerOffsetY = (-gridData.meta.cell_size_y()) / 2.0;
-
     gdx::DenseRaster<double> nfrRaster(gridData.meta, gridData.meta.nodata.value());
     gdx::DenseRaster<double> gnfrRaster(gridData.meta, gridData.meta.nodata.value());
 
