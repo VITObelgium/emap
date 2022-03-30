@@ -95,7 +95,7 @@ SpatialPatternTableCache::SpatialPatternTableCache(const RunConfiguration& cfg) 
 
 const SpatialPatternData* SpatialPatternTableCache::get_data(const fs::path& path, const EmissionIdentifier& id)
 {
-    std::scoped_lock lock;
+    std::scoped_lock lock(_mutex);
     if (_patterns.count(path) == 0) {
         auto patterns = std::make_unique<std::vector<SpatialPatternData>>(parse_spatial_pattern_flanders(path, _cfg));
         _patterns.emplace(path, std::move(patterns));

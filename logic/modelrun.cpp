@@ -354,7 +354,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     gdx::DenseRaster<double> raster;
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                        assert(usedPollutant.has_value());
+                        assert(spatialPattern.usedPollutant.has_value());
                         const auto* spatPat = cache.get_data(spatialPattern.path, emissionId.with_pollutant(spatialPattern.usedPollutant.value()));
                         if (spatPat != nullptr) {
                             raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);

@@ -9,7 +9,7 @@ ModelPaths::ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot)
 {
 }
 
-fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, date::year year, date::year reportYear) const
+fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, date::year reportYear) const
 {
     return emissions_dir_path(reportYear) / "pointsources" / country.iso_code();
 }
