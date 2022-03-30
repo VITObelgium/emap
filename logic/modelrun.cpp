@@ -336,7 +336,9 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
             if (gridIter + 1 == gridDefinitions.end()) {
                 // Now do flanders (for finest grid)
 
-                std::vector<SpatialPatternData> spatialPatterns;
+                SpatialPatternTableCache cache(cfg);
+
+                std::map<fs::path, std::vector<SpatialPatternData>> spatialPatterns;
                 const auto& flandersCoverage = find_in_container_required(countryCoverages, [](const CountryCellCoverage& cov) {
                     return cov.country == country::BEF;
                 });
@@ -345,17 +347,8 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
                     EmissionIdentifier emissionId(country::BEF, EmissionSector(sector), pollutant);
 
-                    auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId);
-                    {
-                        std::scoped_lock lock(mut);
-                        if (spatialPatterns.empty()) {
-                            if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                                spatialPatterns = parse_spatial_pattern_flanders(spatialPattern.path, cfg);
-                            }
-                        }
-                    }
-
-                    auto emission = emissionInv.try_emission_with_id(emissionId);
+                    auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, &cache);
+                    auto emission       = emissionInv.try_emission_with_id(emissionId);
                     if (!emission.has_value()) {
                         return;
                     }
@@ -363,10 +356,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     gdx::DenseRaster<double> raster;
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                        const auto* spatPat = inf::find_in_container(spatialPatterns, [&](const SpatialPatternData& src) {
-                            return src.id == emissionId;
-                        });
-
+                        const auto* spatPat = cache.get_data(spatialPattern.path, emissionId);
                         if (spatPat != nullptr) {
                             raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);
                         }
@@ -401,77 +391,88 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
     }
 }
 
-static SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
+static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir, const Pollutant& pol, const RunConfiguration& cfg, RunSummary& runSummary)
 {
+    auto match = fmt::format("emap_{}_{}_", pol.code(), static_cast<int>(cfg.year()));
+
     SingleEmissions result(cfg.year());
 
-    if (country == country::BEF) {
-        for (const auto& pollutant : cfg.included_pollutants()) {
-            const auto path = cfg.point_source_emissions_path(country, pollutant);
-            if (fs::is_regular_file(path)) {
+    for (auto iter : fs::directory_iterator(dir)) {
+        if (iter.is_regular_file() && iter.path().extension() == ".csv") {
+            const auto& path = iter.path();
+            if (str::starts_with(path.filename().u8string(), match)) {
                 merge_unique_emissions(result, parse_point_sources(path, cfg));
                 runSummary.add_point_source(path);
             }
         }
     }
 
-    try {
-        const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
-        const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
-        const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
+    return result;
+}
 
-        if (pm10.has_value() &&
-            pm2_5.has_value() &&
-            pmCoarse.has_value() &&
-            fs::is_regular_file(cfg.point_source_emissions_path(country, *pm10)) &&
-            fs::is_regular_file(cfg.point_source_emissions_path(country, *pm2_5)) &&
-            !fs::is_regular_file(cfg.point_source_emissions_path(country, *pmCoarse))) {
-            // No PMcoarse data provided, create it from pm10 and pm2.5 data
-            const auto pm10Path  = cfg.point_source_emissions_path(country, *pm10);
-            const auto pm2_5Path = cfg.point_source_emissions_path(country, *pm2_5);
+static SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
+{
+    SingleEmissions result(cfg.year());
 
-            auto pm10Emissions  = parse_point_sources(pm10Path, cfg);
-            auto pm2_5Emissions = parse_point_sources(pm2_5Path, cfg);
+    if (country == country::BEF) {
+        auto pointEmissionsDir = cfg.point_source_emissions_dir_path(country);
 
-            std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
-                return lhs.source_id() < rhs.source_id();
-            });
+        for (const auto& pollutant : cfg.included_pollutants()) {
+            if (pollutant.code() != constants::pollutant::PMCoarse) {
+                merge_unique_emissions(result, read_country_pollutant_point_sources(pointEmissionsDir, pollutant, cfg, runSummary));
+            }
+        }
 
-            for (auto& pm10Entry : pm10Emissions) {
-                auto pm10Val = pm10Entry.value().amount();
-                if (pm10Val.has_value()) {
-                    auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
-                        return entry.source_id() < srcId;
-                    });
+        try {
+            const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
+            const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
+            const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
 
-                    double pm2_5Val = 0.0;
-                    if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
-                        pm2_5Val = iter->value().amount().value_or(0.0);
-                    }
+            if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
+                // Calculate PMcoarse data from pm10 and pm2.5 data
+                auto pm10Emissions  = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
+                auto pm2_5Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
 
-                    if (*pm10Val >= pm2_5Val) {
-                        auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
-                        result.add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
-                    } else {
-                        throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
+                std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
+                    return lhs.source_id() < rhs.source_id();
+                });
+
+                for (auto& pm10Entry : pm10Emissions) {
+                    auto pm10Val = pm10Entry.value().amount();
+                    if (pm10Val.has_value()) {
+                        auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
+                            return entry.source_id() < srcId;
+                        });
+
+                        double pm2_5Val = 0.0;
+                        if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
+                            pm2_5Val = iter->value().amount().value_or(0.0);
+                        }
+
+                        if (*pm10Val >= pm2_5Val) {
+                            auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
+                            result.add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
+                        } else {
+                            throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
+                        }
                     }
                 }
             }
+        } catch (const std::exception& e) {
+            Log::debug("Failed to create PMcoarse point sources: {}", e.what());
         }
-    } catch (const std::exception& e) {
-        Log::debug("Failed to create PMcoarse point sources: {}", e.what());
-    }
 
-    const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
-    const auto outputGridMeta = grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
+        const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
+        const auto outputGridMeta = grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
 
-    if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
-        gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);
+        if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
+            gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);
 
-        for (auto& pointSource : result) {
-            auto coord = pointSource.coordinate().value();
-            transformer.transform_in_place(coord);
-            pointSource.set_coordinate(coord);
+            for (auto& pointSource : result) {
+                auto coord = pointSource.coordinate().value();
+                transformer.transform_in_place(coord);
+                pointSource.set_coordinate(coord);
+            }
         }
     }
 

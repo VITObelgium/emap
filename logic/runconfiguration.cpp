@@ -50,9 +50,9 @@ RunConfiguration::RunConfiguration(
 {
 }
 
-fs::path RunConfiguration::point_source_emissions_path(const Country& country, const Pollutant& pol) const
+fs::path RunConfiguration::point_source_emissions_dir_path(const Country& country) const
 {
-    return _paths.point_source_emissions_path(country, pol, _year, _reportYear);
+    return _paths.point_source_emissions_dir_path(country, _year, _reportYear);
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr(date::year year) const

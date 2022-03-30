@@ -22,6 +22,7 @@ add_library(emaplogic
     include/emap/modelpaths.h modelpaths.cpp
     include/emap/pollutant.h pollutant.cpp
     include/emap/scalingfactors.h scalingfactors.cpp
+    include/emap/spatialpatterndata.h
     include/emap/sector.h sector.cpp
     include/emap/sectorinventory.h sectorinventory.cpp
     include/emap/runconfiguration.h runconfiguration.cpp

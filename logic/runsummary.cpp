@@ -49,12 +49,12 @@ void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSou
 
 void RunSummary::add_point_source(const fs::path& pointSource)
 {
-    _pointSources.push_back(pointSource);
+    _pointSources.insert(pointSource);
 }
 
 void RunSummary::add_totals_source(const fs::path& totalsSource)
 {
-    _totalsSources.push_back(totalsSource);
+    _totalsSources.insert(totalsSource);
 }
 
 void RunSummary::add_gnfr_correction(const EmissionIdentifier& id, std::optional<double> validatedGnfrTotal, double summedGnfrTotal, double correction)

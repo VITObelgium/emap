@@ -9,9 +9,9 @@ ModelPaths::ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot)
 {
 }
 
-fs::path ModelPaths::point_source_emissions_path(const Country& country, const Pollutant& pol, date::year year, date::year reportYear) const
+fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, date::year year, date::year reportYear) const
 {
-    return emissions_dir_path(reportYear) / "pointsources" / country.iso_code() / fmt::format("emap_{}_{}_{}_aangevuld.csv", pol.code(), static_cast<int>(year), static_cast<int>(reportYear));
+    return emissions_dir_path(reportYear) / "pointsources" / country.iso_code();
 }
 
 fs::path ModelPaths::total_emissions_path_nfr(date::year year, date::year reportYear) const

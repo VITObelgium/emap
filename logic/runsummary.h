@@ -7,6 +7,7 @@
 #include "spatialpatterninventory.h"
 
 #include <mutex>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -68,8 +69,8 @@ private:
     std::mutex _mutex;
     std::vector<SpatialPatternSummaryInfo> _spatialPatterns;
     std::vector<SpatialPatternSummaryInfo> _spatialPatternsWithoutData;
-    std::vector<fs::path> _pointSources;
-    std::vector<fs::path> _totalsSources;
+    std::set<fs::path> _pointSources;
+    std::set<fs::path> _totalsSources;
     std::vector<GnfrCorrection> _gnfrCorrections;
     std::vector<ValidatedGnfrCorrection> _validatedGnfrCorrections;
     std::vector<EmissionValidation::SummaryEntry> _validationResults;

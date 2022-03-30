@@ -58,7 +58,7 @@ public:
         CountryInventory countries,
         Output outputConfig);
 
-    fs::path point_source_emissions_path(const Country& country, const Pollutant& pol) const;
+    fs::path point_source_emissions_dir_path(const Country& country) const;
     fs::path total_emissions_path_nfr(date::year year) const;
     fs::path total_extra_emissions_path_nfr() const;
     fs::path total_emissions_path_gnfr(date::year reportYear) const;

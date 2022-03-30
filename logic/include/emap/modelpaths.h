@@ -15,7 +15,7 @@ class ModelPaths
 public:
     ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot);
 
-    fs::path point_source_emissions_path(const Country& country, const Pollutant& pol, date::year year, date::year reportYear) const;
+    fs::path point_source_emissions_dir_path(const Country& country, date::year year, date::year reportYear) const;
     fs::path total_emissions_path_nfr(date::year year, date::year reportYear) const;
     fs::path total_extra_emissions_path_nfr(date::year reportYear) const;
     fs::path total_emissions_path_gnfr(date::year reportYear) const;

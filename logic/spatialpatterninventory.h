@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emap/emissions.h"
+#include "emap/spatialpatterndata.h"
 #include "infra/filesystem.h"
 #include "infra/range.h"
 
@@ -77,13 +78,28 @@ struct SpatialPatternSource
     EmissionSector::Type sectorLevel = EmissionSector::Type::Nfr;
 };
 
+class SpatialPatternTableCache
+{
+public:
+    SpatialPatternTableCache(const RunConfiguration& cfg) noexcept;
+
+    const SpatialPatternData* get_data(const fs::path& path, const EmissionIdentifier& id);
+
+private:
+    const SpatialPatternData* find_data_for_id(const std::vector<SpatialPatternData>& list, const EmissionIdentifier& emissionId) const noexcept;
+
+    std::mutex _mutex;
+    const RunConfiguration& _cfg;
+    std::map<fs::path, std::unique_ptr<std::vector<SpatialPatternData>>> _patterns;
+};
+
 class SpatialPatternInventory
 {
 public:
     SpatialPatternInventory(const RunConfiguration& cfg);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
-    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId) const;
+    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId, SpatialPatternTableCache* cache = nullptr) const;
 
 private:
     struct SpatialPatternFile

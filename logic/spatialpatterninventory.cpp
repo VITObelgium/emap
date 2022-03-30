@@ -88,6 +88,29 @@ static Range<date::year> parse_year_range(std::string_view yearRange)
     throw RuntimeError("Invalid year range specification: {}", yearRange);
 }
 
+SpatialPatternTableCache::SpatialPatternTableCache(const RunConfiguration& cfg) noexcept
+: _cfg(cfg)
+{
+}
+
+const SpatialPatternData* SpatialPatternTableCache::get_data(const fs::path& path, const EmissionIdentifier& id)
+{
+    std::scoped_lock lock;
+    if (_patterns.count(path) == 0) {
+        auto patterns = std::make_unique<std::vector<SpatialPatternData>>(parse_spatial_pattern_flanders(path, _cfg));
+        _patterns.emplace(path, std::move(patterns));
+    }
+
+    return find_data_for_id(*_patterns.at(path), id);
+}
+
+const SpatialPatternData* SpatialPatternTableCache::find_data_for_id(const std::vector<SpatialPatternData>& list, const EmissionIdentifier& emissionId) const noexcept
+{
+    return inf::find_in_container(list, [&](const SpatialPatternData& src) {
+        return src.id == emissionId;
+    });
+}
+
 SpatialPatternInventory::SpatialPatternInventory(const RunConfiguration& cfg)
 : _cfg(cfg)
 , _spatialPatternCamsRegex("CAMS_emissions_REG-APv\\d+.\\d+_(\\d{4})_(\\w+)_([A-Z]{1}_[^_]+|[1-6]{1}[^_]+)")
@@ -378,7 +401,7 @@ SpatialPatternSource SpatialPatternInventory::source_from_exception(const Spatia
     return result;
 }
 
-SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const EmissionIdentifier& emissionId) const
+SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const EmissionIdentifier& emissionId, SpatialPatternTableCache* cache) const
 
 {
     if (auto exception = find_exception(emissionId); exception.has_value()) {
@@ -394,10 +417,13 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
             });
 
             if (iter != patterns.end()) {
-                if (table_spatial_pattern_contains_data_for_sector(emissionId.sector, iter->path, _cfg)) {
-                    return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
-                } else {
-                    patternAvailableButNodata = true;
+                const auto* spatialPatternData = cache->get_data(iter->path, emissionId);
+                if (spatialPatternData != nullptr) {
+                    if (gdx::sum(spatialPatternData->raster) > 0.0) {
+                        return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
+                    } else {
+                        patternAvailableButNodata = true;
+                    }
                 }
             }
 
@@ -416,10 +442,13 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
                 });
 
                 if (iter != patterns.end()) {
-                    if (table_spatial_pattern_contains_data_for_sector(emissionId.sector, iter->path, _cfg)) {
-                        return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
-                    } else {
-                        patternAvailableButNodata = true;
+                    const auto* spatialPatternData = cache->get_data(iter->path, emissionId.with_pollutant(*fallbackPollutant));
+                    if (spatialPatternData != nullptr) {
+                        if (gdx::sum(spatialPatternData->raster) > 0.0) {
+                            return SpatialPatternSource::create_from_table(iter->path, emissionId.country, emissionId.sector, emissionId.pollutant, year, EmissionSector::Type::Nfr);
+                        } else {
+                            patternAvailableButNodata = true;
+                        }
                     }
                 }
             }

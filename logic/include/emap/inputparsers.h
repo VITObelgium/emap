@@ -2,6 +2,7 @@
 
 #include "emap/emissioninventory.h"
 #include "emap/emissions.h"
+#include "emap/spatialpatterndata.h"
 #include "gdx/denseraster.h"
 #include "infra/filesystem.h"
 
@@ -19,13 +20,6 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg);
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg);
 ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const RunConfiguration& cfg);
-
-struct SpatialPatternData
-{
-    date::year year;
-    EmissionIdentifier id;
-    gdx::DenseRaster<double> raster;
-};
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg);
 gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg);
