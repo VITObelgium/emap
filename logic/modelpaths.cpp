@@ -81,7 +81,7 @@ fs::path ModelPaths::boundaries_vector_path() const noexcept
 
 fs::path ModelPaths::eez_boundaries_vector_path() const noexcept
 {
-    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_eez.gpkg";
+    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_incl_EEZ.gpkg";
 }
 
 fs::path ModelPaths::output_dir_for_rasters() const
