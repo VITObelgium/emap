@@ -27,36 +27,50 @@ struct SpatialPatternSource
         UnfiformSpread,      // No data available, use a uniform spread
     };
 
-    static SpatialPatternSource create_from_cams(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_cams(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, const Pollutant& usedPollutant, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
-        source.type        = Type::SpatialPatternCAMS;
-        source.path        = path;
-        source.emissionId  = EmissionIdentifier(country, sector, pol);
-        source.year        = year;
-        source.sectorLevel = secLevel;
+        source.type          = Type::SpatialPatternCAMS;
+        source.path          = path;
+        source.emissionId    = EmissionIdentifier(country, sector, pol);
+        source.usedPollutant = usedPollutant;
+        source.year          = year;
+        source.sectorLevel   = secLevel;
         return source;
     }
 
-    static SpatialPatternSource create_from_ceip(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_ceip(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, const Pollutant& usedPollutant, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
-        source.type        = Type::SpatialPatternCEIP;
-        source.path        = path;
-        source.emissionId  = EmissionIdentifier(country, sector, pol);
-        source.year        = year;
-        source.sectorLevel = secLevel;
+        source.type          = Type::SpatialPatternCEIP;
+        source.path          = path;
+        source.emissionId    = EmissionIdentifier(country, sector, pol);
+        source.usedPollutant = usedPollutant;
+        source.year          = year;
+        source.sectorLevel   = secLevel;
         return source;
     }
 
-    static SpatialPatternSource create_from_table(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, date::year year, EmissionSector::Type secLevel)
+    static SpatialPatternSource create_from_table(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, const Pollutant& usedPollutant, date::year year, EmissionSector::Type secLevel)
     {
         SpatialPatternSource source;
-        source.type        = Type::SpatialPatternTable;
-        source.path        = path;
-        source.emissionId  = EmissionIdentifier(country, sector, pol);
-        source.year        = year;
-        source.sectorLevel = secLevel;
+        source.type          = Type::SpatialPatternTable;
+        source.path          = path;
+        source.emissionId    = EmissionIdentifier(country, sector, pol);
+        source.usedPollutant = usedPollutant;
+        source.year          = year;
+        source.sectorLevel   = secLevel;
+        return source;
+    }
+
+    static SpatialPatternSource create_from_exception(const fs::path& path, const Country& country, const EmissionSector& sector, const Pollutant& pol, const Pollutant& usedPollutant, EmissionSector::Type secLevel)
+    {
+        SpatialPatternSource source;
+        source.type          = Type::RasterException;
+        source.path          = path;
+        source.emissionId    = EmissionIdentifier(country, sector, pol);
+        source.usedPollutant = usedPollutant;
+        source.sectorLevel   = secLevel;
         return source;
     }
 
@@ -73,6 +87,7 @@ struct SpatialPatternSource
     bool patternAvailableButWithoutData = false;
     fs::path path;
     EmissionIdentifier emissionId;
+    std::optional<Pollutant> usedPollutant; // can be different from emissionid pollutant if a fallback pollutant was used
     // These fields are only relevant when the type is SpatialPattern
     date::year year;
     EmissionSector::Type sectorLevel = EmissionSector::Type::Nfr;
@@ -146,7 +161,7 @@ private:
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
     std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
-    static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const EmissionIdentifier& id);
+    static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport);
 
     const RunConfiguration& _cfg;
     std::regex _spatialPatternCamsRegex;

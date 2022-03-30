@@ -335,15 +335,13 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
             if (gridIter + 1 == gridDefinitions.end()) {
                 // Now do flanders (for finest grid)
-
-                SpatialPatternTableCache cache(cfg);
-
-                std::map<fs::path, std::vector<SpatialPatternData>> spatialPatterns;
                 const auto& flandersCoverage = find_in_container_required(countryCoverages, [](const CountryCellCoverage& cov) {
                     return cov.country == country::BEF;
                 });
 
+                SpatialPatternTableCache cache(cfg);
                 const auto sectors = cfg.sectors().nfr_sectors();
+                // std::for_each(sectors.begin(), sectors.end(), [&](const NfrSector& sector) {
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
                     EmissionIdentifier emissionId(country::BEF, EmissionSector(sector), pollutant);
 
@@ -356,12 +354,15 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                     gdx::DenseRaster<double> raster;
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                        const auto* spatPat = cache.get_data(spatialPattern.path, emissionId);
+                        assert(usedPollutant.has_value());
+                        const auto* spatPat = cache.get_data(spatialPattern.path, emissionId.with_pollutant(spatialPattern.usedPollutant.value()));
                         if (spatPat != nullptr) {
                             raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);
                         }
                     } else if (spatialPattern.type == SpatialPatternSource::Type::RasterException) {
                         raster = apply_spatial_pattern_raster(spatialPattern.path, emission->id(), diffuseEmissions, flandersCoverage);
+                    } else if (spatialPattern.type == SpatialPatternSource::Type::UnfiformSpread) {
+                        raster = apply_uniform_spread(diffuseEmissions, flandersCoverage);
                     }
 
                     if (raster.empty()) {
