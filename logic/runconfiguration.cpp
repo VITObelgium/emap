@@ -132,7 +132,7 @@ std::string RunConfiguration::boundaries_field_id() const noexcept
 
 std::string RunConfiguration::eez_boundaries_field_id() const noexcept
 {
-    return "ISO_TER1";
+    return "ISO_SOV1";
 }
 
 ModelGrid RunConfiguration::model_grid() const noexcept

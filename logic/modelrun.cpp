@@ -191,6 +191,7 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
     CPLSetConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "TRUE");
     CountryBorders countryBorders(cfg.boundaries_vector_path(), cfg.boundaries_field_id(), grid_data(gridDefinitions.front()).meta, cfg.countries());
+    CountryBorders eezCountryBorders(cfg.eez_boundaries_vector_path(), cfg.eez_boundaries_field_id(), grid_data(gridDefinitions.front()).meta, cfg.countries());
 
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
@@ -220,6 +221,13 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
             return ProgressStatusResult::Continue;
         });
 
+        const auto eezCountryCoverages = eezCountryBorders.create_country_coverages(gridData.meta, [&](const GridProcessingProgress::ProgressTracker::Status& status) {
+            progressInfo.info = fmt::format("Calculate eez region cells: {}", status.payload().full_name());
+            progress.set_payload(progressInfo);
+            progress.tick();
+            return ProgressStatusResult::Continue;
+        });
+
         Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
         progress.reset(cfg.included_pollutants().size() * cfg.sectors().nfr_sectors().size());
@@ -234,8 +242,10 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                 progress.set_payload(info);
                 progress.tick();
 
-                // std::for_each(countryCoverages.begin(), countryCoverages.end(), [&](const CountryCellCoverage& cellCoverageInfo) {
-                tbb::parallel_for_each(countryCoverages, [&](const CountryCellCoverage& cellCoverageInfo) {
+                const auto& sectorCoverages = sector.destination() == EmissionDestination::Eez ? eezCountryCoverages : countryCoverages;
+
+                // std::for_each(sectorCoverages.begin(), sectorCoverages.end(), [&](const CountryCellCoverage& cellCoverageInfo) {
+                tbb::parallel_for_each(sectorCoverages, [&](const CountryCellCoverage& cellCoverageInfo) {
                     if (cellCoverageInfo.country == country::BEF) {
                         return;
                     }
@@ -335,15 +345,16 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
             if (gridIter + 1 == gridDefinitions.end()) {
                 // Now do flanders (for finest grid)
-                const auto& flandersCoverage = find_in_container_required(countryCoverages, [](const CountryCellCoverage& cov) {
-                    return cov.country == country::BEF;
-                });
-
                 SpatialPatternTableCache cache(cfg);
                 const auto sectors = cfg.sectors().nfr_sectors();
                 // std::for_each(sectors.begin(), sectors.end(), [&](const NfrSector& sector) {
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
                     EmissionIdentifier emissionId(country::BEF, EmissionSector(sector), pollutant);
+
+                    const auto& sectorCoverages  = sector.destination() == EmissionDestination::Eez ? eezCountryCoverages : countryCoverages;
+                    const auto& flandersCoverage = find_in_container_required(sectorCoverages, [](const CountryCellCoverage& cov) {
+                        return cov.country == country::BEF;
+                    });
 
                     auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, &cache);
                     auto emission       = emissionInv.try_emission_with_id(emissionId);
