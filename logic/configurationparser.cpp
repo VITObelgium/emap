@@ -263,6 +263,10 @@ std::unordered_map<NfrId, std::string> parse_sector_mapping(const fs::path& mapp
         const auto colMapped = layer.layer_definition().required_field_index(outputLevel);
 
         for (const auto& feature : layer) {
+            if (!feature.field_is_valid(colNfr)) {
+                continue; // skip empty lines
+            }
+
             auto nfrSector = inv.try_nfr_sector_from_string(feature.field_as<std::string_view>(colNfr));
             if (nfrSector.has_value()) {
                 result.emplace(nfrSector->id(), feature.field_as<std::string_view>(colMapped));

@@ -16,6 +16,7 @@
 
 #include "infra/chrono.h"
 #include "infra/exception.h"
+#include "infra/math.h"
 
 #include "gdx/algo/sum.h"
 #include "gdx/denserasterio.h"
@@ -29,24 +30,6 @@
 namespace emap {
 
 using namespace inf;
-
-static fs::path throw_if_not_exists(fs::path&& path)
-{
-    if (!fs::is_regular_file(path)) {
-        throw RuntimeError("File does not exist: {}", path);
-    }
-
-    return std::move(path);
-}
-
-static fs::path throw_if_not_exists(const fs::path& path)
-{
-    if (!fs::is_regular_file(path)) {
-        throw RuntimeError("File does not exist: {}", path);
-    }
-
-    return path;
-}
 
 int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
 {
@@ -64,6 +47,21 @@ int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::opti
 static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionIdentifier& /*emissionId*/, double emissionValue, const CountryCellCoverage& countryCoverage)
 {
     auto raster = extract_country_from_raster(rasterPath, countryCoverage);
+    if (gdx::sum(raster) == 0.0) {
+        // no spreading info, fall back to uniform spread needed
+        return {};
+    }
+
+    auto outputGridRaster = gdx::resample_raster(raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
+    normalize_raster(outputGridRaster);
+    outputGridRaster *= emissionValue;
+
+    return outputGridRaster;
+}
+
+static gdx::DenseRaster<double> apply_spatial_pattern_raster_without_cell_adjustments(const fs::path& rasterPath, const EmissionIdentifier& /*emissionId*/, double emissionValue, const CountryCellCoverage& countryCoverage)
+{
+    auto raster = gdx::read_dense_raster<double>(rasterPath, countryCoverage.outputSubgridExtent);
     if (gdx::sum(raster) == 0.0) {
         // no spreading info, fall back to uniform spread needed
         return {};
@@ -166,24 +164,7 @@ static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMe
     return result;
 }
 
-static void add_point_sources_to_grid(std::span<const EmissionEntry> pointEmissions, gdx::DenseRaster<double>& raster)
-{
-    const auto& meta = raster.metadata();
-
-    // Add the point sources to the grid
-    for (auto pointEmission : pointEmissions) {
-        if (auto amount = pointEmission.value().amount(); amount.has_value()) {
-            if (auto coord = pointEmission.coordinate(); coord.has_value()) {
-                auto cell = meta.convert_xy_to_cell(coord->x, coord->y);
-                if (meta.is_on_map(cell)) {
-                    raster[cell] += *amount;
-                }
-            }
-        }
-    }
-}
-
-void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, RunSummary& summary, const ModelProgress::Callback& progressCb)
+static void spread_emissions(const EmissionInventory& emissionInv, const SpatialPatternInventory& spatialPatternInv, const RunConfiguration& cfg, EmissionValidation* validator, RunSummary& summary, const ModelProgress::Callback& progressCb)
 {
     chrono::ScopedDurationLog d("Spread emissions");
 
@@ -326,13 +307,11 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                             });
                         }
 
-                        add_point_sources_to_grid(pointEmissions, countryRaster);
-
                         collector.add_diffuse_emissions(emissionId.country, sector, std::move(countryRaster));
 
                         if (isCoursestGrid) {
                             // Only add the point emissions once for the coursest grid as they are resolution independant
-                            collector.add_point_emissions(emission->scaled_point_emissions());
+                            collector.add_point_emissions(emissionId.country, sector, emission->scaled_point_emissions());
                             if (validator) {
                                 validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                             }
@@ -389,10 +368,8 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
                         validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                     }
 
-                    add_point_sources_to_grid(emission->point_emissions(), raster);
-
                     collector.add_diffuse_emissions(emissionId.country, sector, std::move(raster));
-                    collector.add_point_emissions(emission->scaled_point_emissions());
+                    collector.add_point_emissions(emissionId.country, sector, emission->scaled_point_emissions());
                 });
             }
 
@@ -401,151 +378,6 @@ void spread_emissions(const EmissionInventory& emissionInv, const SpatialPattern
 
         collector.final_flush_to_disk(isCoursestGrid ? EmissionsCollector::WriteMode::Create : EmissionsCollector::WriteMode::Append);
     }
-}
-
-static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir, const Pollutant& pol, const RunConfiguration& cfg, RunSummary& runSummary)
-{
-    auto match = fmt::format("emap_{}_{}_", pol.code(), static_cast<int>(cfg.year()));
-
-    SingleEmissions result(cfg.year());
-
-    for (auto iter : fs::directory_iterator(dir)) {
-        if (iter.is_regular_file() && iter.path().extension() == ".csv") {
-            const auto& path = iter.path();
-            if (str::starts_with(path.filename().u8string(), match)) {
-                merge_unique_emissions(result, parse_point_sources(path, cfg));
-                runSummary.add_point_source(path);
-            }
-        }
-    }
-
-    return result;
-}
-
-static SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary)
-{
-    SingleEmissions result(cfg.year());
-
-    if (country == country::BEF) {
-        auto pointEmissionsDir = cfg.point_source_emissions_dir_path(country);
-
-        for (const auto& pollutant : cfg.included_pollutants()) {
-            if (pollutant.code() != constants::pollutant::PMCoarse) {
-                merge_unique_emissions(result, read_country_pollutant_point_sources(pointEmissionsDir, pollutant, cfg, runSummary));
-            }
-        }
-
-        try {
-            const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
-            const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
-            const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
-
-            if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
-                // Calculate PMcoarse data from pm10 and pm2.5 data
-                auto pm10Emissions  = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
-                auto pm2_5Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
-
-                std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
-                    return lhs.source_id() < rhs.source_id();
-                });
-
-                for (auto& pm10Entry : pm10Emissions) {
-                    auto pm10Val = pm10Entry.value().amount();
-                    if (pm10Val.has_value()) {
-                        auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
-                            return entry.source_id() < srcId;
-                        });
-
-                        double pm2_5Val = 0.0;
-                        if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
-                            pm2_5Val = iter->value().amount().value_or(0.0);
-                        }
-
-                        if (*pm10Val >= pm2_5Val) {
-                            auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
-                            result.add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
-                        } else {
-                            throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
-                        }
-                    }
-                }
-            }
-        } catch (const std::exception& e) {
-            Log::debug("Failed to create PMcoarse point sources: {}", e.what());
-        }
-
-        const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
-        const auto outputGridMeta = grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
-
-        if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
-            gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);
-
-            for (auto& pointSource : result) {
-                auto coord = pointSource.coordinate().value();
-                transformer.transform_in_place(coord);
-                pointSource.set_coordinate(coord);
-            }
-        }
-    }
-
-    return result;
-}
-
-static SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary)
-{
-    chrono::DurationRecorder duration;
-    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr(year)), year, cfg);
-    runSummary.add_totals_source(cfg.total_emissions_path_nfr(year));
-
-    static const std::array<const Country*, 3> belgianRegions = {
-        &country::BEB,
-        &country::BEF,
-        &country::BEW,
-    };
-
-    for (auto* region : belgianRegions) {
-        const auto& path = cfg.total_emissions_path_nfr_belgium(*region);
-        merge_unique_emissions(nfrTotalEmissions, parse_emissions_belgium(path, year, cfg));
-        runSummary.add_totals_source(path);
-    }
-
-    Log::debug("Parse nfr emissions took: {}", duration.elapsed_time_string());
-
-    return nfrTotalEmissions;
-}
-
-static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary, date::year& reportYear)
-{
-    chrono::DurationRecorder duration;
-
-    std::optional<SingleEmissions> gnfrTotalEmissions;
-
-    auto reportedGnfrDataPath = cfg.total_emissions_path_gnfr(cfg.reporting_year());
-    if (fs::is_regular_file(reportedGnfrDataPath)) {
-        // Validated gnfr data is available
-        reportYear         = cfg.reporting_year();
-        gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, reportedGnfrDataPath, cfg.year(), cfg);
-    }
-
-    if (!gnfrTotalEmissions.has_value() || gnfrTotalEmissions->empty()) {
-        // No GNFR data available yet for this year, read last years Gnfr data
-        if (cfg.year() > cfg.reporting_year() - date::years(2)) {
-            throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(cfg.reporting_year() - date::years(2)));
-        }
-
-        reportYear      = cfg.reporting_year() - date::years(1);
-        const auto year = cfg.year() - date::years(1); // Year Y-3
-
-        reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
-        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg);
-        if (gnfrTotalEmissions->empty()) {
-            throw RuntimeError("No GNFR data could be found for the requested year, nor for the previous year");
-        }
-    }
-
-    runSummary.add_totals_source(reportedGnfrDataPath);
-    Log::debug("Parse gnfr emissions took: {}", duration.elapsed_time_string());
-    return *gnfrTotalEmissions;
 }
 
 static void clean_output_directory(const fs::path& p)
@@ -583,62 +415,6 @@ static std::unique_ptr<EmissionValidation> make_validator(const RunConfiguration
     }
 
     return validator;
-}
-
-ScalingFactors read_scaling_factors(const fs::path& p, const RunConfiguration& cfg)
-{
-    ScalingFactors scalings;
-
-    if (fs::is_regular_file(p)) {
-        scalings = parse_scaling_factors(p, cfg);
-    }
-
-    return scalings;
-}
-
-static EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary)
-{
-    // Read scaling factors
-    const auto scalingsDiffuse      = read_scaling_factors(cfg.diffuse_scalings_path(), cfg);
-    const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
-    const auto pointSourcesFlanders = read_country_point_sources(cfg, country::BEF, summary);
-    auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
-    assert(nfrTotalEmissions.validate_uniqueness());
-
-    // Optional additional emissions that suplement or override existing emissions
-    std::optional<SingleEmissions> extraEmissions;
-    const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
-    if (fs::exists(extraNfrPath)) {
-        extraEmissions = parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg.year(), cfg);
-        summary.add_totals_source(extraNfrPath);
-    }
-
-    date::year gnfrReportYear;
-    auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
-    assert(gnfrTotalEmissions.validate_uniqueness());
-
-    if (gnfrReportYear < cfg.reporting_year()) {
-        // no gnfr data was available for the reporting year, older data was read
-        auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - date::years(1), cfg, summary);
-        return create_emission_inventory(std::move(nfrTotalEmissions),
-                                         std::move(olderNfrTotalEmissions),
-                                         std::move(gnfrTotalEmissions),
-                                         extraEmissions,
-                                         pointSourcesFlanders,
-                                         scalingsDiffuse,
-                                         scalingsPointSource,
-                                         cfg,
-                                         summary);
-    } else {
-        return create_emission_inventory(std::move(nfrTotalEmissions),
-                                         std::move(gnfrTotalEmissions),
-                                         extraEmissions,
-                                         pointSourcesFlanders,
-                                         scalingsDiffuse,
-                                         scalingsPointSource,
-                                         cfg,
-                                         summary);
-    }
 }
 
 int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)

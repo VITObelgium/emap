@@ -24,7 +24,7 @@ public:
 
     void start_pollutant(const Pollutant& pol, const GridData& grid);
 
-    void add_point_emissions(std::span<const EmissionEntry> entries);
+    void add_point_emissions(const Country& country, const NfrSector& nfr, std::span<const EmissionEntry> entries);
     void add_diffuse_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> raster);
 
     void flush_pollutant_to_disk(WriteMode mode);

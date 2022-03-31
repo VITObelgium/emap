@@ -12,4 +12,7 @@ inline const std::string_view PMCoarse = "PMcoarse";
 
 }
 
+inline constexpr const int64_t secondsPerYear    = 31'536'000;
+inline constexpr const double toGramPerYearRatio = 1'000'000'000.0 / secondsPerYear;
+
 }

@@ -385,12 +385,6 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
     return exception;
 }
 
-static bool table_spatial_pattern_contains_data_for_sector(const EmissionSector& sector, const fs::path& path, const RunConfiguration& cfg)
-{
-    const auto pattern = parse_spatial_pattern_flanders(path, sector, cfg);
-    return gdx::sum(pattern) > 0.0;
-}
-
 SpatialPatternSource SpatialPatternInventory::source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport)
 {
     // the id from the exception can be from a fallback pollutant, use the original id

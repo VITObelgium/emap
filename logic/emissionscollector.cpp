@@ -4,10 +4,41 @@
 #include "gdx/denserasterio.h"
 #include "gdx/rasterarea.h"
 #include "infra/cast.h"
+#include "infra/log.h"
 
 namespace emap {
 
 using namespace inf;
+
+static void add_point_sources_to_grid(std::span<const EmissionEntry> pointEmissions, gdx::DenseRaster<double>& raster)
+{
+    const auto& meta = raster.metadata();
+
+    size_t mismatches = 0;
+
+    // Add the point sources to the grid
+    for (auto pointEmission : pointEmissions) {
+        if (auto amount = pointEmission.value().amount(); amount.has_value()) {
+            if (auto coord = pointEmission.coordinate(); coord.has_value()) {
+                auto cell = meta.convert_xy_to_cell(coord->x, coord->y);
+                if (meta.is_on_map(cell)) {
+                    if (raster.is_nodata(cell)) {
+                        raster[cell] = *amount;
+                        raster.mark_as_data(cell);
+                    } else {
+                        raster[cell] += *amount;
+                    }
+                } else {
+                    ++mismatches;
+                }
+            }
+        }
+    }
+
+    if (mismatches > 0) {
+        Log::warn("Not all point sources could be added to the map: {} point sources, skipped {}", pointEmissions.size(), mismatches);
+    }
+}
 
 EmissionsCollector::EmissionsCollector(const RunConfiguration& cfg)
 : _cfg(cfg)
@@ -45,10 +76,53 @@ static void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::
     });
 }
 
-void EmissionsCollector::add_point_emissions(std::span<const EmissionEntry> entries)
+void EmissionsCollector::add_point_emissions(const Country& country, const NfrSector& nfr, std::span<const EmissionEntry> entries)
 {
     for (auto& entry : entries) {
         _outputBuilder->add_point_output_entry(entry);
+    }
+
+    if (_cfg.output_country_rasters()) {
+        if (_cfg.output_sector_level() == SectorLevel::NFR) {
+            auto path = _cfg.output_path_for_country_raster(EmissionIdentifier(country, EmissionSector(nfr), *_pollutant), *_grid);
+            std::scoped_lock lock(_mutex);
+            if (fs::exists(path)) {
+                auto raster = gdx::read_dense_raster<double>(path);
+                add_point_sources_to_grid(entries, raster);
+                gdx::write_raster(std::move(raster), path);
+            } else {
+                gdx::DenseRaster<double> raster(_grid->meta, std::numeric_limits<double>::quiet_NaN());
+                add_point_sources_to_grid(entries, raster);
+                gdx::write_raster(std::move(raster), path);
+            }
+        } else {
+            // Aggregate the country data per mapped sector
+            // The emissions need to be aggregated
+            auto id = std::make_pair(std::string(country.iso_code()), _cfg.sectors().map_nfr_to_output_name(nfr));
+
+            std::scoped_lock lock(_mutex);
+            if (auto iter = _collectedCountryEmissions.find(id); iter != _collectedCountryEmissions.end()) {
+                add_point_sources_to_grid(entries, iter->second);
+            } else {
+                gdx::DenseRaster<double> total(_grid->meta, std::numeric_limits<double>::quiet_NaN());
+                add_point_sources_to_grid(entries, total);
+                _collectedCountryEmissions.emplace(id, std::move(total));
+            }
+        }
+    }
+
+    if (_cfg.output_grid_rasters()) {
+        // The emissions need to be aggregated
+        auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(nfr);
+
+        std::scoped_lock lock(_mutex);
+        if (auto iter = _collectedEmissions.find(mappedSectorName); iter != _collectedEmissions.end()) {
+            add_point_sources_to_grid(entries, iter->second);
+        } else {
+            gdx::DenseRaster<double> total(_grid->meta, std::numeric_limits<double>::quiet_NaN());
+            add_point_sources_to_grid(entries, total);
+            _collectedEmissions.emplace(mappedSectorName, std::move(total));
+        }
     }
 }
 

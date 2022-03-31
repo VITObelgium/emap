@@ -316,4 +316,9 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 
+SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary);
+SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary);
+
+EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary);
+
 }

@@ -40,6 +40,7 @@ add_library(emaplogic
     gridrasterbuilder.h
     emissionscollector.h emissionscollector.cpp
     outputwriters.h outputwriters.cpp
+    outputreaders.h outputreaders.cpp
     runsummary.h runsummary.cpp
     spatialpatterninventory.h spatialpatterninventory.cpp
     vlopsoutputbuilder.h vlopsoutputbuilder.cpp

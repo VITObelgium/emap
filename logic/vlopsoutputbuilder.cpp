@@ -1,13 +1,12 @@
 #include "vlopsoutputbuilder.h"
 
+#include "emap/constants.h"
 #include "emap/emissions.h"
 #include "infra/cast.h"
+#include "infra/log.h"
 #include "outputwriters.h"
 
 namespace emap {
-
-static constexpr const int64_t s_secondsPerYear    = 31'536'000;
-static constexpr const double s_toGramPerYearRatio = 1'000'000'000.0 / s_secondsPerYear;
 
 using namespace inf;
 
@@ -38,7 +37,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     BrnOutputEntry entry;
     entry.x_m   = truncate<int64_t>(emission.coordinate()->x);
     entry.y_m   = truncate<int64_t>(emission.coordinate()->y);
-    entry.q_gs  = emission.value().amount().value() * s_toGramPerYearRatio;
+    entry.q_gs  = emission.value().amount().value() * constants::toGramPerYearRatio;
     entry.hc_MW = emission.warmth_contents();
     entry.h_m   = emission.height();
     entry.d_m   = 0;
@@ -118,7 +117,7 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
                     BrnOutputEntry brnEntry;
                     brnEntry.x_m   = location.x;
                     brnEntry.y_m   = location.y;
-                    brnEntry.q_gs  = entry.value * s_toGramPerYearRatio;
+                    brnEntry.q_gs  = entry.value * constants::toGramPerYearRatio;
                     brnEntry.hc_MW = sectorParams.hc_MW;
                     brnEntry.h_m   = sectorParams.h_m;
                     brnEntry.d_m   = entry.cellSize;

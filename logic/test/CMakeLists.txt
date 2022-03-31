@@ -3,6 +3,7 @@ add_executable(emaplogictest
     testconstants.h
     testprinters.h
     emissioninventorytest.cpp
+    emissioninventoryintegrationtest.cpp
     gridprocessingtest.cpp
     gridtest.cpp
     inputparsertest.cpp
@@ -10,6 +11,7 @@ add_executable(emaplogictest
     rasterbuildertest.cpp
     spatialpatterninventorytest.cpp
     runconfigurationparsertest.cpp
+    emissioninventoryintegrationtest.cpp
 )
 
 target_compile_definitions(emaplogictest
