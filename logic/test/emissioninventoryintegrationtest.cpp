@@ -182,64 +182,50 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
         CHECK(raster.sum() == Approx(totalEmissions));
     }
 
-    // SUBCASE("Subtract point sources in Belgium")
-    // {
-    //     std::string_view configToml = R"toml(
-    //         [model]
-    //             grid = "vlops1km"
-    //             datapath = "./_input"
-    //             type = "emep" # of gains
-    //             year = 2020
-    //             report_year = 2022
-    //             scenario = "test"
+    SUBCASE("Subtract point sources in Belgium")
+    {
+        std::string_view configToml = R"toml(
+             [model]
+                 grid = "vlops1km"
+                 datapath = "./_input"
+                 type = "emep" # of gains
+                 year = 2020
+                 report_year = 2022
+                 scenario = "test"
 
-    //         [output]
-    //             path = "./_output_gnfr"
-    //             sector_level = "GNFR"
-    //             create_country_rasters = false
-    //             create_grid_rasters = true
+             [output]
+                 path = "./_output_gnfr"
+                 sector_level = "GNFR"
+                 create_country_rasters = false
+                 create_grid_rasters = true
 
-    //         [options]
-    //             validation = false
-    //     )toml";
+             [options]
+                 validation = false
+         )toml";
 
-    //     RunSummary summary;
+        RunSummary summary;
 
-    //     auto cfg            = parse_run_configuration(configToml, fs::u8path(INTEGRATION_TEST_DATA_DIR));
-    //     auto pointEmissions = read_country_point_sources(cfg, countries::BEF, summary);
-    //     double pm10Sum      = 0.0;
-    //     double pm25Sum      = 0.0;
-    //     double pmCoarseSum  = 0.0;
-    //     for (auto& em : pointEmissions) {
-    //         if (em.id().country == countries::BEF && em.id().sector == EmissionSector(sectors::nfr::Nfr1A1a)) {
-    //             if (em.id().pollutant == pollutants::PM10) {
-    //                 pm10Sum += em.value().amount().value_or(0.0);
-    //             } else if (em.id().pollutant == pollutants::PM2_5) {
-    //                 pm25Sum += em.value().amount().value_or(0.0);
-    //             } else if (em.id().pollutant == pollutants::PMcoarse) {
-    //                 pmCoarseSum += em.value().amount().value_or(0.0);
-    //             }
-    //         }
-    //     }
+        auto cfg            = parse_run_configuration(configToml, fs::u8path(INTEGRATION_TEST_DATA_DIR));
+        auto pointEmissions = read_country_point_sources(cfg, countries::BEF, summary);
+        double pm10Sum      = 0.0;
+        double pm25Sum      = 0.0;
+        double pmCoarseSum  = 0.0;
+        for (auto& em : pointEmissions) {
+            if (em.id().country == countries::BEF && em.id().sector == EmissionSector(sectors::nfr::Nfr1A1a)) {
+                if (em.id().pollutant == pollutants::PM10) {
+                    pm10Sum += em.value().amount().value_or(0.0);
+                } else if (em.id().pollutant == pollutants::PM2_5) {
+                    pm25Sum += em.value().amount().value_or(0.0);
+                } else if (em.id().pollutant == pollutants::PMcoarse) {
+                    pmCoarseSum += em.value().amount().value_or(0.0);
+                }
+            }
+        }
 
-    //     // const auto emissionInv = make_emission_inventory(cfg, summary);
-
-    //     // for (auto& em : emissionInv) {
-    //     //     if (em.id().country == countries::BEF) {
-    //     //         if (em.id().pollutant == pollutants::PM10) {
-    //     //             pm10Sum += em.scaled_diffuse_emissions_sum();
-    //     //         } else if (em.id().pollutant == pollutants::PM2_5) {
-    //     //             pm25Sum += em.scaled_diffuse_emissions_sum();
-    //     //         } else if (em.id().pollutant == pollutants::PMcoarse) {
-    //     //             pmCoarseSum += em.scaled_diffuse_emissions_sum();
-    //     //         }
-    //     //     }
-    //     // }
-
-    //     CHECK(pm10Sum == 0.0);
-    //     CHECK(pm25Sum == 0.0);
-    //     CHECK(pmCoarseSum == 0.0);
-    // }
+        CHECK(pm10Sum == Approx(32.30286922 / 1000.0));
+        CHECK(pm25Sum == Approx(19.84122484 / 1000.0));
+        CHECK(pmCoarseSum == Approx(pm10Sum - pm25Sum));
+    }
 }
 
 }
