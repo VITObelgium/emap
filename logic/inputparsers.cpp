@@ -94,7 +94,6 @@ static void update_entry(std::vector<EmissionEntry>& entries, const EmissionEntr
 
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
-    // csv columns: type;scenario;year;reporting_country;nfr_sector|gnfr_sector;pollutant;emission;unit
     // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type;subtype
 
     const auto& countryInv   = cfg.countries();
@@ -103,6 +102,15 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
+
+        /*using namespace io;
+        CSVReader<21, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow> in(str::from_u8(emissionsCsv.u8string()));
+
+        int32_t year;
+        double value, height, diameter, temp, warmthContents, x, y, flowRate;
+        char *type, *scenario, *countryStr, *sectorName, *pollutant, *unit, *excType, *eilNr, *explName, *naceCode, *eilYearName, *activityType, *subtype;
+        while (in.read_row(type, scenario, year, countryStr, sectorName, pollutant, value, x, y, unit, height, diameter, temp, warmthContents, flowRate, excType, eilNr, explName, naceCode, eilYearName, activityType, subtype)) {
+        }*/
 
         SingleEmissions result(cfg.year());
         inf::CsvReader csv(emissionsCsv);
@@ -159,8 +167,8 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                 info.set_source_id(fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEilPoint), line.get_string(colEil), subType));
 
                 if (colX.has_value() && colY.has_value()) {
-                    auto x = line.get_int32(*colX);
-                    auto y = line.get_int32(*colY);
+                    auto x = line.get_double(*colX);
+                    auto y = line.get_double(*colY);
                     if (x.has_value() && y.has_value()) {
                         info.set_coordinate(Coordinate(*x, *y));
                     } else {
