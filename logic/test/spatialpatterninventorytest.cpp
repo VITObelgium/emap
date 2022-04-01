@@ -224,7 +224,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(spSource.emissionId.pollutant == pollutants::CO);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
         CHECK(spSource.sectorLevel == EmissionSector::Type::Nfr);
-        CHECK(spSource.type == SpatialPatternSource::Type::RasterException);
+        CHECK(spSource.type == SpatialPatternSource::Type::Raster);
     }
 }
 

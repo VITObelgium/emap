@@ -89,8 +89,8 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
         return "Excel";
     case emap::SpatialPatternSource::Type::UnfiformSpread:
         return "Uniform spread";
-    case emap::SpatialPatternSource::Type::RasterException:
-        return "Exception";
+    case emap::SpatialPatternSource::Type::Raster:
+        return "Raster";
     }
 
     return "";
@@ -98,13 +98,16 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
 
 void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const
 {
-    const std::array<ColumnInfo, 10> headers = {
+    const std::array<ColumnInfo, 13> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"GNFR", 15.0},
         ColumnInfo{"Pollutant", 15.0},
+        ColumnInfo{"Used Sector", 15.0},
+        ColumnInfo{"Used Pollutant", 15.0},
         ColumnInfo{"Type", 15.0},
         ColumnInfo{"Uniform spread fallback", 25.0},
+        ColumnInfo{"From exceptions", 25.0},
         ColumnInfo{"Year", 15.0},
         ColumnInfo{"Path", 125.0},
         ColumnInfo{"Total emissions", 15.0},
@@ -137,20 +140,29 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         std::string pollutant(info.source.emissionId.pollutant.code());
         std::string type = spatial_pattern_source_type_to_string(info.source.type);
 
-        worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
-        worksheet_write_string(ws, row, 1, sector.c_str(), nullptr);
-        worksheet_write_string(ws, row, 2, gnfr.c_str(), nullptr);
-        worksheet_write_string(ws, row, 3, pollutant.c_str(), nullptr);
-        worksheet_write_string(ws, row, 4, type.c_str(), nullptr);
-        worksheet_write_boolean(ws, row, 5, !dataUsed, nullptr);
-        if (info.source.type != SpatialPatternSource::Type::UnfiformSpread &&
-            info.source.type != SpatialPatternSource::Type::RasterException) {
-            worksheet_write_number(ws, row, 6, static_cast<int>(info.source.year), nullptr);
-        }
-        worksheet_write_string(ws, row, 7, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
+        std::string usedSector(info.source.usedEmissionId.sector.name());
+        std::string usedPollutant(info.source.usedEmissionId.pollutant.code());
 
-        worksheet_write_number(ws, row, 8, info.totalEmissions, formatNumber);
-        worksheet_write_number(ws, row, 9, info.pointEmissions, formatNumber);
+        int index = 0;
+        worksheet_write_string(ws, row, index++, country.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, sector.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, gnfr.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, usedSector.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, usedPollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, type.c_str(), nullptr);
+        worksheet_write_boolean(ws, row, index++, (!dataUsed) || info.source.patternAvailableButWithoutData, nullptr);
+        worksheet_write_boolean(ws, row, index++, info.source.isException, nullptr);
+        if (info.source.type != SpatialPatternSource::Type::UnfiformSpread &&
+            info.source.type != SpatialPatternSource::Type::Raster) {
+            worksheet_write_number(ws, row, index++, static_cast<int>(info.source.year), nullptr);
+        } else {
+            ++index;
+        }
+        worksheet_write_string(ws, row, index++, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
+
+        worksheet_write_number(ws, row, index++, info.totalEmissions, formatNumber);
+        worksheet_write_number(ws, row, index++, info.pointEmissions, formatNumber);
     };
 
     for (const auto& info : sources) {
