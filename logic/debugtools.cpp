@@ -179,7 +179,7 @@ struct CountryGeometries
     std::vector<std::pair<Country, geos::geom::Geometry::Ptr>> geometries;
 };
 
-static CountryGeometries create_country_geometries(const fs::path& inputPath, const std::string& fieldId, const CountryInventory& countries, const fs::path& outputPath, const std::string& gridProjection)
+static CountryGeometries create_country_geometries(const fs::path& inputPath, const std::string& fieldId, const CountryInventory& countries, const std::string& gridProjection)
 {
     CountryGeometries result;
 
@@ -210,9 +210,6 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath, co
         }
     }
 
-    Log::info("Store countries to disk");
-    countryGeometries.store(outputPath / "country_geometries.gpkg");
-
     // sort on geometry complexity, so we always start processing the most complex geometries
     // this avoids processing the most complext geometry in the end on a single core
     std::sort(result.geometries.begin(), result.geometries.end(), [](const std::pair<Country, geos::geom::Geometry::Ptr>& lhs, const std::pair<Country, geos::geom::Geometry::Ptr>& rhs) {
@@ -220,6 +217,48 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath, co
     });
 
     return result;
+}
+
+static void process_geometries(const RunConfiguration& runConfig, const fs::path& boundaries, const std::string& fieldId, const std::string& suffix, const fs::path& outputDir)
+{
+    const auto gridProjection = grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
+
+    Log::info("Create country geometries");
+    const auto countries = create_country_geometries(boundaries, fieldId, runConfig.countries(), gridProjection);
+
+    for (auto& outputGrid : grids_for_model_grid((runConfig.model_grid()))) {
+        auto outputGridData = grid_data(outputGrid);
+        Log::info("Processing grid level {}", outputGridData.name);
+
+        chrono::DurationRecorder dur;
+
+        store_grid(fmt::format("Output grid ({})", outputGridData.name), outputGridData.meta, outputDir / fmt::format("output_grid_{}{}.gpkg", outputGridData.name, suffix));
+
+        // std::for_each(countries.geometries.begin(), countries.geometries.end(), [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
+        tbb::parallel_for_each(countries.geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
+            const auto& country = idGeom.first;
+            auto& geometry      = *idGeom.second;
+
+            int32_t xOffset, yOffset;
+            gdal::SpatialReference projection(countries.projection);
+
+            Log::info("Process country: {} ({})", country.full_name(), country.iso_code());
+
+            const auto env = geometry.getEnvelope();
+            auto extent    = create_geometry_extent(geometry, outputGridData.meta, projection, xOffset, yOffset);
+            if (extent.rows == 0 || extent.cols == 0) {
+                Log::info("No intersection for country: {} ({})", country.full_name(), country.iso_code());
+                return;
+            }
+
+            auto coverageInfo = create_country_coverage(country, geometry, projection, outputGridData.meta);
+            if (!coverageInfo.cells.empty()) {
+                store_country_coverage_vector(coverageInfo, outputDir / fmt::format("spatial_pattern_subgrid_{}_{}{}.gpkg", country.iso_code(), outputGridData.name, suffix));
+            }
+        });
+
+        Log::info("Grid creation took {}", dur.elapsed_time_string());
+    }
 }
 
 int debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel)
@@ -232,47 +271,12 @@ int debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel)
         auto runConfig       = parse_run_configuration_file(runConfigPath);
         const auto outputDir = runConfig.output_path() / "grids";
 
-        const auto gridProjection = grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
-
-        Log::info("Create country geometries");
-        const auto countries = create_country_geometries(runConfig.boundaries_vector_path(), runConfig.boundaries_field_id(), runConfig.countries(), outputDir, gridProjection);
         store_grid("Spatial pattern grid CAMS", grid_data(GridDefinition::CAMS).meta, outputDir / "spatial_pattern_grid_cams.gpkg");
         store_grid("Spatial pattern grid CEIP", grid_data(GridDefinition::ChimereEmep).meta, outputDir / "spatial_pattern_grid_ceip.gpkg");
         store_grid("Spatial pattern grid Flanders", grid_data(GridDefinition::Flanders1km).meta, outputDir / "spatial_pattern_grid_flanders.gpkg");
 
-        for (auto& outputGrid : grids_for_model_grid((runConfig.model_grid()))) {
-            auto outputGridData = grid_data(outputGrid);
-            Log::info("Processing grid level {}", outputGridData.name);
-
-            chrono::DurationRecorder dur;
-
-            store_grid(fmt::format("Output grid ({})", outputGridData.name), outputGridData.meta, outputDir / fmt::format("output_grid_{}.gpkg", outputGridData.name));
-
-            // std::for_each(countries.geometries.begin(), countries.geometries.end(), [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
-            tbb::parallel_for_each(countries.geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
-                const auto& country = idGeom.first;
-                auto& geometry      = *idGeom.second;
-
-                int32_t xOffset, yOffset;
-                gdal::SpatialReference projection(countries.projection);
-
-                Log::info("Process country: {} ({})", country.full_name(), country.iso_code());
-
-                const auto env = geometry.getEnvelope();
-                auto extent    = create_geometry_extent(geometry, outputGridData.meta, projection, xOffset, yOffset);
-                if (extent.rows == 0 || extent.cols == 0) {
-                    Log::info("No intersection for country: {} ({})", country.full_name(), country.iso_code());
-                    return;
-                }
-
-                auto coverageInfo = create_country_coverage(country, geometry, projection, outputGridData.meta);
-                if (!coverageInfo.cells.empty()) {
-                    store_country_coverage_vector(coverageInfo, outputDir / fmt::format("spatial_pattern_subgrid_{}_{}.gpkg", country.iso_code(), outputGridData.name));
-                }
-            });
-
-            Log::info("Grid creation took {}", dur.elapsed_time_string());
-        }
+        process_geometries(runConfig, runConfig.boundaries_vector_path(), runConfig.boundaries_field_id(), "", outputDir);
+        process_geometries(runConfig, runConfig.eez_boundaries_vector_path(), runConfig.eez_boundaries_field_id(), "_eez", outputDir);
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
