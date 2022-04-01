@@ -397,11 +397,23 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
     countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
 
     std::vector<std::pair<Country, geos::geom::Geometry::Ptr>> geometries;
+    {
+        std::unordered_map<Country, geos::geom::Geometry::Ptr> geometriesMap;
 
-    for (auto& feature : countriesLayer) {
-        if (const auto country = inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
-            // known country
-            geometries.emplace_back(*country, geom::gdal_to_geos(feature.geometry()));
+        for (auto& feature : countriesLayer) {
+            if (const auto country = inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
+                // known country
+                auto geom = geom::gdal_to_geos(feature.geometry());
+                if (geometriesMap.count(*country) == 0) {
+                    geometriesMap.emplace(*country, std::move(geom::gdal_to_geos(feature.geometry())));
+                } else {
+                    geometriesMap.insert_or_assign(*country, geom->Union(geometriesMap.at(*country).get()));
+                }
+            }
+        }
+
+        for (auto& [country, geometry] : geometriesMap) {
+            geometries.emplace_back(country, std::move(geometry));
         }
     }
 
