@@ -358,8 +358,8 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
 
             if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
                 // Calculate PMcoarse data from pm10 and pm2.5 data
-                auto pm10Emissions  = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
-                auto pm2_5Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
+                const auto pm10Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
+                auto pm2_5Emissions      = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
 
                 std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
                     return lhs.source_id() < rhs.source_id();
@@ -375,11 +375,14 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
                         double pm2_5Val = 0.0;
                         if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
                             pm2_5Val = iter->value().amount().value_or(0.0);
+                            assert(iter->coordinate() == pm10Entry.coordinate());
                         }
 
                         if (*pm10Val >= pm2_5Val) {
                             auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
-                            result.add_emission(EmissionEntry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal));
+                            EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
+                            entry.set_coordinate(pm10Entry.coordinate().value());
+                            result.add_emission(std::move(entry));
                         } else {
                             throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
                         }
