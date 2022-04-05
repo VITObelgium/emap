@@ -448,14 +448,16 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
 
     if (!gnfrTotalEmissions.has_value() || gnfrTotalEmissions->empty()) {
         // No GNFR data available yet for this year, read last years Gnfr data
-        if (cfg.year() > cfg.reporting_year() - date::years(2)) {
+        auto year = cfg.year();
+        if (year > cfg.reporting_year() - date::years(2)) {
             throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(cfg.reporting_year() - date::years(2)));
+        } else if (year == cfg.reporting_year() - date::years(2)) {
+            --year; // Read GNFR Y-3
         }
 
-        reportYear = cfg.reporting_year() - date::years(1);
-
+        reportYear           = cfg.reporting_year() - date::years(1);
         reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
-        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), cfg.year(), cfg);
+        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg);
         if (gnfrTotalEmissions->empty()) {
             throw RuntimeError("No GNFR data could be found for the requested year, nor for the previous year");
         }
