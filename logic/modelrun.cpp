@@ -44,7 +44,7 @@ int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::opti
     return run_model(runConfig, progressCb);
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, const EmissionIdentifier& /*emissionId*/, double emissionValue, const CountryCellCoverage& countryCoverage)
+static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath, double emissionValue, const CountryCellCoverage& countryCoverage)
 {
     auto raster = extract_country_from_raster(rasterPath, countryCoverage);
     if (gdx::sum(raster) == 0.0) {
@@ -59,7 +59,7 @@ static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& ras
     return outputGridRaster;
 }
 
-static gdx::DenseRaster<double> apply_spatial_pattern_raster_without_cell_adjustments(const fs::path& rasterPath, const EmissionIdentifier& /*emissionId*/, double emissionValue, const CountryCellCoverage& countryCoverage)
+static gdx::DenseRaster<double> apply_spatial_pattern_raster_without_cell_adjustments(const fs::path& rasterPath, double emissionValue, const CountryCellCoverage& countryCoverage)
 {
     auto raster = gdx::read_dense_raster<double>(rasterPath, countryCoverage.outputSubgridExtent);
     if (gdx::sum(raster) == 0.0) {
@@ -127,10 +127,10 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     switch (spatialPattern.type) {
     case SpatialPatternSource::Type::SpatialPatternCAMS:
     case SpatialPatternSource::Type::Raster:
-        result = apply_spatial_pattern_raster(spatialPattern.path, emissionId, emissionValue, countryCoverage);
+        result = apply_spatial_pattern_raster(spatialPattern.path, emissionValue, countryCoverage);
         break;
     case SpatialPatternSource::Type::SpatialPatternCEIP:
-        result = apply_spatial_pattern_ceip(spatialPattern.path, emissionId, emissionValue, countryCoverage.outputSubgridExtent, cfg);
+        result = apply_spatial_pattern_ceip(spatialPattern.path, spatialPattern.usedEmissionId, emissionValue, countryCoverage.outputSubgridExtent, cfg);
         break;
     case SpatialPatternSource::Type::UnfiformSpread:
         result = apply_uniform_spread(emissionValue, countryCoverage);
@@ -344,12 +344,12 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                     gdx::DenseRaster<double> raster;
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                        const auto* spatPat = cache.get_data(spatialPattern.path, emissionId.with_pollutant(spatialPattern.usedEmissionId.pollutant));
+                        const auto* spatPat = cache.get_data(spatialPattern.path, spatialPattern.usedEmissionId);
                         if (spatPat != nullptr) {
                             raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);
                         }
                     } else if (spatialPattern.type == SpatialPatternSource::Type::Raster) {
-                        raster = apply_spatial_pattern_raster(spatialPattern.path, emission->id(), diffuseEmissions, flandersCoverage);
+                        raster = apply_spatial_pattern_raster(spatialPattern.path, diffuseEmissions, flandersCoverage);
                     } else if (spatialPattern.type == SpatialPatternSource::Type::UnfiformSpread) {
                         raster = apply_uniform_spread(diffuseEmissions, flandersCoverage);
                     }
