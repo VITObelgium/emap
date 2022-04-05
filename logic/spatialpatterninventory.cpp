@@ -298,46 +298,8 @@ void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year star
     });
 
     _spatialPatternsRest = scan_dir_rest(startYear, spatialPatternPath / "rest" / reporing_dir(reportingYear));
-    _countrySpecificSpatialPatterns.emplace(country::BEB, scan_dir_belgium(startYear, spatialPatternPath / "beb" / reporing_dir(reportingYear)));
     _countrySpecificSpatialPatterns.emplace(country::BEF, scan_dir_belgium(startYear, spatialPatternPath / "bef" / reporing_dir(reportingYear)));
-    _countrySpecificSpatialPatterns.emplace(country::BEW, scan_dir_belgium(startYear, spatialPatternPath / "bew" / reporing_dir(reportingYear)));
 }
-
-// std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_pattern_within_year(const Country& country,
-//                                                                                                 const Pollutant& pol,
-//                                                                                                 const Pollutant& polToReport,
-//                                                                                                 const EmissionSector& sector,
-//                                                                                                 date::year year,
-//                                                                                                 const std::vector<SpatialPatternFile>& patterns) const
-//
-//{
-//     auto sectorLevel = EmissionSector::Type::Nfr;
-//
-//     auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-//         return spf.pollutant == pol && spf.sector == sector;
-//     });
-//
-//     if (iter != patterns.end()) {
-//         if (iter->source == SpatialPatternFile::Source::Cams) {
-//             return SpatialPatternSource::create_from_cams(iter->path, country, sector, polToReport, pol, year, sectorLevel);
-//         } else if (iter->source == SpatialPatternFile::Source::Ceip) {
-//             return SpatialPatternSource::create_from_cams(iter->path, country, sector, polToReport, pol, year, sectorLevel);
-//         }
-//
-//         throw std::logic_error("Unhandled spatial pattern source type");
-//     }
-//
-//     if (sector.type() == EmissionSector::Type::Nfr) {
-//         // No matching spatial pattern for nfr sector
-//         // Check if there is one for the corresponding gnfr sector
-//         @ @-380, 97 + 382, 157 @ @std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
-//                                // restore the nfr based id
-//                                exception->emissionId = emissionId;
-//     }
-// }
-//
-// return exception;
-// }
 
 std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_pattern_within_year(const Country& country,
                                                                                                 const Pollutant& pollutant,
