@@ -102,14 +102,58 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
+        size_t lineNr = 2;
 
-        /*using namespace io;
+        /*
+        using namespace io;
         CSVReader<21, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow> in(str::from_u8(emissionsCsv.u8string()));
+
 
         int32_t year;
         double value, height, diameter, temp, warmthContents, x, y, flowRate;
-        char *type, *scenario, *countryStr, *sectorName, *pollutant, *unit, *excType, *eilNr, *explName, *naceCode, *eilYearName, *activityType, *subtype;
+        char *type, *scenario, *countryStr, *sectorName, *pollutantName, *unit, *excType, *eilNr, *explName, *naceCode, *eilYearName, *activityType, *subtype;
         while (in.read_row(type, scenario, year, countryStr, sectorName, pollutant, value, x, y, unit, height, diameter, temp, warmthContents, flowRate, excType, eilNr, explName, naceCode, eilYearName, activityType, subtype)) {
+            if (sectorInv.is_ignored_sector(sectorType, sectorName) ||
+                pollutantInv.is_ignored_pollutant(pollutantName)) {
+                continue;
+            }
+
+            double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
+
+            auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
+            auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
+            auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
+            if (sector.has_value() && country.has_value() && pollutant.has_value()) {
+                EmissionEntry info(
+                    EmissionIdentifier(*country, *sector, *pollutant),
+                    EmissionValue(emissionValue));
+
+                info.set_height(line.get_double(colHeight).value_or(0.0));
+                info.set_diameter(line.get_double(colDiameter).value_or(0.0));
+                info.set_temperature(line.get_double(colTemperature).value_or(-9999.0));
+                info.set_warmth_contents(line.get_double(colWarmthContents).value_or(0.0));
+                info.set_flow_rate(line.get_double(colFlowRate).value_or(0.0));
+
+                std::string subType = "none";
+                if (colSubType.has_value()) {
+                    subType = line.get_string(*colSubType);
+                }
+
+                info.set_source_id(fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEilPoint), line.get_string(colEil), subType));
+
+                if (colX.has_value() && colY.has_value()) {
+                    auto x = line.get_double(*colX);
+                    auto y = line.get_double(*colY);
+                    if (x.has_value() && y.has_value()) {
+                        info.set_coordinate(Coordinate(*x, *y));
+                    } else {
+                        throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
+                    }
+                }
+
+                result.add_emission(std::move(info));
+            }
+            ++lineNr;
         }*/
 
         SingleEmissions result(cfg.year());
@@ -134,7 +178,6 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         auto colX                    = csv.column_index("x");
         auto colY                    = csv.column_index("y");
 
-        size_t lineNr = 2;
         for (auto& line : csv) {
             const auto sectorName    = line.get_string(colSector);
             const auto pollutantName = line.get_string(colPollutant);

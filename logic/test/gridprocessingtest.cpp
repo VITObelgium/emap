@@ -41,10 +41,8 @@ TEST_CASE("create_geometry_extent")
     const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
 
     int32_t xOffset = 0, yOffset = 0;
-    auto meta = create_geometry_extent(*poly, gridMeta, xOffset, yOffset);
+    auto meta = create_geometry_intersection_extent(*poly, gridMeta);
     CHECK(GeoMetadata(1, 1, 100.0, 50.0, 50.0, {}) == meta);
-    CHECK(xOffset == -1);
-    CHECK(yOffset == -1);
 }
 
 TEST_CASE("create_country_coverages")
@@ -53,7 +51,7 @@ TEST_CASE("create_country_coverages")
     auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
-    auto vectorDs = gdal::warp(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
 
     CountryInventory countries({country::BEB});
     auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, nullptr);
@@ -73,7 +71,7 @@ TEST_CASE("Normalize raster")
     auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
-    auto vectorDs = gdal::warp(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
 
     CountryInventory countries({countries::NL});
     auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, nullptr);

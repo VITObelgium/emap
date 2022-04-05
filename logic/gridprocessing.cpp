@@ -165,7 +165,7 @@ gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread
     return raster;
 }
 
-static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const GeoMetadata& extent, int32_t countryXOffset, int32_t countryYOffset, const geos::geom::Geometry& geom)
+static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const GeoMetadata& extent, const GeoMetadata& countryExtent, const geos::geom::Geometry& geom)
 {
     std::vector<CountryCellCoverage::CellInfo> result;
 
@@ -174,18 +174,21 @@ static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const Ge
     const auto cellSize = extent.cellSize;
     const auto cellArea = std::abs(cellSize.x * cellSize.y);
 
-    for (auto cell : gdx::RasterCells(extent.rows, extent.cols)) {
-        const Rect<double> box = extent.bounding_box(cell);
+    for (auto cell : gdx::RasterCells(countryExtent.rows, countryExtent.cols)) {
+        const Rect<double> box = countryExtent.bounding_box(cell);
         const auto cellGeom    = geom::create_polygon(box.topLeft, box.bottomRight);
 
         // Intersect it with the country
+        auto xyCentre   = countryExtent.convert_cell_centre_to_xy(cell);
+        auto outputCell = extent.convert_point_to_cell(xyCentre);
+
         if (preparedGeom->contains(cellGeom.get())) {
-            result.emplace_back(cell, Cell(cell.r + countryYOffset, cell.c + countryXOffset), 1.0);
+            result.emplace_back(outputCell, cell, 1.0);
         } else if (preparedGeom->intersects(cellGeom.get())) {
             auto intersectGeometry   = preparedGeom->getGeometry().intersection(cellGeom.get());
             const auto intersectArea = intersectGeometry->getArea();
             if (intersectArea > 0) {
-                result.emplace_back(cell, Cell(cell.r + countryYOffset, cell.c + countryXOffset), intersectArea / cellArea);
+                result.emplace_back(outputCell, cell, intersectArea / cellArea);
             }
         }
     }
@@ -286,7 +289,49 @@ size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMeta
     return count;
 }
 
-GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const GeoMetadata& gridExtent, int32_t& xOffset, int32_t& yOffset)
+GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const GeoMetadata& gridExtent)
+{
+    GeoMetadata geometryExtent = gridExtent;
+
+    const auto* env = geom.getEnvelopeInternal();
+
+    Rect<double> geomRect;
+
+    auto topLeft     = Point<double>(env->getMinX(), env->getMaxY());
+    auto bottomRight = Point<double>(env->getMaxX(), env->getMinY());
+
+    const auto topLeftCell     = gridExtent.convert_point_to_cell(topLeft);
+    const auto bottomRightCell = gridExtent.convert_point_to_cell(bottomRight);
+
+    const auto topLeftLL     = gridExtent.convert_cell_ll_to_xy(topLeftCell);
+    const auto bottomRightLL = gridExtent.convert_cell_ll_to_xy(bottomRightCell);
+
+    geomRect.topLeft     = Point<double>(topLeftLL.x, topLeftLL.y - gridExtent.cell_size_y());
+    geomRect.bottomRight = Point<double>(bottomRightLL.x + gridExtent.cell_size_x(), bottomRightLL.y);
+
+    geometryExtent.xll  = geomRect.topLeft.x;
+    geometryExtent.yll  = geomRect.bottomRight.y;
+    geometryExtent.cols = (bottomRightCell.c - topLeftCell.c) + 1;
+    geometryExtent.rows = (bottomRightCell.r - topLeftCell.r) + 1;
+
+    return geometryExtent;
+}
+
+inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const gdal::SpatialReference& sourceProjection)
+{
+    gdal::SpatialReference destProj(gridExtent.projection);
+
+    if (sourceProjection.epsg_cs() != destProj.epsg_cs()) {
+        auto outputGeometry = geom.clone();
+        geom::CoordinateWarpFilter warpFilter(sourceProjection.export_to_wkt().c_str(), gridExtent.projection.c_str());
+        outputGeometry->apply_rw(warpFilter);
+        return create_geometry_extent(*outputGeometry, gridExtent);
+    } else {
+        return create_geometry_extent(geom, gridExtent);
+    }
+}
+
+GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const GeoMetadata& gridExtent)
 {
     GeoMetadata geometryExtent = gridExtent;
 
@@ -312,13 +357,10 @@ GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const GeoMe
     geometryExtent.cols = (bottomRightCell.c - topLeftCell.c) + 1;
     geometryExtent.rows = (bottomRightCell.r - topLeftCell.r) + 1;
 
-    xOffset = -topLeftCell.c;
-    yOffset = -topLeftCell.r;
-
     return geometryExtent;
 }
 
-inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const gdal::SpatialReference& sourceProjection, int32_t& xOffset, int32_t& yOffset)
+inf::GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const gdal::SpatialReference& sourceProjection)
 {
     gdal::SpatialReference destProj(gridExtent.projection);
 
@@ -326,17 +368,15 @@ inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const 
         auto outputGeometry = geom.clone();
         geom::CoordinateWarpFilter warpFilter(sourceProjection.export_to_wkt().c_str(), gridExtent.projection.c_str());
         outputGeometry->apply_rw(warpFilter);
-        return create_geometry_extent(*outputGeometry, gridExtent, xOffset, yOffset);
+        return create_geometry_intersection_extent(*outputGeometry, gridExtent);
     } else {
-        return create_geometry_extent(geom, gridExtent, xOffset, yOffset);
+        return create_geometry_intersection_extent(geom, gridExtent);
     }
 }
 
-CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const gdal::SpatialReference& geometryProjection, const GeoMetadata& outputExtent)
+CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const gdal::SpatialReference& geometryProjection, const GeoMetadata& outputExtent, CoverageMode mode)
 {
     CountryCellCoverage cov;
-
-    int32_t xOffset = 0, yOffset = 0;
 
     const geos::geom::Geometry* geometry = &geom;
     geos::geom::Geometry::Ptr warpedGeometry;
@@ -349,9 +389,20 @@ CountryCellCoverage create_country_coverage(const Country& country, const geos::
         geometry = warpedGeometry.get();
     }
 
-    cov.country             = country;
-    cov.outputSubgridExtent = create_geometry_extent(*geometry, outputExtent, geometryProjection, xOffset, yOffset);
-    cov.cells               = create_cell_coverages(outputExtent, xOffset, yOffset, *geometry);
+    cov.country = country;
+
+    switch (mode) {
+    case CoverageMode::GridCellsOnly:
+        cov.outputSubgridExtent = create_geometry_intersection_extent(*geometry, outputExtent, geometryProjection);
+        break;
+    case CoverageMode::AllCountryCells:
+        cov.outputSubgridExtent = create_geometry_extent(*geometry, outputExtent, geometryProjection);
+        break;
+    default:
+        throw RuntimeError("Invalid coverage mode");
+    }
+
+    cov.cells = create_cell_coverages(outputExtent, cov.outputSubgridExtent, *geometry);
 
 #ifndef NDEBUG
     if (!cov.cells.empty()) {
@@ -405,7 +456,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
                 // known country
                 auto geom = geom::gdal_to_geos(feature.geometry());
                 if (geometriesMap.count(*country) == 0) {
-                    geometriesMap.emplace(*country, std::move(geom::gdal_to_geos(feature.geometry())));
+                    geometriesMap.emplace(*country, std::move(geom));
                 } else {
                     geometriesMap.insert_or_assign(*country, geom->Union(geometriesMap.at(*country).get()));
                 }
@@ -435,7 +486,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         GridProcessingProgress progress(geometries.size(), progressCb);
         // std::for_each(geometries.rbegin(), geometries.rend(), [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
         tbb::parallel_for_each(geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
-            auto cov = create_country_coverage(idGeom.first, *idGeom.second, gdal::SpatialReference(projection), outputExtent);
+            auto cov = create_country_coverage(idGeom.first, *idGeom.second, gdal::SpatialReference(projection), outputExtent, CoverageMode::GridCellsOnly);
             progress.set_payload(idGeom.first);
             progress.tick();
 

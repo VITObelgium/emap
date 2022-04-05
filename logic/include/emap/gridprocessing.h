@@ -77,13 +77,22 @@ gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput, const
 
 gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, const CountryCellCoverage& countryCoverage);
 
-inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, int32_t& xOffset, int32_t& yOffset);
-inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection, int32_t& xOffset, int32_t& yOffset);
+inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent);
+inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection);
+
+inf::GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent);
+inf::GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection);
 
 size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
 size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField);
 
-CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference& geometryProjection, const inf::GeoMetadata& outputExtent);
+enum class CoverageMode
+{
+    GridCellsOnly,
+    AllCountryCells,
+};
+
+CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference& geometryProjection, const inf::GeoMetadata& outputExtent, CoverageMode mode);
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 

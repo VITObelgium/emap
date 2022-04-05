@@ -1,5 +1,6 @@
 #include "emap/debugtools.h"
 #include "emap/configurationparser.h"
+#include "emap/countryborders.h"
 #include "emap/gridprocessing.h"
 #include "geometry.h"
 
@@ -194,19 +195,28 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath, co
     auto colCountryId = countriesLayer.layer_definition().required_field_index(fieldId);
     result.projection = gridSpatialReference.export_to_wkt();
 
-    VectorBuilder countryGeometries("Country geometries");
-    auto proj = countriesLayer.projection();
-    countryGeometries.set_projection(gridSpatialReference);
-    countryGeometries.add_field<std::string>("country");
-    for (auto& feature : countriesLayer) {
-        if (const auto country = countries.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
-            // known country
-            Log::info("Country: {}", country->full_name());
-            auto geom = feature.geometry().clone();
-            geom.transform_to(gridSpatialReference);
+    {
+        std::unordered_map<Country, geos::geom::Geometry::Ptr> geometriesMap;
 
-            countryGeometries.add_country_geometry(*country, geom);
-            result.geometries.emplace_back(*country, geom::gdal_to_geos(geom));
+        auto proj = countriesLayer.projection();
+        for (auto& feature : countriesLayer) {
+            if (const auto country = countries.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
+                // known country
+                Log::info("Country: {}", country->full_name());
+                auto gdalGeom = feature.geometry().clone();
+                gdalGeom.transform_to(gridSpatialReference);
+
+                auto geom = geom::gdal_to_geos(gdalGeom);
+                if (geometriesMap.count(*country) == 0) {
+                    geometriesMap.emplace(*country, std::move(geom));
+                } else {
+                    geometriesMap.insert_or_assign(*country, geom->Union(geometriesMap.at(*country).get()));
+                }
+            }
+        }
+
+        for (auto& [country, geometry] : geometriesMap) {
+            result.geometries.emplace_back(country, std::move(geometry));
         }
     }
 
@@ -226,8 +236,10 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
     Log::info("Create country geometries");
     const auto countries = create_country_geometries(boundaries, fieldId, runConfig.countries(), gridProjection);
 
-    for (auto& outputGrid : grids_for_model_grid((runConfig.model_grid()))) {
-        auto outputGridData = grid_data(outputGrid);
+    const auto grids = grids_for_model_grid((runConfig.model_grid()));
+    for (auto iter = grids.begin(); iter != grids.end(); ++iter) {
+        const bool coursestGrid = iter == grids.begin();
+        auto outputGridData     = grid_data(*iter);
         Log::info("Processing grid level {}", outputGridData.name);
 
         chrono::DurationRecorder dur;
@@ -239,19 +251,18 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
             const auto& country = idGeom.first;
             auto& geometry      = *idGeom.second;
 
-            int32_t xOffset, yOffset;
             gdal::SpatialReference projection(countries.projection);
 
             Log::info("Process country: {} ({})", country.full_name(), country.iso_code());
 
-            const auto env = geometry.getEnvelope();
-            auto extent    = create_geometry_extent(geometry, outputGridData.meta, projection, xOffset, yOffset);
-            if (extent.rows == 0 || extent.cols == 0) {
+            const auto env    = geometry.getEnvelope();
+            const auto extent = create_geometry_intersection_extent(geometry, outputGridData.meta, projection);
+            if (extent.rows <= 0 || extent.cols <= 0) {
                 Log::info("No intersection for country: {} ({})", country.full_name(), country.iso_code());
                 return;
             }
 
-            auto coverageInfo = create_country_coverage(country, geometry, projection, outputGridData.meta);
+            auto coverageInfo = create_country_coverage(country, geometry, projection, outputGridData.meta, coursestGrid ? CoverageMode::AllCountryCells : CoverageMode::GridCellsOnly);
             if (!coverageInfo.cells.empty()) {
                 store_country_coverage_vector(coverageInfo, outputDir / fmt::format("spatial_pattern_subgrid_{}_{}{}.gpkg", country.iso_code(), outputGridData.name, suffix));
             }

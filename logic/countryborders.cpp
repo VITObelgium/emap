@@ -1,14 +1,15 @@
 #include "emap/countryborders.h"
 
 #include "infra/gdalalgo.h"
+#include "infra/gdalio.h"
 
 namespace emap {
 
 using namespace inf;
 using namespace std::string_literals;
 
-CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const GeoMetadata& gridExtent, const CountryInventory& inv)
-: _ds(gdal::warp(vectorPath, gridExtent))
+CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const std::string& projection, const CountryInventory& inv)
+: _ds(gdal::warp_vector(vectorPath, projection))
 , _idField(countryIdField)
 , _inv(inv)
 {

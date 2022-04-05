@@ -171,8 +171,8 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
     const auto gridDefinitions = grids_for_model_grid(cfg.model_grid());
 
     CPLSetConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "TRUE");
-    CountryBorders countryBorders(cfg.boundaries_vector_path(), cfg.boundaries_field_id(), grid_data(gridDefinitions.front()).meta, cfg.countries());
-    CountryBorders eezCountryBorders(cfg.eez_boundaries_vector_path(), cfg.eez_boundaries_field_id(), grid_data(gridDefinitions.front()).meta, cfg.countries());
+    CountryBorders countryBorders(cfg.boundaries_vector_path(), cfg.boundaries_field_id(), grid_data(gridDefinitions.front()).meta.projection, cfg.countries());
+    CountryBorders eezCountryBorders(cfg.eez_boundaries_vector_path(), cfg.eez_boundaries_field_id(), grid_data(gridDefinitions.front()).meta.projection, cfg.countries());
 
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
