@@ -358,21 +358,6 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
         return ex.emissionId == emissionId;
     });
 
-    if (!exception.has_value()) {
-        // Try the fallback pollutant
-        if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
-            EmissionIdentifier fallbackId(emissionId.country, emissionId.sector, *fallbackPollutant);
-            exception = find_in_container_optional(_exceptions, [&fallbackId](const SpatialPatternException& ex) {
-                return ex.emissionId == fallbackId;
-            });
-
-            if (exception.has_value()) {
-                // make sure the original pollutant gets used, not the fallback
-                exception->emissionId.pollutant = emissionId.pollutant;
-            }
-        }
-    }
-
     if (!exception.has_value() && emissionId.sector.type() == EmissionSector::Type::Nfr) {
         // See if there is an entry on gnfr level
         exception = find_exception(convert_emission_id_to_gnfr_level(emissionId));
