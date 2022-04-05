@@ -289,9 +289,9 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
 {
     chrono::ScopedDurationLog durLog("Create emission inventory");
 
-    const auto nfrSums      = create_nfr_sums(totalEmissionsNfr);
-    const auto nfrSumsOlder = create_nfr_sums(totalEmissionsNfrOlder);
-    const auto gnfrSums     = create_gnfr_sums(totalEmissionsGnfr);
+    const auto nfrSums      = create_nfr_sums(totalEmissionsNfr);      //  NFR: Y-2
+    const auto nfrSumsOlder = create_nfr_sums(totalEmissionsNfrOlder); //  NFR: Y-3
+    const auto gnfrSums     = create_gnfr_sums(totalEmissionsGnfr);    // GNFR: Y-2
 
     // Extrapolate the emissions based on the previous GNFR emissions
     SingleEmissions extrapolatedTotalEmissionsGnfr(totalEmissionsGnfr.year() + date::years(1));
@@ -452,11 +452,10 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
             throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(cfg.reporting_year() - date::years(2)));
         }
 
-        reportYear      = cfg.reporting_year() - date::years(1);
-        const auto year = cfg.year() - date::years(1); // Year Y-3
+        reportYear = cfg.reporting_year() - date::years(1);
 
         reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
-        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg);
+        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), cfg.year(), cfg);
         if (gnfrTotalEmissions->empty()) {
             throw RuntimeError("No GNFR data could be found for the requested year, nor for the previous year");
         }
@@ -499,8 +498,9 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
     auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
     assert(gnfrTotalEmissions.validate_uniqueness());
 
-    if (gnfrReportYear < cfg.reporting_year()) {
+    if (gnfrReportYear < cfg.reporting_year() && (cfg.year() == (cfg.reporting_year() - date::years(2)))) {
         // no gnfr data was available for the reporting year, older data was read
+        // and interpolation is needed for recent years: year = report_year - 2
         auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - date::years(1), cfg, summary);
         return create_emission_inventory(std::move(nfrTotalEmissions),
                                          std::move(olderNfrTotalEmissions),
