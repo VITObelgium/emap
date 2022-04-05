@@ -222,8 +222,8 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
             }
         }
 
-        CHECK(pm10Sum == Approx(32.30286922 / 1000.0));
-        CHECK(pm25Sum == Approx(19.84122484 / 1000.0));
+        CHECK(pm10Sum == Approx(32.08043506 / 1000.0));
+        CHECK(pm25Sum == Approx(22.70281289 / 1000.0));
         CHECK(pmCoarseSum == Approx(pm10Sum - pm25Sum));
     }
 }
