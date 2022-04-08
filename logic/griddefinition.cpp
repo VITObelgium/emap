@@ -95,9 +95,9 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Chimere0025deg, "Chimere 0.025 degrees", GeoMetadata(117, 206, -1.0114, 48.9869, 0.025, nan, s_epsg4326)},
     {GridDefinition::ChimereEmep, "Chimere EMEP", GeoMetadata(520, 1199, -30.0, 30.0, 0.1, nan, s_epsg4326)},
     {GridDefinition::ChimereCams, "Chimere CAMS", GeoMetadata(1040, 1199, -30.0, 30.0, {0.1, -0.05}, nan, s_epsg4326)},
-    {GridDefinition::ChimereRio1, "Chimere rio1", GeoMetadata(252, 296, 2.39232, 49.38666, {0.0141, -0.00895}, nan, s_epsg4326)},
-    {GridDefinition::ChimereRio4, "Chimere rio4", GeoMetadata(63, 74, 2.39232, 49.38666, {0.0564, -0.0358}, nan, s_epsg4326)},
-    {GridDefinition::ChimereRio16, "Chimere rio16", GeoMetadata(162, 150, -10.91808, 34.63706, {0.2256, -0.1432}, nan, s_epsg4326)},
+    {GridDefinition::ChimereRio1, "Chimere rio1", GeoMetadata(288, 320, 2.16672, 49.24346, {0.0141, -0.00895}, nan, s_epsg4326)},
+    {GridDefinition::ChimereRio4, "Chimere rio4", GeoMetadata(72, 80, 2.16672, 49.24346, {0.0564, -0.0358}, nan, s_epsg4326)},
+    {GridDefinition::ChimereRio32, "Chimere rio32", GeoMetadata(156, 146, -10.46688, 35.20986, {0.2256, -0.1432}, nan, s_epsg4326)},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
@@ -125,8 +125,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::ChimereRio1};
     case ModelGrid::ChimereRio4:
         return {GridDefinition::ChimereRio4};
-    case ModelGrid::ChimereRio16:
-        return {GridDefinition::ChimereRio16};
+    case ModelGrid::ChimereRio32:
+        return {GridDefinition::ChimereRio32};
     default:
         break;
     }

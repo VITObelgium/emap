@@ -372,8 +372,8 @@ static ModelGrid model_grid_from_string(std::string_view grid)
         return ModelGrid::ChimereRio4;
     }
 
-    if (gridLowercase == "chimere_rio16") {
-        return ModelGrid::ChimereRio16;
+    if (gridLowercase == "chimere_rio32") {
+        return ModelGrid::ChimereRio32;
     }
 
     throw RuntimeError("Invalid model grid type: '{}'", grid);

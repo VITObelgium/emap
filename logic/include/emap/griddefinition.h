@@ -19,7 +19,7 @@ enum class ModelGrid
     ChimereCams,
     ChimereRio1,
     ChimereRio4,
-    ChimereRio16,
+    ChimereRio32,
     EnumCount,
     Invalid,
 };
@@ -46,7 +46,7 @@ enum class GridDefinition
     ChimereCams,
     ChimereRio1,
     ChimereRio4,
-    ChimereRio16,
+    ChimereRio32,
     EnumCount,
     Invalid,
 };
