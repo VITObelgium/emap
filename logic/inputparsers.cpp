@@ -178,6 +178,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         auto [colSector, sectorType] = determine_sector_column(csv);
         auto colX                    = csv.column_index("x");
         auto colY                    = csv.column_index("y");
+        auto colDv                   = csv.column_index("dv");
 
         for (auto& line : csv) {
             const auto sectorName    = line.get_string(colSector);
@@ -218,6 +219,10 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                     } else {
                         throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
                     }
+                }
+
+                if (colDv.has_value()) {
+                    info.set_dv(line.get_int32(*colDv));
                 }
 
                 result.add_emission(std::move(info));

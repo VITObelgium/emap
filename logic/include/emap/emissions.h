@@ -197,6 +197,11 @@ public:
         return _diameter;
     }
 
+    std::optional<int32_t> dv() const noexcept
+    {
+        return _dv;
+    }
+
     double temperature() const noexcept
     {
         return _temperature;
@@ -220,6 +225,11 @@ public:
     void set_diameter(double val) noexcept
     {
         _diameter = val;
+    }
+
+    void set_dv(std::optional<int32_t> val) noexcept
+    {
+        _dv = val;
     }
 
     void set_temperature(double val) noexcept
@@ -246,6 +256,7 @@ private:
     double _temperature    = 0.0;
     double _warmthContents = 0.0;
     double _flowRate       = 0.0;
+    std::optional<int32_t> _dv;
     std::string _sourceId; // optional source identifier
 };
 

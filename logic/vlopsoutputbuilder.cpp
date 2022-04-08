@@ -42,7 +42,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.h_m   = emission.height();
     entry.d_m   = 0;
     entry.s_m   = 0;
-    entry.dv    = 1;
+    entry.dv    = emission.dv().value_or(1);
     entry.cat   = sectorParamsIter->second.id;
     entry.area  = static_cast<int32_t>(id.country.id());
     entry.sd    = pollutantParams.sd;
