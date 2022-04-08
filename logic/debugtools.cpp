@@ -18,6 +18,7 @@
 namespace emap {
 
 using namespace inf;
+using namespace std::string_literals;
 
 class VectorBuilder
 {
@@ -180,20 +181,27 @@ struct CountryGeometries
     std::vector<std::pair<Country, geos::geom::Geometry::Ptr>> geometries;
 };
 
-static CountryGeometries create_country_geometries(const fs::path& inputPath, const std::string& fieldId, const CountryInventory& countries, const std::string& gridProjection)
+static CountryGeometries create_country_geometries(const fs::path& inputPath,
+                                                   const std::string& fieldId,
+                                                   const CountryInventory& countries,
+                                                   const std::string& gridProjection,
+                                                   const fs::path& outputPath,
+                                                   std::string_view suffix)
 {
     CountryGeometries result;
 
-    auto countriesDs    = gdal::VectorDataSet::open(inputPath);
-    auto countriesLayer = countriesDs.layer(0);
-    if (!countriesLayer.projection().has_value()) {
-        throw RuntimeError("Invalid boundaries vector: No projection information available");
-    }
+    auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, gridProjection);
 
-    gdal::SpatialReference gridSpatialReference(gridProjection);
+    auto countriesDs    = gdal::warp_vector(inputPath, clipExtent, {"-nlt"s, "PROMOTE_TO_MULTI"s});
+    auto countriesLayer = countriesDs.layer(0);
 
     auto colCountryId = countriesLayer.layer_definition().required_field_index(fieldId);
-    result.projection = gridSpatialReference.export_to_wkt();
+    result.projection = gridProjection;
+
+    VectorBuilder countryGeometries("Country geometries");
+    auto proj = countriesLayer.projection();
+    countryGeometries.set_projection(countriesLayer.projection()->export_to_wkt());
+    countryGeometries.add_field<std::string>("country");
 
     {
         std::unordered_map<Country, geos::geom::Geometry::Ptr> geometriesMap;
@@ -203,10 +211,9 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath, co
             if (const auto country = countries.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value() && feature.has_geometry()) {
                 // known country
                 Log::info("Country: {}", country->full_name());
-                auto gdalGeom = feature.geometry().clone();
-                gdalGeom.transform_to(gridSpatialReference);
+                countryGeometries.add_country_geometry(*country, feature.geometry());
 
-                auto geom = geom::gdal_to_geos(gdalGeom);
+                auto geom = geom::gdal_to_geos(feature.geometry());
                 if (geometriesMap.count(*country) == 0) {
                     geometriesMap.emplace(*country, std::move(geom));
                 } else {
@@ -219,6 +226,9 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath, co
             result.geometries.emplace_back(country, std::move(geometry));
         }
     }
+
+    Log::info("Store countries to disk");
+    countryGeometries.store(outputPath / fmt::format("country_geometries{}.gpkg", suffix));
 
     // sort on geometry complexity, so we always start processing the most complex geometries
     // this avoids processing the most complext geometry in the end on a single core
@@ -233,8 +243,11 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
 {
     const auto gridProjection = grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
 
+    // Clip the boundaries on the CAMS grid, we do not want to consider country geometries outside of the cams grid
+    auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, gridProjection);
+
     Log::info("Create country geometries");
-    const auto countries = create_country_geometries(boundaries, fieldId, runConfig.countries(), gridProjection);
+    const auto countries = create_country_geometries(boundaries, fieldId, runConfig.countries(), gridProjection, outputDir, suffix);
 
     const auto grids = grids_for_model_grid((runConfig.model_grid()));
     for (auto iter = grids.begin(); iter != grids.end(); ++iter) {
@@ -257,7 +270,7 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
 
             const auto env    = geometry.getEnvelope();
             const auto extent = create_geometry_intersection_extent(geometry, outputGridData.meta, projection);
-            if (extent.rows <= 0 || extent.cols <= 0) {
+            if (extent.rows == 0 || extent.cols == 0) {
                 Log::info("No intersection for country: {} ({})", country.full_name(), country.iso_code());
                 return;
             }
@@ -282,12 +295,12 @@ int debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel)
         auto runConfig       = parse_run_configuration_file(runConfigPath);
         const auto outputDir = runConfig.output_path() / "grids";
 
+        process_geometries(runConfig, runConfig.boundaries_vector_path(), runConfig.boundaries_field_id(), "", outputDir);
+        process_geometries(runConfig, runConfig.eez_boundaries_vector_path(), runConfig.eez_boundaries_field_id(), "_eez", outputDir);
+
         store_grid("Spatial pattern grid CAMS", grid_data(GridDefinition::CAMS).meta, outputDir / "spatial_pattern_grid_cams.gpkg");
         store_grid("Spatial pattern grid CEIP", grid_data(GridDefinition::ChimereEmep).meta, outputDir / "spatial_pattern_grid_ceip.gpkg");
         store_grid("Spatial pattern grid Flanders", grid_data(GridDefinition::Flanders1km).meta, outputDir / "spatial_pattern_grid_flanders.gpkg");
-
-        process_geometries(runConfig, runConfig.boundaries_vector_path(), runConfig.boundaries_field_id(), "", outputDir);
-        process_geometries(runConfig, runConfig.eez_boundaries_vector_path(), runConfig.eez_boundaries_field_id(), "_eez", outputDir);
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {

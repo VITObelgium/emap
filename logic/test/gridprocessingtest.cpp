@@ -54,7 +54,7 @@ TEST_CASE("create_country_coverages")
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
 
     CountryInventory countries({country::BEB});
-    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, nullptr);
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
 
     CHECK(coverageInfo.size() == 1);
     auto& beb = coverageInfo.front();
@@ -74,7 +74,7 @@ TEST_CASE("Normalize raster")
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
 
     CountryInventory countries({countries::NL});
-    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, nullptr);
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
 
     CHECK(coverageInfo.size() == 1);
     auto& nl = coverageInfo.front();

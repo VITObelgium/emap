@@ -354,8 +354,8 @@ GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom
 
     geometryExtent.xll  = lowerLeft.x;
     geometryExtent.yll  = lowerLeft.y;
-    geometryExtent.cols = (bottomRightCell.c - topLeftCell.c) + 1;
-    geometryExtent.rows = (bottomRightCell.r - topLeftCell.r) + 1;
+    geometryExtent.cols = std::max(0, (bottomRightCell.c - topLeftCell.c) + 1);
+    geometryExtent.rows = std::max(0, (bottomRightCell.r - topLeftCell.r) + 1);
 
     return geometryExtent;
 }
@@ -422,13 +422,13 @@ CountryCellCoverage create_country_coverage(const Country& country, const geos::
     return cov;
 }
 
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, CoverageMode mode, const GridProcessingProgress::Callback& progressCb)
 {
     auto countriesDs = gdal::VectorDataSet::open(countriesVector);
-    return create_country_coverages(outputExtent, countriesDs, countryIdField, inv, progressCb);
+    return create_country_coverages(outputExtent, countriesDs, countryIdField, inv, mode, progressCb);
 }
 
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb)
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, CoverageMode mode, const GridProcessingProgress::Callback& progressCb)
 {
     std::vector<CountryCellCoverage> result;
 
@@ -486,7 +486,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
         GridProcessingProgress progress(geometries.size(), progressCb);
         // std::for_each(geometries.rbegin(), geometries.rend(), [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
         tbb::parallel_for_each(geometries, [&](const std::pair<Country, geos::geom::Geometry::Ptr>& idGeom) {
-            auto cov = create_country_coverage(idGeom.first, *idGeom.second, gdal::SpatialReference(projection), outputExtent, CoverageMode::GridCellsOnly);
+            auto cov = create_country_coverage(idGeom.first, *idGeom.second, gdal::SpatialReference(projection), outputExtent, mode);
             progress.set_payload(idGeom.first);
             progress.tick();
 

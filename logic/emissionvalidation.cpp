@@ -14,7 +14,7 @@ void EmissionValidation::add_point_emissions(const EmissionIdentifier& id, doubl
 
 void EmissionValidation::add_diffuse_emissions(const EmissionIdentifier& id, const gdx::DenseRaster<double>& raster)
 {
-    auto sum = gdx::sum(raster);
+    const auto sum = gdx::sum(raster);
 
     std::scoped_lock lock(_mutex);
     _emissionSums[id] += sum;

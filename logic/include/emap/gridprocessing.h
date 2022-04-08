@@ -65,7 +65,7 @@ struct CountryCellCoverage
     };
 
     Country country;
-    inf::GeoMetadata outputSubgridExtent; // This countries subgrid within the output grid
+    inf::GeoMetadata outputSubgridExtent; // This countries subgrid within the output grid, depending on the coverageMode this is contained in the output grid or not
     std::vector<CellInfo> cells;
 };
 
@@ -93,8 +93,8 @@ enum class CoverageMode
 };
 
 CountryCellCoverage create_country_coverage(const Country& country, const geos::geom::Geometry& geom, const inf::gdal::SpatialReference& geometryProjection, const inf::GeoMetadata& outputExtent, CoverageMode mode);
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
-std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, const fs::path& countriesVector, const std::string& countryIdField, const CountryInventory& inv, CoverageMode mode, const GridProcessingProgress::Callback& progressCb);
+std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& outputExtent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField, const CountryInventory& inv, CoverageMode mode, const GridProcessingProgress::Callback& progressCb);
 
 // void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 // void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);

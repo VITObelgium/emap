@@ -50,6 +50,7 @@ int main(int argc, char** argv)
 
     std::locale::global(std::locale::classic());
     CPLSetConfigOption("GDAL_DISABLE_READDIR_ON_OPEN ", "TRUE");
+    CPLSetConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
 
     struct Cli
     {
