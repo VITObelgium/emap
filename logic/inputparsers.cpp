@@ -100,9 +100,10 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
 
+    size_t lineNr = 2;
+
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
-        size_t lineNr = 2;
 
         /*
         using namespace io;
@@ -181,7 +182,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         for (auto& line : csv) {
             const auto sectorName    = line.get_string(colSector);
             const auto pollutantName = line.get_string(colPollutant);
-            if (sectorInv.is_ignored_sector(sectorType, sectorName) ||
+            if (sectorName.empty() || sectorInv.is_ignored_sector(sectorType, sectorName) ||
                 pollutantInv.is_ignored_pollutant(pollutantName)) {
                 continue;
             }
@@ -226,7 +227,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
         return result;
     } catch (const std::exception& e) {
-        throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
+        throw RuntimeError("Error parsing {} line {} ({})", emissionsCsv, lineNr, e.what());
     }
 }
 
