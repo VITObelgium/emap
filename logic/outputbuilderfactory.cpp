@@ -134,7 +134,10 @@ std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
                modelGrid == ModelGrid::Chimere005degSmall ||
                modelGrid == ModelGrid::Chimere0025deg ||
                modelGrid == ModelGrid::ChimereEmep ||
-               modelGrid == ModelGrid::ChimereCams) {
+               modelGrid == ModelGrid::ChimereCams ||
+               modelGrid == ModelGrid::ChimereRio1 ||
+               modelGrid == ModelGrid::ChimereRio4 ||
+               modelGrid == ModelGrid::ChimereRio32) {
         const auto countryMappingPath = cfg.data_root() / "05_model_parameters" / "chimere_mapping_country.xlsx";
         auto countryMapping           = parse_chimere_country_mapping(countryMappingPath, cfg.countries());
         return std::make_unique<ChimereOutputBuilder>(std::move(sectorParams), std::move(countryMapping), cfg);
