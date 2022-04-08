@@ -15,6 +15,7 @@ namespace emap {
 class SectorInventory;
 class PollutantInventory;
 class RunConfiguration;
+struct CountryCellCoverage;
 
 struct SpatialPatternSource
 {
@@ -140,7 +141,13 @@ public:
     SpatialPatternInventory(const RunConfiguration& cfg);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
-    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId, SpatialPatternTableCache* cache = nullptr) const;
+    /* Obtain the spatial pattern for the given identifier, checks the complete pattern if it contains data, otherwise falls back to uniform spread */
+    SpatialPatternSource get_spatial_pattern_checked(const EmissionIdentifier& emissionId, SpatialPatternTableCache* cache = nullptr) const;
+    /* Obtain the spatial pattern for the given identifier, checks if the pattern contains data but only in the provided country cells, otherwise falls back to uniform spread */
+    SpatialPatternSource get_spatial_pattern_checked(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, SpatialPatternTableCache* cache = nullptr) const;
+
+    /* Obtain the spatial pattern for the given identifier without checking the contents of the pattern for data */
+    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId) const;
 
 private:
     struct SpatialPatternFile
@@ -198,11 +205,14 @@ private:
     std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
 
     SpatialPatternSource get_country_specific_spatial_pattern(EmissionIdentifier emissionId, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, SpatialPatternTableCache* cache) const;
-    SpatialPatternSource get_spatial_pattern(const EmissionIdentifier& emissionId, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport) const;
+    SpatialPatternSource get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage* countryCoverage, SpatialPatternTableCache* cache) const;
+    SpatialPatternSource get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage* countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport) const;
 
     std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
     static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& emissionSectorToReport, date::year year);
     static SpatialPatternException::Type exception_type_from_string(std::string_view str);
+
+    bool pattern_contains_data(const SpatialPatternSource& src, const CountryCellCoverage& countryCoverage) const;
 
     const RunConfiguration& _cfg;
     std::regex _spatialPatternCamsRegex;

@@ -575,15 +575,14 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 //     }
 // }
 
-gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, const CountryCellCoverage& countryCoverage)
+gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& raster, const CountryCellCoverage& countryCoverage)
 {
-    return cutout_country(rasterInput, countryCoverage);
+    return cutout_country(gdx::resample_raster(raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average), countryCoverage);
 }
 
 gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, const CountryCellCoverage& countryCoverage)
 {
-    auto raster = gdx::read_dense_raster<double>(rasterInput);
-    return cutout_country(gdx::resample_raster(raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average), countryCoverage);
+    return extract_country_from_raster(gdx::read_dense_raster<double>(rasterInput), countryCoverage);
 }
 
 void erase_area_in_raster(gdx::DenseRaster<double>& rasterInput, const inf::GeoMetadata& extent)

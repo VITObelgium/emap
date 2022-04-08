@@ -176,6 +176,8 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     }
 
     if (result.empty()) {
+        throw std::logic_error("Spatial pattern data contents bug!");
+
         // emission could not be spread, fall back to uniform spread
         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
         result      = apply_uniform_spread(emissionValue, countryCoverage, outputExtent);
@@ -299,8 +301,15 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         }
 
                         SpatialPatternProcessInfo spatPatInfo;
-                        const auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId);
-                        auto countryRaster        = apply_spatial_pattern(spatialPattern, emissionId, emissionToSpread, cellCoverageInfo, gridData.meta, cfg, spatPatInfo);
+                        SpatialPatternSource spatialPattern;
+                        if (isCoursestGrid) {
+                            // only check the spatial pattern grid contents for the coursest grid
+                            spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, cellCoverageInfo);
+                        } else {
+                            spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId);
+                        }
+
+                        auto countryRaster = apply_spatial_pattern(spatialPattern, emissionId, emissionToSpread, cellCoverageInfo, gridData.meta, cfg, spatPatInfo);
                         if (isCoursestGrid) {
                             if (spatPatInfo.status == SpatialPatternProcessInfo::Status::FallbackToUniformSpread) {
                                 summary.add_spatial_pattern_source_without_data(spatialPattern, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
@@ -374,7 +383,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         return cov.country == country::BEF;
                     });
 
-                    auto spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, &cache);
+                    auto spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage, &cache);
                     auto emission       = emissionInv.try_emission_with_id(emissionId);
                     if (!emission.has_value()) {
                         return;

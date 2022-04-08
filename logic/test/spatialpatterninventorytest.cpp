@@ -175,7 +175,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx), &cache);
+        const auto spSource = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx), &cache);
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2015" / "Emissies per km2 excl puntbrongegevens_2015_NOx.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
@@ -186,7 +186,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data, 2015 does not contain valid data for the sector, so 2019 needs to be used
-        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx), &cache);
+        const auto spSource = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx), &cache);
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NOx.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::NOx);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
@@ -197,7 +197,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM2_5), &cache);
+        const auto spSource = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM2_5), &cache);
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM2,5.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::PM2_5);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
@@ -208,7 +208,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Flanders excel data
-        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::As), &cache);
+        const auto spSource = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::As), &cache);
         CHECK(spSource.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissie per km2_met NFR_As 2019_juli 2021.xlsx");
         CHECK(spSource.emissionId.pollutant == pollutants::As);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
@@ -219,7 +219,7 @@ TEST_CASE("Spatial pattern selection test")
 
     {
         // Exception rule
-        const auto spSource = inv.get_spatial_pattern(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::CO), &cache);
+        const auto spSource = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::CO), &cache);
         CHECK(spSource.path.generic_u8string() == (fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "." / "wegverkeer" / "2021" / "1A3BI_CO_2016.tif").generic_u8string());
         CHECK(spSource.emissionId.pollutant == pollutants::CO);
         CHECK(spSource.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));

@@ -100,8 +100,7 @@ std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata
 // void extract_countries_from_raster(const fs::path& rasterInput, const fs::path& countriesShape, const std::string& countryIdField, const fs::path& outputDir, std::string_view filenameFormat, const CountryInventory& inv, const GridProcessingProgress::Callback& progressCb);
 // void extract_countries_from_raster(const fs::path& rasterInput, std::span<const CountryCellCoverage> countries, const fs::path& outputDir, std::string_view filenameFormat, const GridProcessingProgress::Callback& progressCb);
 
-// cuts out the country from the raster based on the cellcoverages, the output extent will be the same is that from the input
-// The resulting raster is normalized
+// cuts out the country from the raster based on the cellcoverages, the output extent will be the same as that from the input
 gdx::DenseRaster<double> extract_country_from_raster(const gdx::DenseRaster<double>& rasterInput, const CountryCellCoverage& countryCoverage);
 gdx::DenseRaster<double> extract_country_from_raster(const fs::path& rasterInput, const CountryCellCoverage& countryCoverage);
 
