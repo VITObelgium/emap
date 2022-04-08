@@ -40,7 +40,6 @@ TEST_CASE("create_geometry_extent")
 
     const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
 
-    int32_t xOffset = 0, yOffset = 0;
     auto meta = create_geometry_intersection_extent(*poly, gridMeta);
     CHECK(GeoMetadata(1, 1, 100.0, 50.0, 50.0, {}) == meta);
 }
