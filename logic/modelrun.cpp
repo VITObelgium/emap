@@ -44,6 +44,19 @@ int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::opti
     return run_model(runConfig, progressCb);
 }
 
+static gdx::DenseRaster<double> apply_uniform_spread(double emissionValue, const CountryCellCoverage& countryCoverage, const inf::GeoMetadata& outputExtent)
+{
+    auto raster = spread_values_uniformly_over_cells(emissionValue, countryCoverage);
+
+    const auto intersection = metadata_intersection(raster.metadata(), outputExtent);
+    if (intersection.bounding_box() != countryCoverage.outputSubgridExtent.bounding_box()) {
+        // country extent is outside of the output grid
+        raster = gdx::sub_raster(raster, intersection);
+    }
+
+    return raster;
+}
+
 // The supplied raster should be the extracted country and should contain only emissions belonging to this country
 static gdx::DenseRaster<double> apply_spatial_pattern_raster(gdx::DenseRaster<double> raster,
                                                              double emissionValue,
@@ -111,19 +124,6 @@ static gdx::DenseRaster<double> apply_spatial_pattern_flanders(const gdx::DenseR
     return outputGridRaster;
 }
 
-static gdx::DenseRaster<double> apply_uniform_spread(double emissionValue, const CountryCellCoverage& countryCoverage, const inf::GeoMetadata& outputExtent)
-{
-    auto raster = spread_values_uniformly_over_cells(emissionValue, countryCoverage);
-
-    const auto intersection = metadata_intersection(raster.metadata(), outputExtent);
-    if (intersection.bounding_box() != countryCoverage.outputSubgridExtent.bounding_box()) {
-        // country extent is outside of the output grid
-        raster = gdx::sub_raster(raster, intersection);
-    }
-
-    return raster;
-}
-
 struct SpatialPatternProcessInfo
 {
     enum class Status
@@ -138,54 +138,45 @@ struct SpatialPatternProcessInfo
     double emissionsWithinOutput = 0.0;
 };
 
-static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource& spatialPattern,
-                                                      const EmissionIdentifier& emissionId,
-                                                      double emissionValue,
-                                                      const CountryCellCoverage& countryCoverage,
-                                                      const GeoMetadata& outputExtent,
-                                                      const RunConfiguration& cfg,
-                                                      SpatialPatternProcessInfo& info)
+static SpatialPatternProcessInfo apply_emission_to_spatial_pattern(SpatialPattern& spatialPattern,
+                                                                   double emissionValue,
+                                                                   const GeoMetadata& outputExtent,
+                                                                   const CountryCellCoverage& countryCoverage)
 {
     gdx::DenseRaster<double> result;
 
-    info.totalEmissions        = emissionValue;
-    info.emissionsWithinOutput = 0.0;
+    SpatialPatternProcessInfo info;
+    info.totalEmissions = emissionValue;
 
     if (emissionValue == 0) {
         info.status = SpatialPatternProcessInfo::Status::NoEmissionToSpread;
-        return result;
+        return info;
     }
 
-    switch (spatialPattern.type) {
-    case SpatialPatternSource::Type::SpatialPatternCAMS:
-    case SpatialPatternSource::Type::Raster:
-        result = apply_spatial_pattern_raster(spatialPattern.path, emissionValue, countryCoverage, outputExtent);
-        break;
-    case SpatialPatternSource::Type::SpatialPatternCEIP:
-        result = apply_spatial_pattern_ceip(spatialPattern.path, spatialPattern.usedEmissionId, emissionValue, countryCoverage, outputExtent, cfg);
-        break;
-    case SpatialPatternSource::Type::UnfiformSpread:
-        result = apply_uniform_spread(emissionValue, countryCoverage, outputExtent);
-        break;
-    default:
-        throw RuntimeError("Invalid spatial pattern type");
-    }
+    info.status = SpatialPatternProcessInfo::Status::Ok;
 
-    if (!result.empty() && result.metadata().cell_size_x() != countryCoverage.outputSubgridExtent.cell_size_x()) {
-        throw std::logic_error("Spatial pattern grid resolution bug!");
-    }
+    if (spatialPattern.raster.empty()) {
+        if (spatialPattern.source.patternAvailableButWithoutData) {
+            info.status = SpatialPatternProcessInfo::Status::FallbackToUniformSpread;
+        }
 
-    if (result.empty()) {
-        // emission could not be spread, fall back to uniform spread
-        Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-        result      = apply_uniform_spread(emissionValue, countryCoverage, outputExtent);
-        info.status = SpatialPatternProcessInfo::Status::FallbackToUniformSpread;
+        spatialPattern.raster = apply_uniform_spread(emissionValue, countryCoverage, outputExtent);
+
     } else {
-        info.status                = SpatialPatternProcessInfo::Status::Ok;
-        info.emissionsWithinOutput = result.sum();
+        // Spatial pattern data is available and will contain data
+        spatialPattern.raster *= emissionValue;
+
+        const auto& countryExtent = spatialPattern.raster.metadata();
+        const auto intersection   = metadata_intersection(countryExtent, outputExtent);
+        if (intersection.bounding_box() != countryExtent.bounding_box()) {
+            // country extent is outside of the output grid
+            spatialPattern.raster = gdx::sub_raster(spatialPattern.raster, intersection);
+        }
     }
 
-    return result;
+    info.emissionsWithinOutput = spatialPattern.raster.sum();
+
+    return info;
 }
 
 static GeoMetadata metadata_with_modified_cellsize(const GeoMetadata meta, GeoMetadata::CellSize cellsize)
@@ -298,32 +289,31 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                             return;
                         }
 
-                        SpatialPatternProcessInfo spatPatInfo;
-                        SpatialPatternSource spatialPattern;
+                        SpatialPattern spatialPattern;
                         if (isCoursestGrid) {
                             // only check the spatial pattern grid contents for the coursest grid
                             spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, cellCoverageInfo);
                         } else {
-                            spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId);
+                            spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, cellCoverageInfo);
                         }
 
-                        auto countryRaster = apply_spatial_pattern(spatialPattern, emissionId, emissionToSpread, cellCoverageInfo, gridData.meta, cfg, spatPatInfo);
+                        const auto spatPatInfo = apply_emission_to_spatial_pattern(spatialPattern, emissionToSpread, gridData.meta, cellCoverageInfo);
                         if (isCoursestGrid) {
                             if (spatPatInfo.status == SpatialPatternProcessInfo::Status::FallbackToUniformSpread) {
-                                summary.add_spatial_pattern_source_without_data(spatialPattern, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
+                                summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
                             } else {
-                                summary.add_spatial_pattern_source(spatialPattern, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
+                                summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
                             }
                         }
 
-                        if (countryRaster.empty()) {
+                        if (spatialPattern.raster.empty()) {
                             return;
                         }
 
                         double erasedEmission = 0.0;
                         if (subGridMeta.has_value()) {
                             // Erase the region in the subgrid for which we will perform a higher resolution calculation
-                            erasedEmission = erase_area_in_raster_and_sum_erased_values(countryRaster, *subGridMeta);
+                            erasedEmission = erase_area_in_raster_and_sum_erased_values(spatialPattern.raster, *subGridMeta);
                             std::scoped_lock lock(mut);
                             if (erasedEmission > 0) {
                                 remainingEmissions[emissionId] = erasedEmission;
@@ -333,7 +323,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         }
 
                         if (validator) {
-                            validator->add_diffuse_emissions(emissionId, countryRaster);
+                            validator->add_diffuse_emissions(emissionId, spatialPattern.raster);
                         }
 
                         // Add the point sources to the grid
@@ -355,12 +345,12 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
                         if (isCoursestGrid) {
                             // Only add the point emissions once for the coursest grid as they are resolution independent
-                            collector.add_emissions(emissionId.country, sector, std::move(countryRaster), emission->scaled_point_emissions());
+                            collector.add_emissions(emissionId.country, sector, std::move(spatialPattern.raster), emission->scaled_point_emissions());
                             if (validator) {
                                 validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                             }
                         } else {
-                            collector.add_emissions(emissionId.country, sector, std::move(countryRaster), {});
+                            collector.add_emissions(emissionId.country, sector, std::move(spatialPattern.raster), {});
                         }
                     } catch (const std::exception& e) {
                         Log::error("Error spreading emission: {}", e.what());
@@ -370,7 +360,6 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
             if (gridIter + 1 == gridDefinitions.end()) {
                 // Now do flanders (for finest grid)
-                SpatialPatternTableCache cache(cfg);
                 const auto sectors = cfg.sectors().nfr_sectors();
                 // std::for_each(sectors.begin(), sectors.end(), [&](const NfrSector& sector) {
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
@@ -381,41 +370,27 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         return cov.country == country::BEF;
                     });
 
-                    auto spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage, &cache);
+                    auto spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage);
                     auto emission       = emissionInv.try_emission_with_id(emissionId);
                     if (!emission.has_value()) {
                         return;
                     }
 
-                    gdx::DenseRaster<double> raster;
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
-                    const auto totalEmissions   = emission->scaled_total_emissions_sum();
-
-                    if (spatialPattern.type == SpatialPatternSource::Type::SpatialPatternTable) {
-                        const auto* spatPat = cache.get_data(spatialPattern.path, spatialPattern.usedEmissionId);
-                        if (spatPat != nullptr) {
-                            raster = apply_spatial_pattern_flanders(spatPat->raster, diffuseEmissions, gridData.meta);
-                        }
-                    } else if (spatialPattern.type == SpatialPatternSource::Type::Raster) {
-                        raster = apply_spatial_pattern_raster(spatialPattern.path, diffuseEmissions, flandersCoverage, gridData.meta);
-                    } else if (spatialPattern.type == SpatialPatternSource::Type::UnfiformSpread) {
-                        raster = apply_uniform_spread(diffuseEmissions, flandersCoverage, gridData.meta);
-                    }
-
-                    if (raster.empty()) {
+                    const auto spatPatInfo      = apply_emission_to_spatial_pattern(spatialPattern, diffuseEmissions, gridData.meta, flandersCoverage);
+                    if (spatialPattern.source.patternAvailableButWithoutData) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-                        raster = apply_uniform_spread(diffuseEmissions, flandersCoverage, gridData.meta);
-                        summary.add_spatial_pattern_source_without_data(spatialPattern, totalEmissions, diffuseEmissions, emission->point_emission_sum());
+                        summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern, totalEmissions, diffuseEmissions, emission->point_emission_sum());
+                        summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum());
                     }
 
                     if (validator) {
-                        validator->add_diffuse_emissions(emissionId, raster);
+                        validator->add_diffuse_emissions(emissionId, spatialPattern.raster);
                         validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                     }
 
-                    collector.add_emissions(emissionId.country, sector, std::move(raster), emission->scaled_point_emissions());
+                    collector.add_emissions(emissionId.country, sector, std::move(spatialPattern.raster), emission->scaled_point_emissions());
                 });
             }
 

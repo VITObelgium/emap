@@ -156,9 +156,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         worksheet_write_string(ws, row, index++, type.c_str(), nullptr);
         worksheet_write_boolean(ws, row, index++, (!dataUsed) || info.source.patternAvailableButWithoutData, nullptr);
         worksheet_write_boolean(ws, row, index++, info.source.isException, nullptr);
-        if (info.source.type != SpatialPatternSource::Type::UnfiformSpread &&
-            info.source.type != SpatialPatternSource::Type::Raster) {
-            worksheet_write_number(ws, row, index++, static_cast<int>(info.source.year), nullptr);
+        if (info.source.year.has_value()) {
+            worksheet_write_number(ws, row, index++, static_cast<int>(*info.source.year), nullptr);
         } else {
             ++index;
         }
