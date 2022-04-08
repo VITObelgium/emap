@@ -176,8 +176,6 @@ static gdx::DenseRaster<double> apply_spatial_pattern(const SpatialPatternSource
     }
 
     if (result.empty()) {
-        throw std::logic_error("Spatial pattern data contents bug!");
-
         // emission could not be spread, fall back to uniform spread
         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
         result      = apply_uniform_spread(emissionValue, countryCoverage, outputExtent);
