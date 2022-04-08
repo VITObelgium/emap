@@ -21,12 +21,12 @@ inline std::optional<double> to_giga_gram_factor(std::string_view unit) noexcept
         return 1.0 / 1000.0;
     }
 
-    if (trimmedUnit == "kg/jr" || trimmedUnit == "kg/yr") {
-        return 1.0 / 1e12;
+    if (trimmedUnit == "kg/jr" || trimmedUnit == "kg/yr" || trimmedUnit == "kg") {
+        return 1.0 / 1e6;
     }
 
     if (trimmedUnit == "g I-TEQ" || trimmedUnit == "g") {
-        return 1.0 / 1e15;
+        return 1.0 / 1e9;
     }
 
     return result;
