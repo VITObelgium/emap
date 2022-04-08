@@ -7,7 +7,6 @@
 
 #include "infra/gdalalgo.h"
 
-//#include "infra/generator.h"
 #include "infra/cell.h"
 #include "infra/gdal.h"
 #include "infra/geometadata.h"
@@ -71,6 +70,8 @@ struct CountryCellCoverage
 
 // normalizes the raster so the sum is 1
 void normalize_raster(gdx::DenseRaster<double>& ras) noexcept;
+
+inf::gdal::VectorDataSet transform_vector(const fs::path& vectorPath, const inf::GeoMetadata& destMeta);
 
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid, inf::gdal::ResampleAlgorithm algo = inf::gdal::ResampleAlgorithm::Average);
 gdx::DenseRaster<double> read_raster_north_up(const fs::path& rasterInput, const inf::GeoMetadata& extent);

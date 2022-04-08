@@ -1,4 +1,5 @@
 #include "emap/countryborders.h"
+#include "emap/gridprocessing.h"
 
 #include "infra/gdalalgo.h"
 #include "infra/gdalio.h"
@@ -9,7 +10,7 @@ using namespace inf;
 using namespace std::string_literals;
 
 CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const GeoMetadata& gridExtent, const CountryInventory& inv)
-: _ds(gdal::warp_vector(vectorPath, gridExtent, {"-nlt"s, "PROMOTE_TO_MULTI"s}))
+: _ds(transform_vector(vectorPath, gridExtent))
 , _idField(countryIdField)
 , _inv(inv)
 {

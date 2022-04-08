@@ -33,6 +33,41 @@ namespace emap {
 using namespace inf;
 using namespace std::string_literals;
 
+gdal::VectorDataSet transform_vector(const fs::path& vectorPath, const GeoMetadata& destMeta)
+{
+    auto ds = gdal::VectorDataSet::open(vectorPath);
+
+    // Clip the boundaries on the CAMS grid, we do not want to consider country geometries outside of the cams grid
+    auto clipExtent = gdal::warp_metadata(destMeta, ds.layer(0).projection().value().export_to_wkt());
+
+    // Only the features that intersect with the CAMS grid will be considered, avoids invalid geometry warnings near the poles
+    auto [xMin, yMax] = clipExtent.top_left();
+    auto [xMax, yMin] = clipExtent.bottom_right();
+
+    // Clip everything within the output extent
+    auto [xMinOut, yMaxOut] = destMeta.top_left();
+    auto [xMaxOut, yMinOut] = destMeta.bottom_right();
+
+    std::vector<std::string> options = {
+        "-t_srs"s,
+        destMeta.projection,
+        "-spat",
+        std::to_string(xMin),
+        std::to_string(yMin),
+        std::to_string(xMax),
+        std::to_string(yMax),
+        "-clipdst",
+        std::to_string(xMinOut),
+        std::to_string(yMinOut),
+        std::to_string(xMaxOut),
+        std::to_string(yMaxOut),
+        "-nlt",
+        "PROMOTE_TO_MULTI",
+    };
+
+    return gdal::translate_vector(ds, options);
+}
+
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid, gdal::ResampleAlgorithm algo)
 {
     const auto& resultMeta = grid_data(grid).meta;

@@ -192,7 +192,7 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath,
 
     auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, gridProjection);
 
-    auto countriesDs    = gdal::warp_vector(inputPath, clipExtent, {"-nlt"s, "PROMOTE_TO_MULTI"s});
+    auto countriesDs    = transform_vector(inputPath, clipExtent);
     auto countriesLayer = countriesDs.layer(0);
 
     auto colCountryId = countriesLayer.layer_definition().required_field_index(fieldId);
