@@ -409,23 +409,25 @@ SpatialPatternSource SpatialPatternInventory::get_country_specific_spatial_patte
                 }
             }
         }
+    }
 
-        // Try the fallback pollutant
-        if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
-            // A fallback is defined, search for the pattern
+    // Try the fallback pollutant
+    if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
+        // A fallback is defined, search for the pattern
 
-            // first check the exceptions
-            if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
-                if (exception->viaSector.has_value()) {
-                    // via sector is present: adjust the sector and continue regular search
-                    emissionId = emissionId.with_sector(*exception->viaSector);
-                } else {
-                    return source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year());
-                }
+        // first check the exceptions
+        if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
+            if (exception->viaSector.has_value()) {
+                // via sector is present: adjust the sector and continue regular search
+                emissionId = emissionId.with_sector(*exception->viaSector);
+            } else {
+                return source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year());
             }
+        }
 
+        for (auto& [year, patterns] : patterns) {
             // then the regular patterns
-            iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
+            auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
                 return spf.pollutant == *fallbackPollutant;
             });
 
@@ -453,24 +455,27 @@ SpatialPatternSource SpatialPatternInventory::get_spatial_pattern(const Emission
     for (auto& [year, patterns] : patterns) {
         if (auto source = search_spatial_pattern_within_year(emissionId.country, emissionId.pollutant, emissionId.pollutant, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
             return *source;
-        } else {
-            // Try the fallback pollutant
-            if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
-                // A fallback is defined, search for the pattern
+        }
+    }
 
-                // first check the exceptions
-                if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
-                    return source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year());
-                }
+    // Try the fallback pollutant
+    if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
+        // A fallback is defined, search for the pattern
 
-                // then the regular patterns
-                if (auto source = search_spatial_pattern_within_year(emissionId.country, *fallbackPollutant, emissionId.pollutant, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
-                    return *source;
-                }
+        // first check the exceptions
+        if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
+            return source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year());
+        }
+
+        for (auto& [year, patterns] : patterns) {
+            // then the regular patterns
+            if (auto source = search_spatial_pattern_within_year(emissionId.country, *fallbackPollutant, emissionId.pollutant, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
+                return *source;
             }
         }
     }
 
+    // last resort: uniform spread
     return SpatialPatternSource::create_with_uniform_spread(emissionId.country, emissionId.sector, emissionId.pollutant, patternAvailableButNodata);
 }
 
