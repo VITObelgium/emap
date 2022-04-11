@@ -7,15 +7,22 @@
 
 namespace emap {
 
+struct SpatialPatternData
+{
+    date::year year;
+    EmissionIdentifier id;
+    gdx::DenseRaster<double> raster;
+};
+
 struct SpatialPatternSource
 {
     enum class Type
     {
-        SpatialPatternCAMS,  // Tiff containing the spatial pattern
-        SpatialPatternCEIP,  // Txt file containing the spatial pattern
-        SpatialPatternTable, // Csv file containing information per cell
-        Raster,              // Tiff containing the spatial pattern
-        UnfiformSpread,      // No data available, use a uniform spread
+        SpatialPatternCAMS,     // Tiff containing the spatial pattern
+        SpatialPatternCEIP,     // Txt file containing the spatial pattern
+        SpatialPatternFlanders, // Csv file containing information per cell
+        Raster,                 // Tiff containing the spatial pattern
+        UnfiformSpread,         // No data available, use a uniform spread
     };
 
     static SpatialPatternSource create_from_cams(const fs::path& path,
@@ -50,14 +57,14 @@ struct SpatialPatternSource
         return source;
     }
 
-    static SpatialPatternSource create_from_table(const fs::path& path,
-                                                  const EmissionIdentifier& id,
-                                                  const EmissionIdentifier& usedId,
-                                                  date::year year,
-                                                  bool exception)
+    static SpatialPatternSource create_from_flanders(const fs::path& path,
+                                                     const EmissionIdentifier& id,
+                                                     const EmissionIdentifier& usedId,
+                                                     date::year year,
+                                                     bool exception)
     {
         SpatialPatternSource source;
-        source.type           = Type::SpatialPatternTable;
+        source.type           = Type::SpatialPatternFlanders;
         source.path           = path;
         source.emissionId     = id;
         source.usedEmissionId = usedId;
@@ -99,6 +106,7 @@ struct SpatialPatternSource
     fs::path path;
     EmissionIdentifier emissionId;
     EmissionIdentifier usedEmissionId; // the actual emissionidentifer used to lookup the spatial pattern (can be different because of pollutant fallbacks or via sector overrides)
+    // These fields are only relevant when the type is SpatialPattern
     std::optional<date::year> year;
 };
 
@@ -111,13 +119,6 @@ struct SpatialPattern
     }
 
     SpatialPatternSource source;
-    gdx::DenseRaster<double> raster; // Spatial pattern data, but only for the country of this emissionId
-};
-
-struct SpatialPatternData
-{
-    date::year year;
-    EmissionIdentifier id;
     gdx::DenseRaster<double> raster;
 };
 

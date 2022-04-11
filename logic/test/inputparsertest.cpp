@@ -238,19 +238,6 @@ TEST_CASE("Input parsers")
             .raster;
     };
 
-    SUBCASE("Load spatial pattern")
-    {
-        const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM10.xlsx", cfg);
-        CHECK(spatialPatterns.size() == 52);
-
-        // Flanders
-        CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A1a)) == Approx(23.5972773909986).epsilon(1e-4));
-        // Flanders sector at end of file
-        CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr5E)) == Approx(432.989391850553).epsilon(1e-4));
-        // Sea sector
-        CHECK(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A3dii)(139, 79) == Approx(0.020608247775289));
-    }
-
     SUBCASE("Load spatial patterns with gnfr sector")
     {
         const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg);

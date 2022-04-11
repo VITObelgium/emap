@@ -38,7 +38,7 @@ public:
     SpatialPatternInventory(const RunConfiguration& cfg);
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
-    /* Obtain the spatial pattern for the given identifier, checks if the pattern contains data but only in the provided country cells, otherwise falls back to uniform spread */
+
     SpatialPattern get_spatial_pattern_checked(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage) const;
 
     /* Obtain the spatial pattern for the given identifier without checking the contents of the pattern for data */
@@ -51,7 +51,7 @@ private:
         {
             Cams,
             Ceip,
-            SpreadSheet,
+            FlandersTable,
             Invalid,
         };
 
@@ -95,15 +95,18 @@ private:
 
     std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
-    std::optional<SpatialPatternFile> identify_spatial_pattern_belgium(const fs::path& path) const;
+    std::optional<SpatialPatternFile> identify_spatial_pattern_flanders(const fs::path& path) const;
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
-    std::vector<SpatialPatterns> scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const;
+    std::vector<SpatialPatterns> scan_dir_flanders(date::year startYear, const fs::path& spatialPatternPath) const;
 
-    SpatialPattern get_country_specific_spatial_pattern(EmissionIdentifier emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, bool checkContents) const;
-    SpatialPattern get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, bool checkContents) const;
+    std::optional<SpatialPattern> find_spatial_pattern_exception(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents) const;
+    std::optional<SpatialPattern> find_spatial_pattern(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents) const;
+
     SpatialPattern get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, bool checkContents) const;
+    SpatialPattern get_spatial_pattern_impl(EmissionIdentifier emissionId, const CountryCellCoverage& countryCoverage, bool checkContents) const;
 
-    std::optional<SpatialPatternException> find_exception(const EmissionIdentifier& emissionId) const noexcept;
+    std::optional<SpatialPatternException> find_pollutant_exception(const EmissionIdentifier& emissionId) const noexcept;
+    std::optional<SpatialPatternException> find_sector_exception(const EmissionIdentifier& emissionId) const noexcept;
     static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& emissionSectorToReport, date::year year);
     static SpatialPatternException::Type exception_type_from_string(std::string_view str);
 
@@ -119,10 +122,6 @@ private:
     // Contains all the available patterns, sorted by year of preference
     std::vector<SpatialPatterns> _spatialPatternsRest;
     std::unordered_map<Country, std::vector<SpatialPatterns>> _countrySpecificSpatialPatterns;
-
-    // Spatial patterns for flanders contain multiple patterns in a single file.
-    // We keep a cache so we can read all the patterns in one go and cache them
-    // to avoid parsing the same big file over and over to obtain a single pattern
     mutable SpatialPatternTableCache _flandersCache;
 };
 

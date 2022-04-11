@@ -9,8 +9,8 @@ namespace emap {
 using namespace inf;
 using namespace std::string_literals;
 
-CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const GeoMetadata& gridExtent, const CountryInventory& inv)
-: _ds(transform_vector(vectorPath, gridExtent))
+CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const GeoMetadata& clipExtent, const CountryInventory& inv)
+: _ds(transform_vector(vectorPath, clipExtent))
 , _idField(countryIdField)
 , _inv(inv)
 {

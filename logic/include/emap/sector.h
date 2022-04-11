@@ -181,6 +181,8 @@ public:
      */
     const NfrSector& nfr_sector() const;
 
+    bool is_valid() const noexcept;
+
     int32_t id() const noexcept;
 
     bool is_land_sector() const noexcept;

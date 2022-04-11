@@ -57,73 +57,6 @@ static gdx::DenseRaster<double> apply_uniform_spread(double emissionValue, const
     return raster;
 }
 
-// The supplied raster should be the extracted country and should contain only emissions belonging to this country
-static gdx::DenseRaster<double> apply_spatial_pattern_raster(gdx::DenseRaster<double> raster,
-                                                             double emissionValue,
-                                                             const GeoMetadata& countryExtent,
-                                                             const GeoMetadata& outputExtent)
-{
-    const auto rasterSum = gdx::sum(raster);
-    if (rasterSum == 0.0) {
-        // no spreading info, fall back to uniform spread needed
-        return {};
-    }
-
-    auto outputGridRaster = gdx::resample_raster(raster, countryExtent, gdal::ResampleAlgorithm::Average);
-    normalize_raster(outputGridRaster);
-    outputGridRaster *= emissionValue;
-
-    const auto intersection = metadata_intersection(outputGridRaster.metadata(), outputExtent);
-    if (intersection.bounding_box() != countryExtent.bounding_box()) {
-        // country extent is outside of the output grid
-        outputGridRaster = gdx::sub_raster(outputGridRaster, intersection);
-    }
-
-    return outputGridRaster;
-}
-
-static gdx::DenseRaster<double> apply_spatial_pattern_raster(const fs::path& rasterPath,
-                                                             double emissionValue,
-                                                             const CountryCellCoverage& countryCoverage,
-                                                             const GeoMetadata& outputExtent)
-{
-    return apply_spatial_pattern_raster(extract_country_from_raster(rasterPath, countryCoverage), emissionValue, countryCoverage.outputSubgridExtent, outputExtent);
-}
-
-// static gdx::DenseRaster<double> apply_spatial_pattern_raster_without_cell_adjustments(const fs::path& rasterPath, double emissionValue, const CountryCellCoverage& countryCoverage)
-//{
-//     auto raster = gdx::read_dense_raster<double>(rasterPath, countryCoverage.outputSubgridExtent);
-//     if (gdx::sum(raster) == 0.0) {
-//         // no spreading info, fall back to uniform spread needed
-//         return {};
-//     }
-//
-//     auto outputGridRaster = gdx::resample_raster(raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
-//     normalize_raster(outputGridRaster);
-//     outputGridRaster *= emissionValue;
-//
-//     return outputGridRaster;
-// }
-
-static gdx::DenseRaster<double> apply_spatial_pattern_ceip(const fs::path& ceipPath, const EmissionIdentifier& emissionId, double emissionValue, const CountryCellCoverage& countryCoverage, const inf::GeoMetadata& outputExtent, const RunConfiguration& cfg)
-{
-    return apply_spatial_pattern_raster(parse_spatial_pattern_ceip(ceipPath, emissionId, cfg), emissionValue, countryCoverage.outputSubgridExtent, outputExtent);
-}
-
-static gdx::DenseRaster<double> apply_spatial_pattern_flanders(const gdx::DenseRaster<double>& pattern, double emissionValue, const inf::GeoMetadata& outputGrid)
-{
-    if (gdx::sum(pattern) == 0.0) {
-        // no spreading info, fall back to uniform spread needed
-        return {};
-    }
-
-    auto outputGridRaster = gdx::resample_raster(pattern, outputGrid, gdal::ResampleAlgorithm::Average);
-    normalize_raster(outputGridRaster);
-    outputGridRaster *= emissionValue;
-
-    return outputGridRaster;
-}
-
 struct SpatialPatternProcessInfo
 {
     enum class Status
@@ -259,10 +192,6 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         return;
                     }
 
-                    /*if (cellCoverageInfo.country.iso_code() != "GB" || sector.name() != "2C7c" || pollutant.code() != "Hg") {
-                        return;
-                    }*/
-
                     try {
                         EmissionIdentifier emissionId(cellCoverageInfo.country, EmissionSector(sector), pollutant);
 
@@ -370,12 +299,12 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         return cov.country == country::BEF;
                     });
 
-                    auto spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage);
-                    auto emission       = emissionInv.try_emission_with_id(emissionId);
+                    auto emission = emissionInv.try_emission_with_id(emissionId);
                     if (!emission.has_value()) {
                         return;
                     }
 
+                    auto spatialPattern         = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage);
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
                     const auto spatPatInfo      = apply_emission_to_spatial_pattern(spatialPattern, diffuseEmissions, gridData.meta, flandersCoverage);
                     if (spatialPattern.source.patternAvailableButWithoutData) {

@@ -13,7 +13,7 @@ class CountryInventory;
 class CountryBorders
 {
 public:
-    CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const inf::GeoMetadata& gridExtent, const CountryInventory& inv);
+    CountryBorders(const fs::path& vectorPath, std::string_view countryIdField, const inf::GeoMetadata& clipExtent, const CountryInventory& inv);
 
     size_t known_countries_in_extent(const inf::GeoMetadata& extent);
     std::vector<CountryCellCoverage> create_country_coverages(const inf::GeoMetadata& extent, CoverageMode mode, const GridProcessingProgress::Callback& progressCb);

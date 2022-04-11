@@ -87,8 +87,8 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
         return "CAMS";
     case emap::SpatialPatternSource::Type::SpatialPatternCEIP:
         return "CEIP";
-    case emap::SpatialPatternSource::Type::SpatialPatternTable:
-        return "Excel";
+    case emap::SpatialPatternSource::Type::SpatialPatternFlanders:
+        return "Flanders Excel";
     case emap::SpatialPatternSource::Type::UnfiformSpread:
         return "Uniform spread";
     case emap::SpatialPatternSource::Type::Raster:

@@ -172,7 +172,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     return {};
 }
 
-std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_belgium(const fs::path& path) const
+std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInventory::identify_spatial_pattern_flanders(const fs::path& path) const
 {
     std::smatch baseMatch;
     const std::string filename = path.stem().string();
@@ -181,7 +181,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
         try {
             const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[2].str());
 
-            return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
+            return SpatialPatternFile{SpatialPatternFile::Source::FlandersTable, path, pollutant, {}};
         } catch (const std::exception& e) {
             Log::debug("Unexpected spatial pattern filename: {} ({})", e.what(), path);
         }
@@ -189,7 +189,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
         try {
             const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[1].str());
 
-            return SpatialPatternFile{SpatialPatternFile::Source::SpreadSheet, path, pollutant, {}};
+            return SpatialPatternFile{SpatialPatternFile::Source::FlandersTable, path, pollutant, {}};
         } catch (const std::exception& e) {
             Log::debug("Unexpected spatial pattern filename: {} ({})", e.what(), path);
         }
@@ -253,7 +253,7 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
     return result;
 }
 
-std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_belgium(date::year startYear, const fs::path& spatialPatternPath) const
+std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_flanders(date::year startYear, const fs::path& spatialPatternPath) const
 {
     std::vector<SpatialPatterns> result;
 
@@ -267,7 +267,7 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
             if (fs::is_directory(currentPath)) {
                 for (const auto& dirEntry : std::filesystem::directory_iterator(currentPath)) {
                     if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".xlsx") {
-                        if (const auto source = identify_spatial_pattern_belgium(dirEntry.path()); source.has_value()) {
+                        if (const auto source = identify_spatial_pattern_flanders(dirEntry.path()); source.has_value()) {
                             patternsForYear.spatialPatterns.push_back(*source);
                         }
                     }
@@ -301,7 +301,7 @@ void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year star
     });
 
     _spatialPatternsRest = scan_dir_rest(startYear, spatialPatternPath / "rest" / reporing_dir(reportingYear));
-    _countrySpecificSpatialPatterns.emplace(country::BEF, scan_dir_belgium(startYear, spatialPatternPath / "bef" / reporing_dir(reportingYear)));
+    _countrySpecificSpatialPatterns.emplace(country::BEF, scan_dir_flanders(startYear, spatialPatternPath / "bef" / reporing_dir(reportingYear)));
 }
 
 std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_pattern_within_year(const Country& country,
@@ -315,7 +315,9 @@ std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_patt
     bool isException = sector != sectorToReport;
 
     auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-        return spf.pollutant == pollutant && spf.sector == sector;
+        bool pollutantMatch = spf.pollutant == pollutant;
+        bool sectorMatch    = spf.sector.is_valid() ? spf.sector == sector : true;
+        return pollutantMatch && sectorMatch;
     });
 
     if (iter != patterns.end()) {
@@ -323,6 +325,8 @@ std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_patt
             return SpatialPatternSource::create_from_cams(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, sector, pollutant), year, isException);
         } else if (iter->source == SpatialPatternFile::Source::Ceip) {
             return SpatialPatternSource::create_from_ceip(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, sector, pollutant), year, isException);
+        } else if (iter->source == SpatialPatternFile::Source::FlandersTable) {
+            return SpatialPatternSource::create_from_flanders(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, sector, pollutant), year, isException);
         }
 
         throw std::logic_error("Unhandled spatial pattern source type");
@@ -342,6 +346,8 @@ std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_patt
             return SpatialPatternSource::create_from_cams(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, iter->sector, iter->pollutant), year, isException);
         } else if (iter->source == SpatialPatternFile::Source::Ceip) {
             return SpatialPatternSource::create_from_ceip(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, iter->sector, iter->pollutant), year, isException);
+        } else if (iter->source == SpatialPatternFile::Source::FlandersTable) {
+            return SpatialPatternSource::create_from_flanders(iter->path, EmissionIdentifier(country, sectorToReport, polToReport), EmissionIdentifier(country, iter->sector, iter->pollutant), year, isException);
         }
 
         throw std::logic_error("Unhandled spatial pattern source type");
@@ -350,15 +356,15 @@ std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_patt
     return {};
 }
 
-std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternInventory::find_exception(const EmissionIdentifier& emissionId) const noexcept
+std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternInventory::find_pollutant_exception(const EmissionIdentifier& emissionId) const noexcept
 {
     auto exception = find_in_container_optional(_exceptions, [&emissionId](const SpatialPatternException& ex) {
-        return ex.emissionId == emissionId;
+        return ex.emissionId == emissionId && (!ex.viaSector.has_value());
     });
 
     if (!exception.has_value() && emissionId.sector.type() == EmissionSector::Type::Nfr) {
         // See if there is an entry on gnfr level
-        exception = find_exception(convert_emission_id_to_gnfr_level(emissionId));
+        exception = find_pollutant_exception(convert_emission_id_to_gnfr_level(emissionId));
         if (exception.has_value()) {
             // restore the nfr based id
             exception->emissionId = emissionId;
@@ -366,6 +372,13 @@ std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternIn
     }
 
     return exception;
+}
+
+std::optional<SpatialPatternInventory::SpatialPatternException> SpatialPatternInventory::find_sector_exception(const EmissionIdentifier& emissionId) const noexcept
+{
+    return find_in_container_optional(_exceptions, [&emissionId](const SpatialPatternException& ex) {
+        return ex.emissionId == emissionId && ex.viaSector.has_value();
+    });
 }
 
 SpatialPatternSource SpatialPatternInventory::source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, date::year year)
@@ -380,7 +393,7 @@ SpatialPatternSource SpatialPatternInventory::source_from_exception(const Spatia
     case SpatialPatternException::Type::Ceip:
         return SpatialPatternSource::create_from_ceip(ex.spatialPattern, emissionId, ex.emissionId, year, true);
     case SpatialPatternException::Type::FlandersTable:
-        return SpatialPatternSource::create_from_table(ex.spatialPattern, emissionId, ex.emissionId, year, true);
+        return SpatialPatternSource::create_from_flanders(ex.spatialPattern, emissionId, ex.emissionId, year, true);
     }
 
     throw RuntimeError("Invalid spatial pattern exception type");
@@ -419,16 +432,52 @@ static gdx::DenseRaster<double> extract_country_from_pattern(const gdx::DenseRas
     return raster;
 }
 
+static gdx::DenseRaster<double> read_country_from_pattern(const fs::path& spatialPatternPath, bool checkContents)
+{
+    auto raster = gdx::read_dense_raster<double>(spatialPatternPath);
+
+    if (checkContents) {
+        bool containsData = std::any_of(raster.begin(), raster.end(), [](double val) {
+            return val > 0;
+        });
+
+        if (containsData) {
+            normalize_raster(raster);
+        } else {
+            raster = {};
+        }
+    } else {
+        normalize_raster(raster);
+    }
+
+    return raster;
+}
+
 gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const SpatialPatternSource& src, const CountryCellCoverage& countryCoverage, bool checkContents) const
 {
     switch (src.type) {
     case SpatialPatternSource::Type::SpatialPatternCEIP:
         return extract_country_from_pattern(parse_spatial_pattern_ceip(src.path, src.usedEmissionId, _cfg), countryCoverage, checkContents);
-    /*case SpatialPatternSource::Type::SpatialPatternTable:
-        break;*/
+    case SpatialPatternSource::Type::SpatialPatternFlanders: {
+        const auto* spatialPatternData = _flandersCache.get_data(src.path, src.usedEmissionId);
+        if (spatialPatternData != nullptr) {
+            if ((!checkContents) || gdx::sum(spatialPatternData->raster) > 0.0) {
+                return spatialPatternData->raster.copy();
+            }
+        }
+
+        return {};
+    }
     case SpatialPatternSource::Type::SpatialPatternCAMS:
+        [[fallthrough]];
     case SpatialPatternSource::Type::Raster:
-        return extract_country_from_pattern(gdx::read_dense_raster<double>(src.path), countryCoverage, checkContents);
+        if (countryCoverage.country == country::BEF) {
+            // Flanders should never be extracted, there is no data for other countries
+            // no ratio will be applied to the country borders
+            return read_country_from_pattern(src.path, checkContents);
+        } else {
+            return extract_country_from_pattern(gdx::read_dense_raster<double>(src.path), countryCoverage, checkContents);
+        }
     default:
         break;
     }
@@ -436,169 +485,94 @@ gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const Spati
     throw std::logic_error("Unhandled spatial pattern type");
 }
 
-SpatialPattern SpatialPatternInventory::get_country_specific_spatial_pattern(EmissionIdentifier emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, bool checkContents) const
+std::optional<SpatialPattern> SpatialPatternInventory::find_spatial_pattern_exception(const EmissionIdentifier& emissionId,
+                                                                                      const CountryCellCoverage& countryCoverage,
+                                                                                      const Pollutant& pollutantToReport,
+                                                                                      const EmissionSector& sectorToReport,
+                                                                                      bool checkContents) const
 {
-    // Currently only used for flanders
-    bool patternAvailableButNodata = false;
-    bool isException               = emissionId.sector != sectorToReport;
+    std::optional<SpatialPattern> result;
 
-    for (auto& [year, patterns] : patterns) {
-        auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-            return spf.pollutant == emissionId.pollutant;
-        });
+    if (auto exception = find_pollutant_exception(emissionId); exception.has_value()) {
+        assert(!exception->viaSector.has_value());
+        result         = SpatialPattern(source_from_exception(*exception, pollutantToReport, sectorToReport, _cfg.year()));
+        result->raster = get_pattern_raster(result->source, countryCoverage, checkContents);
 
-        if (iter != patterns.end()) {
-            const auto* spatialPatternData = _flandersCache.get_data(iter->path, emissionId);
-            if (spatialPatternData != nullptr) {
-                if (checkContents) {
-                    if (gdx::sum(spatialPatternData->raster) > 0.0) {
-                        SpatialPattern result(SpatialPatternSource::create_from_table(iter->path, EmissionIdentifier(emissionId.country, sectorToReport, emissionId.pollutant), spatialPatternData->id, year, isException));
-                        result.raster = spatialPatternData->raster.copy();
-                        return result;
-                    } else {
-                        patternAvailableButNodata = true;
-                    }
-                }
-            }
+        if (result->raster.empty()) {
+            result.reset();
         }
     }
 
-    // Try the fallback pollutant
-    if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
-        // A fallback is defined, search for the pattern
+    return result;
+}
 
-        // first check the exceptions
-        if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
-            if (exception->viaSector.has_value()) {
-                // via sector is present: adjust the sector and continue regular search
-                emissionId = emissionId.with_sector(*exception->viaSector);
-            } else {
-                SpatialPattern result(source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year()));
-                result.raster = get_pattern_raster(result.source, countryCoverage, checkContents);
-                if (checkContents) {
-                    patternAvailableButNodata = result.raster.empty();
-                }
+std::optional<SpatialPattern> SpatialPatternInventory::find_spatial_pattern(const EmissionIdentifier& emissionId,
+                                                                            const CountryCellCoverage& countryCoverage,
+                                                                            const std::vector<SpatialPatterns>& patterns,
+                                                                            const Pollutant& pollutantToReport,
+                                                                            const EmissionSector& sectorToReport,
+                                                                            bool checkContents) const
+{
+    for (auto& [year, patterns] : patterns) {
+        if (auto source = search_spatial_pattern_within_year(emissionId.country, emissionId.pollutant, pollutantToReport, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
+            SpatialPattern result(*source);
+            result.raster = get_pattern_raster(*source, countryCoverage, checkContents);
 
-                if (!patternAvailableButNodata) {
-                    return result;
-                }
+            if (!result.raster.empty()) {
                 return result;
             }
         }
-
-        for (auto& [year, patterns] : patterns) {
-            // then the regular patterns
-            auto iter = std::find_if(patterns.begin(), patterns.end(), [&](const SpatialPatternFile& spf) {
-                return spf.pollutant == *fallbackPollutant;
-            });
-
-            if (iter != patterns.end()) {
-                const auto* spatialPatternData = _flandersCache.get_data(iter->path, emissionId.with_pollutant(*fallbackPollutant));
-                if (spatialPatternData != nullptr) {
-                    SpatialPattern result(SpatialPatternSource::create_from_table(iter->path, EmissionIdentifier(emissionId.country, sectorToReport, emissionId.pollutant), spatialPatternData->id, year, isException));
-                    result.raster = spatialPatternData->raster.copy();
-
-                    if (checkContents) {
-                        if (gdx::sum(spatialPatternData->raster) > 0.0) {
-                            return result;
-                        } else {
-                            patternAvailableButNodata = true;
-                        }
-                    }
-                }
-            }
-        }
     }
 
-    // last resort: uniform spread
-    return SpatialPattern(SpatialPatternSource::create_with_uniform_spread(emissionId.country, emissionId.sector, emissionId.pollutant, patternAvailableButNodata));
+    return {};
 }
 
 SpatialPattern SpatialPatternInventory::get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, bool checkContents) const
 {
-    bool patternAvailableButNodata = false;
-
     SpatialPattern result;
 
-    for (auto& [year, patterns] : patterns) {
-        if (auto source = search_spatial_pattern_within_year(emissionId.country, emissionId.pollutant, emissionId.pollutant, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
-            result.source = *source;
-            result.raster = get_pattern_raster(*source, countryCoverage, checkContents);
-            if (checkContents) {
-                patternAvailableButNodata = result.raster.empty();
-            }
+    // first check the exceptions
+    if (auto exception = find_spatial_pattern_exception(emissionId, countryCoverage, emissionId.pollutant, sectorToReport, checkContents); exception.has_value()) {
+        return std::move(*exception);
+    }
 
-            if (!patternAvailableButNodata) {
-                return result;
-            }
-        }
+    // then the regular patterns
+    if (auto exception = find_spatial_pattern(emissionId, countryCoverage, patterns, emissionId.pollutant, sectorToReport, checkContents); exception.has_value()) {
+        return std::move(*exception);
     }
 
     // Try the fallback pollutant
     if (auto fallbackPollutant = _cfg.pollutants().pollutant_fallback(emissionId.pollutant); fallbackPollutant.has_value()) {
         // A fallback is defined, search for the pattern
 
-        // first check the exceptions
-        if (auto exception = find_exception(emissionId.with_pollutant(*fallbackPollutant)); exception.has_value()) {
-            result.source = source_from_exception(*exception, emissionId.pollutant, sectorToReport, _cfg.year());
-            result.raster = get_pattern_raster(result.source, countryCoverage, checkContents);
-            if (checkContents) {
-                patternAvailableButNodata = result.raster.empty();
-            }
+        const auto fallbackId = emissionId.with_pollutant(*fallbackPollutant);
 
-            if (!patternAvailableButNodata) {
-                return result;
-            }
+        // first check the exceptions
+        if (auto exception = find_spatial_pattern_exception(fallbackId, countryCoverage, emissionId.pollutant, sectorToReport, checkContents); exception.has_value()) {
+            return std::move(*exception);
         }
 
-        for (auto& [year, patterns] : patterns) {
-            // then the regular patterns
-            if (auto source = search_spatial_pattern_within_year(emissionId.country, *fallbackPollutant, emissionId.pollutant, emissionId.sector, sectorToReport, year, patterns); source.has_value()) {
-                result.source = *source;
-                result.raster = get_pattern_raster(*source, countryCoverage, checkContents);
-                if (checkContents) {
-                    patternAvailableButNodata = result.raster.empty();
-                }
-
-                if (!patternAvailableButNodata) {
-                    return result;
-                }
-            }
+        // then the regular patterns
+        if (auto exception = find_spatial_pattern(fallbackId, countryCoverage, patterns, emissionId.pollutant, sectorToReport, checkContents); exception.has_value()) {
+            return std::move(*exception);
         }
     }
 
     // last resort: uniform spread
-    return SpatialPattern(SpatialPatternSource::create_with_uniform_spread(emissionId.country, emissionId.sector, emissionId.pollutant, patternAvailableButNodata));
+    return SpatialPattern(SpatialPatternSource::create_with_uniform_spread(emissionId.country, emissionId.sector, emissionId.pollutant, false));
 }
 
-SpatialPattern SpatialPatternInventory::get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, bool checkContents) const
+SpatialPattern SpatialPatternInventory::get_spatial_pattern_impl(EmissionIdentifier emissionId, const CountryCellCoverage& countryCoverage, bool checkContents) const
 {
-    auto id = emissionId;
-
-    if (auto exception = find_exception(emissionId); exception.has_value()) {
-        if (exception->viaSector.has_value()) {
-            // via sector is present: adjust the sector and continue regular search
-            id = emissionId.with_sector(*exception->viaSector);
-        } else {
-            bool patternAvailableButNodata = false;
-            SpatialPattern result(source_from_exception(*exception, emissionId.pollutant, emissionId.sector, _cfg.year()));
-            result.raster = get_pattern_raster(result.source, countryCoverage, checkContents);
-            if (checkContents) {
-                patternAvailableButNodata = result.raster.empty();
-            }
-
-            if (!patternAvailableButNodata) {
-                return result;
-            }
-            return result;
-        }
+    // Check if we should find this pattern via another sector
+    if (auto exception = find_sector_exception(emissionId); exception.has_value()) {
+        assert(exception->viaSector.has_value());
+        emissionId = emissionId.with_sector(*exception->viaSector);
     }
 
-    if (auto countrySpecificIter = _countrySpecificSpatialPatterns.find(id.country); countrySpecificIter != _countrySpecificSpatialPatterns.end()) {
-        return get_country_specific_spatial_pattern(id, countryCoverage, countrySpecificIter->second, emissionId.sector, checkContents);
-    } else {
-        return get_spatial_pattern_impl(id, countryCoverage, _spatialPatternsRest, emissionId.sector, checkContents);
-    }
+    auto countrySpecificIter = _countrySpecificSpatialPatterns.find(emissionId.country);
+    const auto& patterns     = countrySpecificIter != _countrySpecificSpatialPatterns.end() ? countrySpecificIter->second : _spatialPatternsRest;
+    return get_spatial_pattern_impl(emissionId, countryCoverage, patterns, emissionId.sector, checkContents);
 }
 
 SpatialPattern SpatialPatternInventory::get_spatial_pattern_checked(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage) const

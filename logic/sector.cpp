@@ -107,6 +107,11 @@ const NfrSector& EmissionSector::nfr_sector() const
     return get_nfr_sector();
 }
 
+bool EmissionSector::is_valid() const noexcept
+{
+    return id() != 0;
+}
+
 int32_t EmissionSector::id() const noexcept
 {
     return std::visit([](auto& sectorType) {
