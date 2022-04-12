@@ -413,8 +413,23 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
 SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary)
 {
     chrono::DurationRecorder duration;
-    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(cfg.total_emissions_path_nfr(year)), year, cfg);
-    runSummary.add_totals_source(cfg.total_emissions_path_nfr(year));
+
+    date::year reportYear = cfg.reporting_year();
+    fs::path totalEmissionsNfrPath;
+    while (totalEmissionsNfrPath.empty()) {
+        if (auto path = cfg.total_emissions_path_nfr(year, reportYear); fs::is_regular_file(path)) {
+            totalEmissionsNfrPath = path;
+        } else {
+            --reportYear;
+        }
+
+        if (cfg.reporting_year() - reportYear > date::years(10)) {
+            throw RuntimeError("NFR emissions could not be found");
+        }
+    }
+
+    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(totalEmissionsNfrPath), year, cfg);
+    runSummary.add_totals_source(totalEmissionsNfrPath);
 
     static const std::array<const Country*, 3> belgianRegions = {
         &country::BEB,

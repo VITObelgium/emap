@@ -55,9 +55,9 @@ fs::path RunConfiguration::point_source_emissions_dir_path(const Country& countr
     return _paths.point_source_emissions_dir_path(country, _reportYear);
 }
 
-fs::path RunConfiguration::total_emissions_path_nfr(date::year year) const
+fs::path RunConfiguration::total_emissions_path_nfr(date::year year, date::year reportYear) const
 {
-    return _paths.total_emissions_path_nfr(year, _reportYear);
+    return _paths.total_emissions_path_nfr(year, reportYear);
 }
 
 fs::path RunConfiguration::total_extra_emissions_path_nfr() const

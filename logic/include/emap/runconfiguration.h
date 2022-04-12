@@ -59,7 +59,7 @@ public:
         Output outputConfig);
 
     fs::path point_source_emissions_dir_path(const Country& country) const;
-    fs::path total_emissions_path_nfr(date::year year) const;
+    fs::path total_emissions_path_nfr(date::year year, date::year reportYear) const;
     fs::path total_extra_emissions_path_nfr() const;
     fs::path total_emissions_path_gnfr(date::year reportYear) const;
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian) const;
