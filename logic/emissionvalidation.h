@@ -16,12 +16,24 @@ public:
     {
         double diff() const noexcept
         {
-            return emissionInventoryTotal - spreadTotal.value_or(0.0);
+            return inventory_total() - spread_total();
+        }
+
+        double inventory_total() const noexcept
+        {
+            return emissionInventoryDiffuse + emissionInventoryPoint;
+        }
+
+        double spread_total() const noexcept
+        {
+            return spreadDiffuseTotal.value_or(0.0) + spreadPointTotal.value_or(0.0);
         }
 
         EmissionIdentifier id;
-        double emissionInventoryTotal = 0.0;
-        std::optional<double> spreadTotal;
+        double emissionInventoryDiffuse = 0.0;
+        double emissionInventoryPoint   = 0.0;
+        std::optional<double> spreadDiffuseTotal;
+        std::optional<double> spreadPointTotal;
     };
 
     void add_point_emissions(const EmissionIdentifier& id, double pointEmissionsTotal);
@@ -31,7 +43,8 @@ public:
 
 private:
     std::mutex _mutex;
-    std::unordered_map<EmissionIdentifier, double> _emissionSums;
+    std::unordered_map<EmissionIdentifier, double> _diffuseEmissionSums;
+    std::unordered_map<EmissionIdentifier, double> _pointEmissionSums;
 };
 
 }

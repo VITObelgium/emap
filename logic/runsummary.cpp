@@ -371,13 +371,15 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
         double width       = 0.0;
     };
 
-    const std::array<ColumnInfo, 7> headers = {
+    const std::array<ColumnInfo, 9> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
         ColumnInfo{"NFR", 15.0},
         ColumnInfo{"GNFR", 15.0},
-        ColumnInfo{"Input emission", 15.0},
-        ColumnInfo{"Output emission", 15.0},
+        ColumnInfo{"Input diffuse emission", 15.0},
+        ColumnInfo{"Input point emission", 15.0},
+        ColumnInfo{"Output diffuse emission", 15.0},
+        ColumnInfo{"Output point emission", 15.0},
         ColumnInfo{"Diff", 15.0},
     };
 
@@ -407,15 +409,27 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
         std::string pollutant(emissionId.pollutant.code());
         std::string country(emissionId.country.iso_code());
 
-        worksheet_write_string(ws, row, 0, country.c_str(), nullptr);
-        worksheet_write_string(ws, row, 1, pollutant.c_str(), nullptr);
-        worksheet_write_string(ws, row, 2, sector.c_str(), nullptr);
-        worksheet_write_string(ws, row, 3, gnfr.c_str(), nullptr);
-        worksheet_write_number(ws, row, 4, summaryEntry.emissionInventoryTotal, formatNumber);
-        if (summaryEntry.spreadTotal.has_value()) {
-            worksheet_write_number(ws, row, 5, *summaryEntry.spreadTotal, formatNumber);
-            worksheet_write_number(ws, row, 6, std::abs(summaryEntry.diff()), formatNumber);
+        int index = 0;
+        worksheet_write_string(ws, row, index++, country.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, pollutant.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, sector.c_str(), nullptr);
+        worksheet_write_string(ws, row, index++, gnfr.c_str(), nullptr);
+        worksheet_write_number(ws, row, index++, summaryEntry.emissionInventoryDiffuse, formatNumber);
+        worksheet_write_number(ws, row, index++, summaryEntry.emissionInventoryPoint, formatNumber);
+
+        if (summaryEntry.spreadDiffuseTotal.has_value()) {
+            worksheet_write_number(ws, row, index++, *summaryEntry.spreadDiffuseTotal, formatNumber);
+        } else {
+            ++index;
         }
+
+        if (summaryEntry.spreadPointTotal.has_value()) {
+            worksheet_write_number(ws, row, index++, *summaryEntry.spreadPointTotal, formatNumber);
+        } else {
+            ++index;
+        }
+
+        worksheet_write_number(ws, row, index++, std::abs(summaryEntry.diff()), formatNumber);
 
         ++row;
     }
