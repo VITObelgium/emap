@@ -44,19 +44,6 @@ int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::opti
     return run_model(runConfig, progressCb);
 }
 
-static gdx::DenseRaster<double> apply_uniform_spread(double emissionValue, const CountryCellCoverage& countryCoverage, const inf::GeoMetadata& outputExtent)
-{
-    auto raster = spread_values_uniformly_over_cells(emissionValue, countryCoverage);
-
-    const auto intersection = metadata_intersection(raster.metadata(), outputExtent);
-    if (intersection.bounding_box() != countryCoverage.outputSubgridExtent.bounding_box()) {
-        // country extent is outside of the output grid
-        raster = gdx::sub_raster(raster, intersection);
-    }
-
-    return raster;
-}
-
 struct SpatialPatternProcessInfo
 {
     enum class Status

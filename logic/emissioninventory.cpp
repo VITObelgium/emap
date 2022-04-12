@@ -16,15 +16,6 @@ namespace emap {
 using namespace inf;
 using namespace date::literals;
 
-static fs::path throw_if_not_exists(fs::path&& path)
-{
-    if (!fs::is_regular_file(path)) {
-        throw RuntimeError("File does not exist: {}", path);
-    }
-
-    return std::move(path);
-}
-
 static fs::path throw_if_not_exists(const fs::path& path)
 {
     if (!fs::is_regular_file(path)) {
