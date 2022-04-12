@@ -39,6 +39,7 @@ public:
 
     void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
 
+    /* Obtain the spatial pattern for the given identifier, checks if the country cells contain actual data */
     SpatialPattern get_spatial_pattern_checked(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage) const;
 
     /* Obtain the spatial pattern for the given identifier without checking the contents of the pattern for data */
@@ -99,10 +100,9 @@ private:
     std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
     std::vector<SpatialPatterns> scan_dir_flanders(date::year startYear, const fs::path& spatialPatternPath) const;
 
-    std::optional<SpatialPattern> find_spatial_pattern_exception(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents) const;
-    std::optional<SpatialPattern> find_spatial_pattern(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents) const;
+    std::optional<SpatialPattern> find_spatial_pattern_exception(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents, bool& patternAvailableButWithoutData) const;
+    std::optional<SpatialPattern> find_spatial_pattern(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents, bool& patternAvailableButWithoutData) const;
 
-    SpatialPattern get_spatial_pattern_impl(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const EmissionSector& sectorToReport, bool checkContents) const;
     SpatialPattern get_spatial_pattern_impl(EmissionIdentifier emissionId, const CountryCellCoverage& countryCoverage, bool checkContents) const;
 
     std::optional<SpatialPatternException> find_pollutant_exception(const EmissionIdentifier& emissionId) const noexcept;

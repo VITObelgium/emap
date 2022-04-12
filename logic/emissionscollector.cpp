@@ -1,4 +1,5 @@
 #include "emissionscollector.h"
+#include "emap/gridprocessing.h"
 #include "emap/outputbuilderfactory.h"
 
 #include "gdx/denserasterio.h"
@@ -77,7 +78,7 @@ static void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::
     });
 }
 
-void EmissionsCollector::add_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> diffuseEmissions, std::span<const EmissionEntry> pointEmissions)
+void EmissionsCollector::add_emissions(const CountryCellCoverage& countryInfo, const NfrSector& nfr, gdx::DenseRaster<double> diffuseEmissions, std::span<const EmissionEntry> pointEmissions)
 {
     assert(_pollutant.has_value());
     if (diffuseEmissions.contains_only_nodata()) {
@@ -86,7 +87,7 @@ void EmissionsCollector::add_emissions(const Country& country, const NfrSector& 
 
     const auto& meta = diffuseEmissions.metadata();
 
-    EmissionIdentifier emissionId(country, EmissionSector(nfr), *_pollutant);
+    EmissionIdentifier emissionId(countryInfo.country, EmissionSector(nfr), *_pollutant);
 
     for (auto cell : gdx::RasterCells(diffuseEmissions)) {
         if (diffuseEmissions.is_nodata(cell) || diffuseEmissions[cell] == 0.0) {
@@ -101,9 +102,13 @@ void EmissionsCollector::add_emissions(const Country& country, const NfrSector& 
         _outputBuilder->add_point_output_entry(entry);
     }
 
+    if (diffuseEmissions.empty() && !pointEmissions.empty()) {
+        diffuseEmissions = gdx::DenseRaster<double>(countryInfo.outputSubgridExtent, std::numeric_limits<double>::quiet_NaN());
+    }
+
     add_point_sources_to_grid(emissionId, pointEmissions, diffuseEmissions);
 
-    if (_cfg.output_grid_rasters()) {
+    if (!diffuseEmissions.empty() && _cfg.output_grid_rasters()) {
         // The emissions need to be aggregated
         auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(nfr);
 
@@ -117,7 +122,7 @@ void EmissionsCollector::add_emissions(const Country& country, const NfrSector& 
         }
     }
 
-    if (_cfg.output_country_rasters()) {
+    if (!diffuseEmissions.empty() && _cfg.output_country_rasters()) {
         if (_cfg.output_sector_level() == SectorLevel::NFR) {
             // Sectors can be dumped without aggregation
             gdx::write_raster(std::move(diffuseEmissions), _cfg.output_path_for_country_raster(emissionId, *_grid));

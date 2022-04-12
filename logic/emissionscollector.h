@@ -9,6 +9,7 @@
 namespace emap {
 
 class IOutputBuilder;
+struct CountryCellCoverage;
 
 class EmissionsCollector
 {
@@ -24,7 +25,7 @@ public:
 
     void start_pollutant(const Pollutant& pol, const GridData& grid);
 
-    void add_emissions(const Country& country, const NfrSector& nfr, gdx::DenseRaster<double> diffuseEmissions, std::span<const EmissionEntry> pointEmissions);
+    void add_emissions(const CountryCellCoverage& countryInfo, const NfrSector& nfr, gdx::DenseRaster<double> diffuseEmissions, std::span<const EmissionEntry> pointEmissions);
 
     void flush_pollutant_to_disk(WriteMode mode);
     void final_flush_to_disk(WriteMode mode);

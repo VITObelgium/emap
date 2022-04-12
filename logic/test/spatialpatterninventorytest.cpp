@@ -190,6 +190,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.year == 2015_y);
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
+        CHECK(sp.source.isException == false);
     }
 
     {
@@ -201,10 +202,24 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(sp.source.year == 2019_y);
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
+        CHECK(sp.source.isException == false);
+        CHECK(sp.source.patternAvailableButWithoutData == false); // should only be true when we fallback to uniform spread
     }
 
     {
-        // Flanders excel data
+        // Flanders excel data, none of the existing patterns contain data, uniform spread will be used
+        const auto sp = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2c), pollutants::NOx), befCoverage);
+        CHECK(sp.source.path.empty());
+        CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
+        CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2c));
+        CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2c));
+        CHECK(sp.source.type == SpatialPatternSource::Type::UnfiformSpread);
+        CHECK(sp.source.isException == false);
+        CHECK(sp.source.patternAvailableButWithoutData == true);
+    }
+
+    {
+        // Flanders excel data (, in pollutant name)
         const auto sp = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM2_5), befCoverage);
         CHECK(sp.source.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_PM2,5.xlsx");
         CHECK(sp.source.emissionId.pollutant == pollutants::PM2_5);
@@ -212,6 +227,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.year == 2019_y);
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
+        CHECK(sp.source.isException == false);
     }
 
     {
@@ -223,6 +239,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.year == 2019_y);
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
+        CHECK(sp.source.isException == false);
     }
 
     {
@@ -233,6 +250,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
         CHECK(sp.source.type == SpatialPatternSource::Type::Raster);
+        CHECK(sp.source.isException);
     }
 }
 
