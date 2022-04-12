@@ -486,7 +486,9 @@ gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const Spati
         const auto* spatialPatternData = _flandersCache.get_data(src.path, src.usedEmissionId);
         if (spatialPatternData != nullptr) {
             if ((!checkContents) || gdx::sum(spatialPatternData->raster) > 0.0) {
-                return spatialPatternData->raster.copy();
+                auto result = spatialPatternData->raster.copy();
+                normalize_raster(result);
+                return result;
             }
         }
 
