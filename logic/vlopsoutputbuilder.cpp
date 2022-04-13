@@ -44,6 +44,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     }
 
     BrnOutputEntry entry;
+    entry.ssn   = static_cast<int>(_cfg.year());
     entry.x_m   = truncate<int64_t>(emission.coordinate()->x);
     entry.y_m   = truncate<int64_t>(emission.coordinate()->y);
     entry.q_gs  = emission.value().amount().value() * constants::toGramPerYearRatio;
@@ -124,6 +125,7 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
             for (const auto& [countryId, locationData] : countryData) {
                 for (const auto& [location, entry] : locationData) {
                     BrnOutputEntry brnEntry;
+                    brnEntry.ssn   = static_cast<int>(_cfg.year());
                     brnEntry.x_m   = location.x;
                     brnEntry.y_m   = location.y;
                     brnEntry.q_gs  = entry.value * constants::toGramPerYearRatio;
@@ -149,12 +151,11 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
 
         const auto outputPath = _cfg.output_path() / create_vlops_output_name(pol, _cfg.year(), _cfg.output_filename_suffix());
         bool writeHeader      = !fs::exists(outputPath);
-        BrnOutputWriter writer(outputPath, convertMode(mode), find_in_map_optional(_outputIndex, pol).value_or(1));
+        BrnOutputWriter writer(outputPath, convertMode(mode));
         if (writeHeader) {
             writer.write_header();
         }
         writer.append_entries(entries);
-        _outputIndex[pol] = writer.current_index();
     }
 
     _diffuseSources.clear();

@@ -32,6 +32,53 @@ static EmissionDestination emission_destination_from_string(std::string_view str
     throw RuntimeError("Invalid emission destination type: {}", str);
 }
 
+static std::string layer_name_for_sector_level(SectorLevel level, std::string_view outputSectorLevelName)
+{
+    switch (level) {
+    case SectorLevel::GNFR:
+        return "gnfr";
+    case SectorLevel::NFR:
+        return "nfr";
+    case SectorLevel::Custom:
+        return str::lowercase(outputSectorLevelName);
+    }
+
+    throw RuntimeError("Invalid sector level");
+}
+
+std::unordered_map<std::string, SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName)
+{
+    std::unordered_map<std::string, SectorParameterConfig> result;
+
+    CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
+    auto ds    = gdal::VectorDataSet::open(diffuseParametersPath);
+    auto layer = ds.layer(layer_name_for_sector_level(level, outputSectorLevelName));
+
+    const auto colSector = layer.layer_definition().required_field_index("Sector");
+    const auto colHc     = layer.layer_definition().required_field_index("hc(MW)");
+    const auto colH      = layer.layer_definition().required_field_index("h(m)");
+    const auto colS      = layer.layer_definition().required_field_index("s(m)");
+    const auto colTb     = layer.layer_definition().required_field_index("tb");
+    const auto colId     = layer.layer_definition().required_field_index("Id");
+
+    for (const auto& feature : layer) {
+        if (!feature.field_is_valid(0)) {
+            break; // abort on empty lines
+        }
+
+        SectorParameterConfig config;
+        config.hc_MW = feature.field_as<double>(colHc);
+        config.h_m   = feature.field_as<double>(colH);
+        config.s_m   = feature.field_as<double>(colS);
+        config.tb    = feature.field_as<double>(colTb);
+        config.id    = feature.field_as<int32_t>(colId);
+
+        result.emplace(feature.field_as<std::string_view>(colSector), config);
+    }
+
+    return result;
+}
+
 CountryInventory parse_countries(const fs::path& countriesSpec)
 {
     std::vector<Country> countries;

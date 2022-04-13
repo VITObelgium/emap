@@ -43,6 +43,11 @@ fs::path ModelPaths::spatial_pattern_path() const
     return _dataRoot / "03_spatial_disaggregation";
 }
 
+fs::path ModelPaths::sector_parameters_config_path() const
+{
+    return _dataRoot / "05_model_parameters" / "sector_parameters.xlsx";
+}
+
 fs::path ModelPaths::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
 {
     return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));

@@ -43,7 +43,6 @@ private:
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
     std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
     std::unordered_map<std::string, PollutantParameterConfig> _pollutantParams;
-    std::unordered_map<Pollutant, size_t> _outputIndex;
 };
 
 }

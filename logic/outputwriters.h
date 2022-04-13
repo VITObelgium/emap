@@ -21,15 +21,12 @@ public:
     };
 
     BrnOutputWriter(const fs::path& path, OpenMode mode);
-    BrnOutputWriter(const fs::path& path, OpenMode mode, size_t startIndex);
 
     void write_header();
     void append_entries(std::span<const BrnOutputEntry> entries);
-    size_t current_index() const noexcept;
 
 private:
     inf::file::Handle _fp;
-    size_t _index = 1;
 };
 
 void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& path);

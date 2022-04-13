@@ -7,6 +7,7 @@
 
 #include "gdx/denserasterio.h"
 
+#include "brnanalyzer.h"
 #include "infra/test/tempdir.h"
 #include "outputreaders.h"
 #include "runsummary.h"
@@ -20,49 +21,6 @@ namespace emap::test {
 using namespace inf;
 using namespace doctest;
 using namespace date::literals;
-
-class BrnAnalyzer
-{
-public:
-    BrnAnalyzer(std::vector<BrnOutputEntry> entries)
-    : _entries(std::move(entries))
-    {
-    }
-
-    size_t size() const noexcept
-    {
-        return _entries.size();
-    }
-
-    double emissions_sum(int32_t countryId, int32_t sectorId) const noexcept
-    {
-        double sum = 0.0;
-
-        for (auto& entry : _entries) {
-            if (entry.d_m != 0 && entry.cat == sectorId && entry.area == countryId) {
-                sum += entry.q_gs;
-            }
-        }
-
-        return sum;
-    }
-
-    double point_emissions_sum(int32_t countryId, int32_t sectorId) const noexcept
-    {
-        double sum = 0.0;
-
-        for (auto& entry : _entries) {
-            if (entry.d_m == 0 && entry.cat == sectorId && entry.area == countryId) {
-                sum += entry.q_gs;
-            }
-        }
-
-        return sum;
-    }
-
-private:
-    std::vector<BrnOutputEntry> _entries;
-};
 
 TEST_CASE("Emission inventory [integration]" * skip(true))
 {
@@ -147,7 +105,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
                 year = 2019
                 report_year = 2021
                 scenario = "test"
-                included_pollutants = [ "SOx" ]
+                included_pollutants = [ "SOx", "HCB" ]
 
             [output]
                 path = "{}"
@@ -166,20 +124,43 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
 
         CHECK(run_model(cfg, [](const auto&) { return inf::ProgressStatusResult::Continue; }) == EXIT_SUCCESS);
 
-        REQUIRE(fs::is_regular_file(outputPath / "SOx_OPS_2019.brn"));
-        REQUIRE(fs::is_regular_file(outputPath / "rasters" / "SOx_A_PublicPower_BEF_Vlops 1km.tif"));
+        {
+            // SOx checks
+            REQUIRE(fs::is_regular_file(outputPath / "SOx_OPS_2019.brn"));
+            REQUIRE(fs::is_regular_file(outputPath / "rasters" / "SOx_A_PublicPower_BEF_Vlops 1km.tif"));
 
-        BrnAnalyzer analyzer(read_brn_output(outputPath / "SOx_OPS_2019.brn"));
+            const auto brnEntries = read_brn_output(outputPath / "SOx_OPS_2019.brn");
+            BrnAnalyzer analyzer(brnEntries);
 
-        auto raster = gdx::read_dense_raster<double>(outputPath / "rasters" / "SOx_A_PublicPower_BEF_Vlops 1km.tif");
+            auto raster = gdx::read_dense_raster<double>(outputPath / "rasters" / "SOx_A_PublicPower_BEF_Vlops 1km.tif");
 
-        constexpr auto totalEmissions    = 0.476353773;
-        constexpr auto pointEmissionsSum = 449.078773 / 1000.0;                // 0.449078773
-        constexpr auto diffuseEmissions  = totalEmissions - pointEmissionsSum; // 0.027275
+            constexpr auto totalEmissions    = 0.476353773;
+            constexpr auto pointEmissionsSum = 449.078773 / 1000.0;                // 0.449078773
+            constexpr auto diffuseEmissions  = totalEmissions - pointEmissionsSum; // 0.027275
 
-        CHECK(analyzer.emissions_sum(1, 601) / constants::toGramPerYearRatio == Approx((diffuseEmissions)));
-        CHECK(analyzer.point_emissions_sum(1, 601) / constants::toGramPerYearRatio == Approx(pointEmissionsSum));
-        CHECK(raster.sum() == Approx(totalEmissions));
+            CHECK(analyzer.diffuse_emissions_sum(1, 601) == Approx((diffuseEmissions)));
+            CHECK(analyzer.point_emissions_sum(1, 601) == Approx(pointEmissionsSum));
+            CHECK(raster.sum() == Approx(totalEmissions));
+        }
+
+        {
+            // HCB checks, lots of zero emissions, only sector 2C1 contains some emissions
+            REQUIRE(fs::is_regular_file(outputPath / "HCB_OPS_2019.brn"));
+            REQUIRE(fs::is_regular_file(outputPath / "rasters" / "HCB_B_Industry_BEF_Vlops 1km.tif"));
+
+            const auto brnEntries = read_brn_output(outputPath / "HCB_OPS_2019.brn");
+            BrnAnalyzer analyzer(brnEntries);
+
+            auto raster = gdx::read_dense_raster<double>(outputPath / "rasters" / "HCB_B_Industry_BEF_Vlops 1km.tif");
+
+            constexpr auto totalEmissions    = 0.0000001719226725;
+            constexpr auto pointEmissionsSum = 0.0;
+            constexpr auto diffuseEmissions  = totalEmissions - pointEmissionsSum;
+
+            CHECK(analyzer.diffuse_emissions_sum(1, 602) == Approx((diffuseEmissions)));
+            CHECK(analyzer.point_emissions_sum(1, 602) == Approx(pointEmissionsSum));
+            CHECK(raster.sum() == Approx(totalEmissions));
+        }
     }
 
     SUBCASE("Subtract point sources in Belgium")

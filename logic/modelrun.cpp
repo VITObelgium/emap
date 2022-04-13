@@ -53,6 +53,11 @@ struct SpatialPatternProcessInfo
         FallbackToUniformSpread,
     };
 
+    double emissions_outside_of_the_grid() const noexcept
+    {
+        return totalEmissions - emissionsWithinOutput;
+    }
+
     Status status                = Status::Ok;
     double totalEmissions        = 0.0;
     double emissionsWithinOutput = 0.0;
@@ -124,6 +129,10 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
     CountryBorders countryBorders(cfg.boundaries_vector_path(), cfg.boundaries_field_id(), clipExtent, cfg.countries());
     CountryBorders eezCountryBorders(cfg.eez_boundaries_vector_path(), cfg.eez_boundaries_field_id(), clipExtent, cfg.countries());
 
+    if (validator) {
+        validator->set_grid_countries(countryBorders.known_countries_in_extent(grid_data(gridDefinitions.front()).meta));
+    }
+
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
 
@@ -141,7 +150,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
         }
 
         ModelProgressInfo progressInfo;
-        ProgressTracker progress(countryBorders.known_countries_in_extent(gridData.meta), progressCb);
+        ProgressTracker progress(countryBorders.known_countries_in_extent(gridData.meta).size(), progressCb);
 
         // Precompute the cell coverages per country as it can be expensive
         chrono::DurationRecorder dur;
@@ -170,7 +179,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
             for (const auto& sector : cfg.sectors().nfr_sectors()) {
                 ModelProgressInfo info;
-                info.info = fmt::format("[{}] Spread {} emissions for sector '{}'", gridData.name, pollutant, sector.code());
+                info.info = fmt::format("[{}] Spread {} for '{}'", gridData.name, pollutant, sector.code());
                 progress.set_payload(info);
                 progress.tick();
 
@@ -242,7 +251,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         }
 
                         if (validator) {
-                            validator->add_diffuse_emissions(emissionId, spatialPattern.raster);
+                            validator->add_diffuse_emissions(emissionId, spatialPattern.raster, spatPatInfo.emissions_outside_of_the_grid());
                         }
 
                         // Add the point sources to the grid
@@ -306,7 +315,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                     }
 
                     if (validator) {
-                        validator->add_diffuse_emissions(emissionId, spatialPattern.raster);
+                        validator->add_diffuse_emissions(emissionId, spatialPattern.raster, spatPatInfo.emissions_outside_of_the_grid());
                         validator->add_point_emissions(emissionId, emission->scaled_point_emissions_sum());
                     }
 
@@ -356,7 +365,7 @@ static std::unique_ptr<EmissionValidation> make_validator(const RunConfiguration
     std::unique_ptr<EmissionValidation> validator;
 
     if (cfg.validation_type() == ValidationType::SumValidation) {
-        validator = std::make_unique<EmissionValidation>();
+        validator = std::make_unique<EmissionValidation>(cfg);
     }
 
     return validator;

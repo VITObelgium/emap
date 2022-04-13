@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emap/runconfiguration.h"
+#include "emap/sectorparameterconfig.h"
 
 #include <cinttypes>
 #include <unordered_map>
@@ -9,15 +10,6 @@ namespace emap {
 
 class EmissionEntry;
 struct EmissionIdentifier;
-
-struct SectorParameterConfig
-{
-    double hc_MW = 0.0;
-    double h_m   = 0.0;
-    double s_m   = 0.0;
-    double tb    = 0.0;
-    int32_t id   = 0;
-};
 
 class IOutputBuilder
 {

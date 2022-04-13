@@ -300,13 +300,13 @@ static std::vector<CountryCellCoverage> process_country_borders(const std::vecto
     return result;
 }
 
-size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
+std::unordered_set<CountryId> known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField)
 {
     auto countriesDs = gdal::VectorDataSet::open(countriesVector);
     return known_countries_in_extent(inv, extent, countriesDs, countryIdField);
 }
 
-size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, gdal::VectorDataSet& countriesDs, const std::string& countryIdField)
+std::unordered_set<CountryId> known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, gdal::VectorDataSet& countriesDs, const std::string& countryIdField)
 {
     auto countriesLayer     = countriesDs.layer(0);
     const auto colCountryId = countriesLayer.layer_definition().required_field_index(countryIdField);
@@ -314,14 +314,20 @@ size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMeta
     const auto bbox = extent.bounding_box();
     countriesLayer.set_spatial_filter(bbox.topLeft, bbox.bottomRight);
 
+    std::unordered_set<CountryId> result;
+
     size_t count = 0;
     for (auto& feature : countriesLayer) {
-        if (inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)).has_value() && feature.has_geometry()) {
-            ++count;
+        if (!feature.has_geometry()) {
+            continue;
+        }
+
+        if (auto country = inv.try_country_from_string(feature.field_as<std::string_view>(colCountryId)); country.has_value()) {
+            result.insert(country->id());
         }
     }
 
-    return count;
+    return result;
 }
 
 GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const GeoMetadata& gridExtent)
@@ -438,21 +444,6 @@ CountryCellCoverage create_country_coverage(const Country& country, const geos::
     }
 
     cov.cells = create_cell_coverages(outputExtent, cov.outputSubgridExtent, *geometry);
-
-#ifndef NDEBUG
-    if (!cov.cells.empty()) {
-        for (size_t i = 0; i < cov.cells.size() - 1; ++i) {
-            if (!(cov.cells[i].computeGridCell < cov.cells[i + 1].computeGridCell)) {
-                throw std::logic_error("coverages should be sorted");
-            }
-        }
-
-        for (const auto& cellInfo : cov.cells) {
-            assert(outputExtent.is_on_map(cellInfo.computeGridCell));
-            assert(cov.outputSubgridExtent.is_on_map(cellInfo.countryGridCell));
-        }
-    }
-#endif
 
     return cov;
 }

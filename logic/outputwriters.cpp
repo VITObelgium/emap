@@ -11,12 +11,6 @@ using namespace inf;
 using namespace std::string_view_literals;
 
 BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode)
-: BrnOutputWriter(path, mode, 1)
-{
-}
-
-BrnOutputWriter::BrnOutputWriter(const fs::path& path, OpenMode mode, size_t index)
-: _index(index)
 {
     fs::create_directories(path.parent_path());
 
@@ -36,7 +30,7 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
     for (const auto& entry : entries) {
         //                           index     x     y      q      hc       h     d       s    dv   cat  area    sd comp     temp     flow
         fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>13e}{:>7.3f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>4d}{:>4d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
-                   _index,
+                   entry.ssn,
                    entry.x_m,
                    entry.y_m,
                    entry.q_gs,
@@ -51,14 +45,7 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
                    entry.comp,
                    entry.temp,
                    entry.flow);
-
-        ++_index;
     }
-}
-
-size_t BrnOutputWriter::current_index() const noexcept
-{
-    return _index;
 }
 
 void BrnOutputWriter::write_header()

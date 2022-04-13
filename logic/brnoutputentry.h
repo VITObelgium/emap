@@ -9,6 +9,7 @@ namespace emap {
 
 struct BrnOutputEntry
 {
+    int32_t ssn  = 0;
     int64_t x_m  = 0;
     int64_t y_m  = 0;
     double q_gs  = 0.0;

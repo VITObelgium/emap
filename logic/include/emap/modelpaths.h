@@ -22,6 +22,8 @@ public:
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const;
     fs::path spatial_pattern_path() const;
 
+    fs::path sector_parameters_config_path() const;
+
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
     fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
 

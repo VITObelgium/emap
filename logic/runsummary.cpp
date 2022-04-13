@@ -371,16 +371,19 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
         double width       = 0.0;
     };
 
-    const std::array<ColumnInfo, 9> headers = {
+    const std::array<ColumnInfo, 12> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Pollutant", 15.0},
         ColumnInfo{"NFR", 15.0},
         ColumnInfo{"GNFR", 15.0},
         ColumnInfo{"Input diffuse emission", 15.0},
         ColumnInfo{"Input point emission", 15.0},
-        ColumnInfo{"Output diffuse emission", 15.0},
+        ColumnInfo{"Output diffuse emission inside grid", 25.0},
+        ColumnInfo{"Output diffuse emission outside grid", 25.0},
         ColumnInfo{"Output point emission", 15.0},
-        ColumnInfo{"Diff", 15.0},
+        ColumnInfo{"Output from disk", 15.0},
+        ColumnInfo{"Inv Diff", 15.0},
+        ColumnInfo{"Disk Diff", 15.0},
     };
 
     auto* ws = workbook_add_worksheet(wb, tabName.c_str());
@@ -423,13 +426,29 @@ void RunSummary::validation_results_to_spreadsheet(lxw_workbook* wb, const std::
             ++index;
         }
 
+        if (summaryEntry.spreadDiffuseOutsideOfGridTotal.has_value()) {
+            worksheet_write_number(ws, row, index++, *summaryEntry.spreadDiffuseOutsideOfGridTotal, formatNumber);
+        } else {
+            ++index;
+        }
+
         if (summaryEntry.spreadPointTotal.has_value()) {
             worksheet_write_number(ws, row, index++, *summaryEntry.spreadPointTotal, formatNumber);
         } else {
             ++index;
         }
 
+        if (summaryEntry.outputTotal.has_value()) {
+            worksheet_write_number(ws, row, index++, *summaryEntry.outputTotal, formatNumber);
+        } else {
+            ++index;
+        }
+
         worksheet_write_number(ws, row, index++, std::abs(summaryEntry.diff()), formatNumber);
+
+        if (summaryEntry.outputTotal.has_value()) {
+            worksheet_write_number(ws, row, index++, std::abs(summaryEntry.diff_from_output()), formatNumber);
+        }
 
         ++row;
     }

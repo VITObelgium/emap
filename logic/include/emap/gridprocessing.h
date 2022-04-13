@@ -84,8 +84,8 @@ inf::GeoMetadata create_geometry_extent(const geos::geom::Geometry& geom, const 
 inf::GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent);
 inf::GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom, const inf::GeoMetadata& gridExtent, const inf::gdal::SpatialReference& sourceProjection);
 
-size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
-size_t known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField);
+std::unordered_set<CountryId> known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, const fs::path& countriesVector, const std::string& countryIdField);
+std::unordered_set<CountryId> known_countries_in_extent(const CountryInventory& inv, const inf::GeoMetadata& extent, inf::gdal::VectorDataSet& countriesDs, const std::string& countryIdField);
 
 enum class CoverageMode
 {

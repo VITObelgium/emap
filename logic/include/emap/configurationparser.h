@@ -1,12 +1,15 @@
 #pragma once
 
 #include "emap/runconfiguration.h"
+#include "emap/sectorparameterconfig.h"
 #include "infra/filesystem.h"
 
 #include <optional>
 #include <unordered_map>
 
 namespace emap {
+
+std::unordered_map<std::string, SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName);
 
 CountryInventory parse_countries(const fs::path& countrySpec);
 SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec, const fs::path& ignoreSpec);

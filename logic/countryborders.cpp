@@ -16,7 +16,7 @@ CountryBorders::CountryBorders(const fs::path& vectorPath, std::string_view coun
 {
 }
 
-size_t CountryBorders::known_countries_in_extent(const inf::GeoMetadata& extent)
+std::unordered_set<CountryId> CountryBorders::known_countries_in_extent(const inf::GeoMetadata& extent)
 {
     return emap::known_countries_in_extent(_inv, extent, _ds, _idField);
 }

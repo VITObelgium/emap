@@ -34,8 +34,11 @@ std::vector<BrnOutputEntry> read_brn_output(const fs::path& path)
         }
 
         BrnOutputEntry entry;
-        size_t offset = 7;
-        entry.x_m     = str::to_int64_value(line.substr(offset, 8));
+        size_t offset = 0;
+
+        entry.ssn = str::to_int32_value(line.substr(offset, 6));
+        offset += 6;
+        entry.x_m = str::to_int64_value(line.substr(offset, 8));
         offset += 8;
         entry.y_m = str::to_int64_value(line.substr(offset, 8));
         offset += 8;
