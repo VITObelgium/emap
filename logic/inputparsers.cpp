@@ -736,6 +736,8 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
 
     gdx::DenseRaster<double> result(extent, extent.nodata.value());
 
+    bool isBelgium = id.country.is_belgium();
+
     char *countryStr, *year, *sector, *pollutant, *lonStr, *latStr, *unit, *value;
     while (in.read_row(countryStr, year, sector, pollutant, lonStr, latStr, unit, value)) {
         ++lineNr;
@@ -747,9 +749,9 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
             continue;
         }
 
-        if (id.country.is_belgium()) {
+        if (isBelgium) {
             // Belgian codes are BEF/BEB/BEW but in the CEIP, they are reported with the BE code
-            if (countryStr != "BE") {
+            if (std::string_view(countryStr) != "BE") {
                 continue;
             }
         } else {
