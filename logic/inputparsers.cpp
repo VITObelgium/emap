@@ -738,13 +738,24 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
 
     char *countryStr, *year, *sector, *pollutant, *lonStr, *latStr, *unit, *value;
     while (in.read_row(countryStr, year, sector, pollutant, lonStr, latStr, unit, value)) {
+        ++lineNr;
+
         double emissionValue = to_giga_gram(to_double(value, lineNr), unit);
         auto curPollutant    = pollutants.pollutant_from_string(pollutant);
-        auto country         = countries.try_country_from_string(countryStr);
 
-        if (country != id.country || id.pollutant != curPollutant) {
-            ++lineNr;
+        if (id.pollutant != curPollutant) {
             continue;
+        }
+
+        if (id.country.is_belgium()) {
+            // Belgian codes are BEF/BEB/BEW but in the CEIP, they are reported with the BE code
+            if (countryStr != "BE") {
+                continue;
+            }
+        } else {
+            if (auto country = countries.try_country_from_string(countryStr); country != id.country) {
+                continue;
+            }
         }
 
         const auto emissionSector = sectors.sector_from_string(process_ceip_sector(sector));
@@ -771,8 +782,6 @@ gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatte
                 Log::warn("CEIP pattern: emission is outside of the grid: lat {} lon {} ({}:{})", *lat, *lon, spatialPatternPath, lineNr);
             }
         }
-
-        ++lineNr;
     }
 
     return result;
