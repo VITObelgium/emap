@@ -67,7 +67,8 @@ static SpatialPatternProcessInfo apply_emission_to_spatial_pattern(SpatialPatter
     info.totalEmissions = emissionValue;
 
     if (emissionValue == 0) {
-        info.status = SpatialPatternProcessInfo::Status::NoEmissionToSpread;
+        info.status           = SpatialPatternProcessInfo::Status::NoEmissionToSpread;
+        spatialPattern.raster = {};
         return info;
     }
 
