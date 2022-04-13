@@ -20,6 +20,15 @@ VlopsOutputBuilder::VlopsOutputBuilder(std::unordered_map<std::string, SectorPar
 {
 }
 
+static std::string_view vlops_pollutant_name(const Pollutant& pol)
+{
+    if (pol.code() == "PMcoarse") {
+        return "PMc";
+    }
+
+    return pol.code();
+}
+
 void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 {
     assert(emission.coordinate().has_value());
@@ -46,7 +55,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.cat   = sectorParamsIter->second.id;
     entry.area  = static_cast<int32_t>(id.country.id());
     entry.sd    = pollutantParams.sd;
-    entry.comp  = id.pollutant.code();
+    entry.comp  = vlops_pollutant_name(id.pollutant);
     entry.flow  = emission.flow_rate();
     entry.temp  = emission.temperature();
 
@@ -126,7 +135,7 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
                     brnEntry.cat   = sectorParams.id;
                     brnEntry.area  = static_cast<int32_t>(countryId);
                     brnEntry.sd    = pollutantParams.sd;
-                    brnEntry.comp  = pol.code();
+                    brnEntry.comp  = vlops_pollutant_name(pol);
                     brnEntry.flow  = 9999.0;
                     brnEntry.temp  = 9999.0;
                     entries.push_back(brnEntry);
