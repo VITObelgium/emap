@@ -26,6 +26,8 @@ static std::string_view vlops_pollutant_name(const Pollutant& pol)
         return "PMc";
     } else if (pol.code() == "PCDD-PCDF") {
         return "PCDD";
+    } else if (pol.code() == "Indeno") {
+        return "Ind";
     }
 
     return pol.code();
