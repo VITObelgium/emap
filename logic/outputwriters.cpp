@@ -69,7 +69,7 @@ void write_dat_output(const fs::path& path, std::span<const DatOutputEntry> entr
     file::Handle fp(path, "wt");
 
     for (const auto& entry : entries) {
-        fmt::print(fp, FMT_COMPILE("{:>4}{:>5}{:>5} {}\n"), entry.countryCode, entry.cell.r, entry.cell.c, str::join(entry.emissions, " "sv, [](double emission) {
+        fmt::print(fp, FMT_COMPILE("{:>4}{:>5}{:>5} {}\n"), entry.countryCode, entry.cell.c, entry.cell.r, str::join(entry.emissions, " "sv, [](double emission) {
                        return fmt::format("{:>10.3e}", emission);
                    }));
     }

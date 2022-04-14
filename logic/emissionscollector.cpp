@@ -95,7 +95,7 @@ void EmissionsCollector::add_emissions(const CountryCellCoverage& countryInfo, c
         }
 
         const auto cellCenter = meta.convert_cell_centre_to_xy(cell);
-        _outputBuilder->add_diffuse_output_entry(emissionId, Point(truncate<int64_t>(cellCenter.x), truncate<int64_t>(cellCenter.y)), diffuseEmissions[cell], truncate<int32_t>(meta.cell_size_x()));
+        _outputBuilder->add_diffuse_output_entry(emissionId, Point(cellCenter.x, cellCenter.y), diffuseEmissions[cell], truncate<int32_t>(meta.cell_size_x()));
     }
 
     for (auto& entry : pointEmissions) {

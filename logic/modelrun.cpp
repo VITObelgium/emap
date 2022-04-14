@@ -349,7 +349,9 @@ static void clean_output_directory(const fs::path& p)
                     fs::remove(entry);
                 }
             } else if (entry.is_directory()) {
-                fs::remove_all(entry.path());
+                if (entry.path().stem() != "grids") {
+                    fs::remove_all(entry.path());
+                }
             }
         }
     } catch (const fs::filesystem_error& e) {

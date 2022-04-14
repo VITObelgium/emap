@@ -22,7 +22,7 @@ public:
                        const RunConfiguration& cfg);
 
     void add_point_output_entry(const EmissionEntry& emission) override;
-    void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<int64_t> loc, double emission, int32_t cellSizeInM) override;
+    void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<double> loc, double emission, int32_t cellSizeInM) override;
 
     void flush_pollutant(const Pollutant& pol, WriteMode mode) override;
     void flush(WriteMode mode) override;
@@ -38,7 +38,7 @@ private:
         int32_t cellSize = 0;
     };
 
-    std::unordered_map<Pollutant, std::unordered_map<std::string, std::unordered_map<CountryId, std::unordered_map<inf::Point<int64_t>, Entry>>>> _diffuseSources;
+    std::unordered_map<Pollutant, std::unordered_map<std::string, std::unordered_map<CountryId, std::unordered_map<inf::Point<double>, Entry>>>> _diffuseSources;
 
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
     std::unordered_map<std::string, SectorParameterConfig> _sectorParams;

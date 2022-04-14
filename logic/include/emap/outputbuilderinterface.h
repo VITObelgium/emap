@@ -22,8 +22,8 @@ public:
 
     virtual ~IOutputBuilder() = default;
 
-    virtual void add_point_output_entry(const EmissionEntry& emission)                                                                 = 0;
-    virtual void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<int64_t> loc, double emission, int32_t cellSizeInM) = 0;
+    virtual void add_point_output_entry(const EmissionEntry& emission)                                                                = 0;
+    virtual void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<double> loc, double emission, int32_t cellSizeInM) = 0;
 
     // Pollutant calculation finished, results can be flushed to save on memory
     virtual void flush_pollutant(const Pollutant& pol, WriteMode mode) = 0;

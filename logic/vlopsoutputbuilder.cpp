@@ -68,7 +68,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     _pointSources[id.pollutant].push_back(entry);
 }
 
-void VlopsOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<int64_t> loc, double emission, int32_t cellSizeInM)
+void VlopsOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<double> loc, double emission, int32_t cellSizeInM)
 {
     assert(id.sector.type() == EmissionSector::Type::Nfr);
     const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
@@ -130,8 +130,8 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
                 for (const auto& [location, entry] : locationData) {
                     BrnOutputEntry brnEntry;
                     brnEntry.ssn   = static_cast<int>(_cfg.year());
-                    brnEntry.x_m   = location.x;
-                    brnEntry.y_m   = location.y;
+                    brnEntry.x_m   = truncate<int64_t>(location.x);
+                    brnEntry.y_m   = truncate<int64_t>(location.y);
                     brnEntry.q_gs  = entry.value * constants::toGramPerYearRatio;
                     brnEntry.hc_MW = sectorParams.hc_MW;
                     brnEntry.h_m   = sectorParams.h_m;

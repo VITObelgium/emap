@@ -316,7 +316,6 @@ std::unordered_set<CountryId> known_countries_in_extent(const CountryInventory& 
 
     std::unordered_set<CountryId> result;
 
-    size_t count = 0;
     for (auto& feature : countriesLayer) {
         if (!feature.has_geometry()) {
             continue;

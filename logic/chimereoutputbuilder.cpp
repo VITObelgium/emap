@@ -58,20 +58,18 @@ void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     _pointSources.push_back(entry);
 }
 
-void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<int64_t> loc, double emission, int32_t /*cellSizeInM*/)
+void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<double> loc, double emission, int32_t /*cellSizeInM*/)
 {
     if (!_meta.is_on_map(loc)) {
         return;
     }
 
     assert(id.sector.type() == EmissionSector::Type::Nfr);
-    std::string mappedSectorName(id.sector.name());
-    if (_sectorLevel != SectorLevel::NFR) {
-        mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
-    }
+    const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
 
     Cell gridCell = _meta.convert_point_to_cell(loc);
     Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
+
 
     std::scoped_lock lock(_mutex);
     _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] = emission * 1000.0;

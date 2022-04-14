@@ -8,6 +8,8 @@
 #include <mutex>
 #include <string>
 
+#include <unordered_map>
+
 namespace emap {
 
 class ChimereOutputBuilder : public IOutputBuilder
@@ -18,7 +20,7 @@ public:
                          const RunConfiguration& cfg);
 
     void add_point_output_entry(const EmissionEntry& emission) override;
-    void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<int64_t> loc, double emission, int32_t cellSizeInM) override;
+    void add_diffuse_output_entry(const EmissionIdentifier& id, inf::Point<double> loc, double emission, int32_t cellSizeInM) override;
 
     void flush_pollutant(const Pollutant& pol, WriteMode mode) override;
     void flush(WriteMode mode) override;
