@@ -456,9 +456,9 @@ static gdx::DenseRaster<double> extract_country_from_pattern(const gdx::DenseRas
     return raster;
 }
 
-static gdx::DenseRaster<double> read_country_from_pattern(const fs::path& spatialPatternPath, bool checkContents)
+static gdx::DenseRaster<double> read_country_from_pattern(const fs::path& spatialPatternPath, const CountryCellCoverage& countryCoverage, bool checkContents)
 {
-    auto raster = gdx::read_dense_raster<double>(spatialPatternPath);
+    auto raster = gdx::resample_raster(gdx::read_dense_raster<double>(spatialPatternPath), countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
 
     if (checkContents) {
         bool containsData = std::any_of(raster.begin(), raster.end(), [](double val) {
@@ -485,8 +485,8 @@ gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const Spati
     case SpatialPatternSource::Type::SpatialPatternFlanders: {
         const auto* spatialPatternData = _flandersCache.get_data(src.path, src.usedEmissionId);
         if (spatialPatternData != nullptr) {
-            if ((!checkContents) || gdx::sum(spatialPatternData->raster) > 0.0) {
-                auto result = spatialPatternData->raster.copy();
+            auto result = gdx::resample_raster(spatialPatternData->raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
+            if ((!checkContents) || gdx::sum(result) > 0.0) {
                 normalize_raster(result);
                 return result;
             }
@@ -500,7 +500,7 @@ gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const Spati
         if (countryCoverage.country == country::BEF) {
             // Flanders should never be extracted, there is no data for other countries
             // no ratio will be applied to the country borders
-            return read_country_from_pattern(src.path, checkContents);
+            return read_country_from_pattern(src.path, countryCoverage, checkContents);
         } else {
             return extract_country_from_pattern(gdx::read_dense_raster<double>(src.path), countryCoverage, checkContents);
         }
