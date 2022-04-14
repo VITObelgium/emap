@@ -41,15 +41,18 @@ TEST_CASE("Spatial pattern selection test")
     auto exceptionsPath = fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "exceptions_spatial_disaggregation.xlsx";
     auto cfg            = create_config(sectorInventory, pollutantInventory, countryInventory, exceptionsPath);
 
-    auto grid = grid_data(GridDefinition::Vlops60km);
-    CountryBorders borders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg", "Code3", grid.meta, countryInventory);
-    const auto coverage = borders.create_country_coverages(grid.meta, CoverageMode::AllCountryCells, nullptr);
+    auto grid60km = grid_data(GridDefinition::Vlops60km);
+    auto grid1km = grid_data(GridDefinition::Vlops1km);
+    CountryBorders borders60km(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg", "Code3", grid60km.meta, countryInventory);
+    CountryBorders borders1km(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg", "Code3", grid1km.meta, countryInventory);
+    const auto coverage60km = borders60km.create_country_coverages(grid60km.meta, CoverageMode::AllCountryCells, nullptr);
+    const auto coverage1km  = borders1km.create_country_coverages(grid1km.meta, CoverageMode::AllCountryCells, nullptr);
 
     SpatialPatternInventory inv(cfg);
     inv.scan_dir(2021_y, 2016_y, fs::u8path(TEST_DATA_DIR) / "spatialinventory");
 
-    const auto& nlCoverage  = inf::find_in_container_required(coverage, [](auto& cov) { return cov.country == countries::NL; });
-    const auto& befCoverage = inf::find_in_container_required(coverage, [](auto& cov) { return cov.country == countries::BEF; });
+    const auto& nlCoverage  = inf::find_in_container_required(coverage60km, [](auto& cov) { return cov.country == countries::NL; });
+    const auto& befCoverage = inf::find_in_container_required(coverage1km, [](auto& cov) { return cov.country == countries::BEF; });
 
     {
         // Available in 2016 at gnfr level: Industry
