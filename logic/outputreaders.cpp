@@ -22,7 +22,7 @@ std::vector<BrnOutputEntry> read_brn_output(const fs::path& path)
     //"   ssn    x(m)    y(m)   q(g/s)     hc(MW)  h(m)   d(m)  s(m)  dv cat area  sd  comp temp flow Emap: v..");
 
     //                             index     x     y      q      hc       h     d       s    dv   cat  area    sd comp     temp     flow
-    // fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>13e}{:>7.3f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>4d}{:>4d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
+    // fmt::print(_fp, FMT_COMPILE("{:>6d}{:>8d}{:>8d}{:>14e}{:>7.2f}{:>6.1f}{:>7d}{:>6.1f}{:>4d}{:>4d}{:>4d}{:>4d}{:>5}{:>12.3f}{:>12.3f}\n"),
 
     std::for_each(start, lines.end(), [&result](std::string_view line) {
         if (line.empty()) {
@@ -42,8 +42,8 @@ std::vector<BrnOutputEntry> read_brn_output(const fs::path& path)
         offset += 8;
         entry.y_m = str::to_int64_value(line.substr(offset, 8));
         offset += 8;
-        entry.q_gs = str::to_double_value(line.substr(offset, 13));
-        offset += 13;
+        entry.q_gs = str::to_double_value(line.substr(offset, 14));
+        offset += 14;
         entry.hc_MW = str::to_double_value(line.substr(offset, 7));
         offset += 7;
         entry.h_m = str::to_double_value(line.substr(offset, 6));
