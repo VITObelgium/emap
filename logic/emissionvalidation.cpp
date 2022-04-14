@@ -46,15 +46,19 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
     const auto sectorParametersPath = ModelPaths(_cfg.data_root(), _cfg.output_path()).sector_parameters_config_path();
     const auto sectorParams         = parse_sector_parameters_config(sectorParametersPath, _cfg.output_sector_level(), _cfg.output_sector_level_name());
 
-    std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> brnOutputs;
+    std::unordered_map<Pollutant, std::unordered_map<CountrySector, double>> brnTotals;
 
-    for (auto& pol : includedPollutants) {
-        const auto path = _cfg.output_path() / fmt::format("{}_OPS_{}{}.brn", pol.code(), static_cast<int>(_cfg.year()), _cfg.output_filename_suffix());
+    if (_cfg.output_sector_level() == SectorLevel::NFR) {
+        for (auto& pol : includedPollutants) {
+            const auto path = _cfg.output_path() / fmt::format("{}_OPS_{}{}.brn", pol.code(), static_cast<int>(_cfg.year()), _cfg.output_filename_suffix());
 
-        try {
-            brnOutputs.emplace(pol, read_brn_output(path));
-        } catch (const std::exception& e) {
-            throw RuntimeError("Error parsing brn {}: ({})", path, e.what());
+            try {
+                const auto brnEntries = read_brn_output(path);
+                BrnAnalyzer analyzer(brnEntries);
+                brnTotals.emplace(pol, analyzer.create_totals());
+            } catch (const std::exception& e) {
+                throw RuntimeError("Error parsing brn {}: ({})", path, e.what());
+            }
         }
     }
 
@@ -78,8 +82,7 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
             int32_t countryCode = static_cast<int32_t>(invEntry.id().country.id());
             int32_t sectorCode  = sectorParams.at(_cfg.sectors().map_nfr_to_output_name(invEntry.id().sector.nfr_sector())).id;
 
-            BrnAnalyzer analyzer(brnOutputs.at(invEntry.id().pollutant));
-            summaryEntry.outputTotal = analyzer.total_sum(countryCode, sectorCode);
+            summaryEntry.outputTotal = brnTotals[invEntry.id().pollutant][CountrySector(countryCode, sectorCode)];
         }
 
         result.push_back(summaryEntry);
