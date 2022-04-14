@@ -25,12 +25,12 @@ static std::string_view vlops_pollutant_name(const Pollutant& pol)
     if (pol.code() == "PMcoarse") {
         return "PMc";
     } else if (pol.code() == "PCDD-PCDF") {
-        return "PCDD";
+        return "DIX";
     } else if (pol.code() == "Indeno") {
         return "Ind";
     }
 
-    return pol.code();
+    return pol.code().substr(0, 5);
 }
 
 void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
