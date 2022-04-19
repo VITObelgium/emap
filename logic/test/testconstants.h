@@ -83,6 +83,7 @@ const Pollutant BaP("BaP", "benzo(a)pyrene");
 namespace countries {
 const Country ATL(CountryId(4), "ATL", "Remaining North-East Atlantic Ocean", false);
 const Country AT(CountryId(10), "AT", "Austria", true);
+const Country BG(CountryId(25), "BG", "Bulgaria", true);
 const Country FR(CountryId(56), "FR", "France", true);
 const Country ES(CountryId(12), "ES", "Spain", true);
 const Country LI(CountryId(39), "LI", "Lituania", true);

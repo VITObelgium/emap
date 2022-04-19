@@ -57,6 +57,48 @@ TEST_CASE("create_country_coverages")
     }
 }
 
+TEST_CASE("create_country_coverages flanders chimere")
+{
+    auto outputGrid    = grid_data(GridDefinition::Chimere01deg).meta;
+    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+    CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Chimere01deg).meta);
+
+    CountryInventory countries({country::BEF});
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
+
+    CHECK(coverageInfo.size() == 1);
+    auto& bef = coverageInfo.front();
+
+    CHECK(bef.outputSubgridExtent.rows == 9);
+
+    auto spatialPatternRaster = gdx::resample_raster(gdx::read_dense_raster<double>(fs::u8path(TEST_DATA_DIR) / "spatialpattern.tif"), bef.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
+    CHECK(spatialPatternRaster.metadata().rows == 9);
+
+    const auto intersection = metadata_intersection(bef.outputSubgridExtent, outputGrid);
+    CHECK(intersection.rows == 9);
+}
+
+TEST_CASE("create_country_coverages edge country")
+{
+    auto outputGrid    = grid_data(GridDefinition::Chimere01deg).meta;
+    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+    CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Chimere01deg).meta);
+
+    CountryInventory countries({countries::NL});
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
+
+    REQUIRE(coverageInfo.size() == 1);
+    auto& nl = coverageInfo.front();
+
+    const auto& countryExtent = nl.outputSubgridExtent;
+    const auto intersection   = metadata_intersection(countryExtent, outputGrid);
+    REQUIRE(intersection.bounding_box() == countryExtent.bounding_box());
+}
+
 TEST_CASE("Normalize raster")
 {
     auto outputGrid    = grid_data(GridDefinition::Vlops60km).meta;

@@ -8,6 +8,7 @@ add_executable(emaplogictest
     gridtest.cpp
     inputparsertest.cpp
     outputbuilderstest.cpp
+    outputreadertest.cpp
     rasterbuildertest.cpp
     spatialpatterninventorytest.cpp
     runconfigurationparsertest.cpp

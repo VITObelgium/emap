@@ -70,12 +70,11 @@ void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id
     Cell gridCell = _meta.convert_point_to_cell(loc);
     Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
 
-
     std::scoped_lock lock(_mutex);
     _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] = emission * 1000.0;
 }
 
-std::string_view grid_resolution_string(ModelGrid grid)
+static std::string_view grid_resolution_string(ModelGrid grid)
 {
     switch (grid) {
     case ModelGrid::Chimere05deg:
@@ -92,6 +91,12 @@ std::string_view grid_resolution_string(ModelGrid grid)
         return "emep_01deg";
     case ModelGrid::ChimereCams:
         return "cams_01-005deg";
+    case ModelGrid::ChimereRio1:
+        return "chimere_rio1";
+    case ModelGrid::ChimereRio4:
+        return "chimere_rio4";
+    case ModelGrid::ChimereRio32:
+        return "chimere_rio32";
     default:
         break;
     }
