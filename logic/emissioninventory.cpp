@@ -419,7 +419,7 @@ SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg,
         }
     }
 
-    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(totalEmissionsNfrPath), year, cfg);
+    auto nfrTotalEmissions = parse_emissions(EmissionSector::Type::Nfr, throw_if_not_exists(totalEmissionsNfrPath), year, cfg, RespectIgnoreList::Yes);
     runSummary.add_totals_source(totalEmissionsNfrPath);
 
     static const std::array<const Country*, 3> belgianRegions = {
@@ -449,7 +449,7 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
     if (fs::is_regular_file(reportedGnfrDataPath)) {
         // Validated gnfr data is available
         reportYear         = cfg.reporting_year();
-        gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, reportedGnfrDataPath, cfg.year(), cfg);
+        gnfrTotalEmissions = parse_emissions(EmissionSector::Type::Gnfr, reportedGnfrDataPath, cfg.year(), cfg, RespectIgnoreList::Yes);
     }
 
     if (!gnfrTotalEmissions.has_value() || gnfrTotalEmissions->empty()) {
@@ -463,7 +463,7 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
 
         reportYear           = cfg.reporting_year() - date::years(1);
         reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
-        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg);
+        gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg, RespectIgnoreList::Yes);
         if (gnfrTotalEmissions->empty()) {
             throw RuntimeError("No GNFR data could be found for the requested year, nor for the previous year");
         }
@@ -498,7 +498,7 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
     std::optional<SingleEmissions> extraEmissions;
     const auto extraNfrPath = cfg.total_extra_emissions_path_nfr();
     if (fs::exists(extraNfrPath)) {
-        extraEmissions = parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg.year(), cfg);
+        extraEmissions = parse_emissions(EmissionSector::Type::Nfr, extraNfrPath, cfg.year(), cfg, RespectIgnoreList::No);
         summary.add_totals_source(extraNfrPath);
     }
 

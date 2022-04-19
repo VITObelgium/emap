@@ -265,7 +265,7 @@ static SingleEmissions calculate_pmcoarse_emissions(const PollutantInventory& in
     return SingleEmissions(emissions.year(), std::move(entries));
 }
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg)
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores)
 {
     // First lines are comments
     // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
@@ -300,26 +300,30 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
 
             try {
-                if (!sectorInv.is_ignored_sector(sectorType, sectorName) && !pollutantInv.is_ignored_pollutant(pollutant)) {
-                    auto [sector, priority] = sectorInv.sector_with_priority_from_string(sectorType, sectorName);
-                    EmissionIdentifier id(*country, sectorInv.sector_from_string(sectorType, sectorName), pollutantInv.pollutant_from_string(pollutant));
-
-                    EmissionEntry info(id, EmissionValue(emissionValue));
-
-                    if (auto iter = usedSectorPriories.find(id); iter != usedSectorPriories.end()) {
-                        // Sector was already processed, check if the current priority is higher
-                        if (priority > iter->second && emissionValue > 0.0) {
-                            // the current entry has a higher priority, update the map
-                            update_entry(entries, info);
-                        } else {
-                            // the current entry has a lower priority priority, skip it
-                            continue;
-                        }
-                    } else {
-                        // first time we encounter this sector, add the current priority
-                        usedSectorPriories.emplace(id, priority);
-                        entries.push_back(info);
+                if (respectIgnores == RespectIgnoreList::Yes) {
+                    if (sectorInv.is_ignored_sector(sectorType, sectorName) || pollutantInv.is_ignored_pollutant(pollutant)) {
+                        continue;
                     }
+                }
+
+                auto [sector, priority] = sectorInv.sector_with_priority_from_string(sectorType, sectorName);
+                EmissionIdentifier id(*country, sectorInv.sector_from_string(sectorType, sectorName), pollutantInv.pollutant_from_string(pollutant));
+
+                EmissionEntry info(id, EmissionValue(emissionValue));
+
+                if (auto iter = usedSectorPriories.find(id); iter != usedSectorPriories.end()) {
+                    // Sector was already processed, check if the current priority is higher
+                    if (priority > iter->second && emissionValue > 0.0) {
+                        // the current entry has a higher priority, update the map
+                        update_entry(entries, info);
+                    } else {
+                        // the current entry has a lower priority priority, skip it
+                        continue;
+                    }
+                } else {
+                    // first time we encounter this sector, add the current priority
+                    usedSectorPriories.emplace(id, priority);
+                    entries.push_back(info);
                 }
             } catch (const std::exception& e) {
                 Log::debug("Ignoring line {} in {} ({})", in.get_file_line(), emissionsCsv, e.what());

@@ -16,7 +16,13 @@ class ScalingFactors;
 class SectorInventory;
 class PollutantInventory;
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg);
+enum class RespectIgnoreList
+{
+    Yes,
+    No,
+};
+
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores);
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg);
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg);
 ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const RunConfiguration& cfg);
