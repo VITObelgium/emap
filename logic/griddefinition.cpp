@@ -92,7 +92,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Chimere01deg, "Chimere 0.1 degree", GeoMetadata(48, 111, -1.0489, 48.7494, 0.1, nan, s_epsg4326)},
     {GridDefinition::Chimere005degLarge, "Chimere 0.05 degrees large", GeoMetadata(65, 121, 1.225, 48.675, 0.05, nan, s_epsg4326)},
     {GridDefinition::Chimere005degSmall, "Chimere 0.05 degrees small", GeoMetadata(53, 103, 2.12618, 48.97442, 0.05, nan, s_epsg4326)},
-    {GridDefinition::Chimere0025deg, "Chimere 0.025 degrees", GeoMetadata(117, 206, -1.0114, 48.9869, 0.025, nan, s_epsg4326)},
+    {GridDefinition::Chimere0025deg, "Chimere 0.025 degrees", GeoMetadata(117, 206, 2.11368, 48.98692, 0.025, nan, s_epsg4326)},
     {GridDefinition::ChimereEmep, "Chimere EMEP", GeoMetadata(520, 1199, -30.0, 30.0, 0.1, nan, s_epsg4326)},
     {GridDefinition::ChimereCams, "Chimere CAMS", GeoMetadata(1040, 1199, -30.0, 30.0, {0.1, -0.05}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio1, "Chimere rio1", GeoMetadata(288, 320, 2.16672, 49.24346, {0.0141, -0.00895}, nan, s_epsg4326)},
