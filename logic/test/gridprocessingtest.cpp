@@ -120,6 +120,36 @@ TEST_CASE("Normalize raster")
     CHECK(gdx::sum(nlRaster) == Approx(1.0));
 }
 
+TEST_CASE("Resample nodata check")
+{
+    auto gridDef = GridDefinition::Chimere005degLarge;
+
+    auto outputGrid    = grid_data(gridDef).meta;
+    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+    CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(gridDef).meta);
+
+    CountryInventory countries({countries::BEF});
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
+
+    CHECK(coverageInfo.size() == 1);
+    auto& bef = coverageInfo.front();
+
+    auto inputPath = fs::u8path(TEST_DATA_DIR) / "1A3BI_NOX_2019.tif";
+    auto result    = gdx::resample_raster(gdx::read_dense_raster<double>(inputPath), bef.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
+
+    size_t nodataCount = 0;
+    for (auto cell : gdx::RasterCells(result)) {
+        if (result.is_nodata(cell)) {
+            ++nodataCount;
+        }
+    }
+
+    // Less than 30% of the cells should have valid data
+    CHECK((nodataCount / double(result.size())) < 0.3);
+}
+
 // TEST_CASE("res")
 //{
 //     auto spatialPattern = gdx::read_dense_raster<double>(fs::u8path(TEST_DATA_DIR) / "spatialpattern.tif");

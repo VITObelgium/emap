@@ -42,7 +42,7 @@ TEST_CASE("Spatial pattern selection test")
     auto cfg            = create_config(sectorInventory, pollutantInventory, countryInventory, exceptionsPath);
 
     auto grid60km = grid_data(GridDefinition::Vlops60km);
-    auto grid1km = grid_data(GridDefinition::Vlops1km);
+    auto grid1km  = grid_data(GridDefinition::Vlops1km);
     CountryBorders borders60km(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg", "Code3", grid60km.meta, countryInventory);
     CountryBorders borders1km(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg", "Code3", grid1km.meta, countryInventory);
     const auto coverage60km = borders60km.create_country_coverages(grid60km.meta, CoverageMode::AllCountryCells, nullptr);
@@ -246,12 +246,23 @@ TEST_CASE("Spatial pattern selection test")
     }
 
     {
-        // Exception rule
+        // Exception rule NFR level
         const auto sp = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::CO), befCoverage);
         CHECK(sp.source.path.generic_u8string() == (fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "." / "wegverkeer" / "2021" / "1A3BI_CO_2016.tif").generic_u8string());
         CHECK(sp.source.emissionId.pollutant == pollutants::CO);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A3bi));
+        CHECK(sp.source.type == SpatialPatternSource::Type::Raster);
+        CHECK(sp.source.isException);
+    }
+
+    {
+        // Exception rule GNFR level
+        const auto sp = inv.get_spatial_pattern_checked(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A2c), pollutants::CO), befCoverage);
+        CHECK(sp.source.path.generic_u8string() == (fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "." / "wegverkeer" / "2021" / "B_Industry_CO_2019.tif").generic_u8string());
+        CHECK(sp.source.emissionId.pollutant == pollutants::CO);
+        CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2c));
+        CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Industry));
         CHECK(sp.source.type == SpatialPatternSource::Type::Raster);
         CHECK(sp.source.isException);
     }
