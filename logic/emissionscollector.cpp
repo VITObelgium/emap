@@ -56,28 +56,6 @@ void EmissionsCollector::start_pollutant(const Pollutant& pol, const GridData& g
     _grid      = grid;
 }
 
-static void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::DenseRaster<double>& countryRaster)
-{
-    auto intersection = inf::metadata_intersection(collectedRaster.metadata(), countryRaster.metadata());
-    if (intersection.rows == 0 || intersection.cols == 0) {
-        return;
-    }
-
-    auto subGrid1 = gdx::sub_area(collectedRaster, intersection);
-    auto subGrid2 = gdx::sub_area(countryRaster, intersection);
-    std::transform(subGrid1.begin(), subGrid1.end(), subGrid2.begin(), subGrid1.begin(), [](double res, double toAdd) {
-        if (std::isnan(toAdd)) {
-            return res;
-        }
-
-        if (std::isnan(res)) {
-            return toAdd;
-        }
-
-        return res + toAdd;
-    });
-}
-
 void EmissionsCollector::add_emissions(const CountryCellCoverage& countryInfo, const NfrSector& nfr, gdx::DenseRaster<double> diffuseEmissions, std::span<const EmissionEntry> pointEmissions)
 {
     assert(_pollutant.has_value());

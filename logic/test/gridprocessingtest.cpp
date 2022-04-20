@@ -7,6 +7,8 @@
 #include "gdx/denseraster.h"
 #include "gdx/denserasterio.h"
 
+#include "gdx/test/rasterasserts.h"
+
 #include "infra/cliprogressbar.h"
 #include "infra/hash.h"
 #include "infra/log.h"
@@ -148,6 +150,46 @@ TEST_CASE("Resample nodata check")
 
     // Less than 30% of the cells should have valid data
     CHECK((nodataCount / double(result.size())) < 0.3);
+}
+
+TEST_CASE("Add to raster")
+{
+    std::array<GridDefinition, 6> gridsToCheck = {
+        GridDefinition::Chimere01deg,
+        GridDefinition::Chimere05deg,
+        GridDefinition::Chimere005degLarge,
+        GridDefinition::Chimere0025deg,
+        GridDefinition::Vlops1km,
+        GridDefinition::Vlops60km,
+    };
+
+    for (auto gridDef : gridsToCheck) {
+        Log::info("Check grid: {}", grid_data(gridDef).name);
+
+        auto outputGrid    = grid_data(gridDef).meta;
+        auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+        CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
+        auto vectorDs = gdal::warp_vector(countriesPath, grid_data(gridDef).meta);
+
+        CountryInventory countries({countries::BEF});
+        auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
+
+        CHECK(coverageInfo.size() == 1);
+        auto& bef = coverageInfo.front();
+
+        gdx::DenseRaster<double> grid1(outputGrid, 0.0);
+        gdx::DenseRaster<double> grid2(outputGrid, 0.0);
+        gdx::DenseRaster<double> flanders(bef.outputSubgridExtent, 0.0);
+
+        for (auto& cellInfo : bef.cells) {
+            flanders[cellInfo.countryGridCell] = 1.0;
+            grid1[cellInfo.computeGridCell]    = 1.0;
+        }
+
+        add_to_raster(grid2, flanders);
+        CHECK_RASTER_EQ(grid1, grid2);
+    }
 }
 
 // TEST_CASE("res")

@@ -71,6 +71,9 @@ struct CountryCellCoverage
 // normalizes the raster so the sum is 1
 void normalize_raster(gdx::DenseRaster<double>& ras) noexcept;
 
+// Add cells from the country raster to the collected raster, extents do not have to match
+void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::DenseRaster<double>& countryRaster);
+
 inf::gdal::VectorDataSet transform_vector(const fs::path& vectorPath, const inf::GeoMetadata& destMeta);
 
 gdx::DenseRaster<double> transform_grid(const gdx::DenseRaster<double>& ras, GridDefinition grid, inf::gdal::ResampleAlgorithm algo = inf::gdal::ResampleAlgorithm::Average);

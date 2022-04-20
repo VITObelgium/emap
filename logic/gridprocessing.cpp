@@ -189,6 +189,33 @@ void normalize_raster(gdx::DenseRaster<double>& ras) noexcept
     }
 }
 
+void add_to_raster(gdx::DenseRaster<double>& collectedRaster, const gdx::DenseRaster<double>& countryRaster)
+{
+    auto intersection = inf::metadata_intersection(collectedRaster.metadata(), countryRaster.metadata());
+    if (intersection.rows == 0 || intersection.cols == 0) {
+        return;
+    }
+
+    auto subGrid1 = gdx::sub_area(collectedRaster, intersection);
+    auto subGrid2 = gdx::sub_area(countryRaster, intersection);
+
+    if (subGrid1.cols() != subGrid2.cols() || subGrid1.rows() != subGrid2.rows()) {
+        throw RuntimeError("Country raster should be a subgrid of the grid raster");
+    }
+
+    std::transform(subGrid1.begin(), subGrid1.end(), subGrid2.begin(), subGrid1.begin(), [](double res, double toAdd) {
+        if (std::isnan(toAdd)) {
+            return res;
+        }
+
+        if (std::isnan(res)) {
+            return toAdd;
+        }
+
+        return res + toAdd;
+    });
+}
+
 gdx::DenseRaster<double> spread_values_uniformly_over_cells(double valueToSpread, const CountryCellCoverage& countryCoverage)
 {
     const auto totalCoverage = std::accumulate(countryCoverage.cells.begin(), countryCoverage.cells.end(), 0.0, [](double current, const CountryCellCoverage::CellInfo& cellInfo) {
