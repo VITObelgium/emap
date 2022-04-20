@@ -154,11 +154,12 @@ TEST_CASE("Resample nodata check")
 
 TEST_CASE("Add to raster")
 {
-    std::array<GridDefinition, 6> gridsToCheck = {
+    std::array<GridDefinition, 7> gridsToCheck = {
         GridDefinition::Chimere01deg,
         GridDefinition::Chimere05deg,
         GridDefinition::Chimere005degLarge,
         GridDefinition::Chimere0025deg,
+        GridDefinition::ChimereRio4,
         GridDefinition::Vlops1km,
         GridDefinition::Vlops60km,
     };
