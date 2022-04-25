@@ -423,14 +423,17 @@ static gdx::DenseRaster<double> extract_country_from_pattern(const gdx::DenseRas
 {
     auto raster = extract_country_from_raster(spatialPattern, countryCoverage);
 
-    bool containsOnlyBorderCells = !std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [](const CountryCellCoverage::CellInfo& cell) {
+    /*bool containsOnlyBorderCells = !std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [](const CountryCellCoverage::CellInfo& cell) {
         return cell.coverage == 1.0;
-    });
+    });*/
 
     if (checkContents) {
         bool containsData = false;
 
-        if (containsOnlyBorderCells) {
+        // This behavior tries to be smart and see the data is only present in the border cells
+        // Has unpleasant side effect on low resolutions for small countries. Needs to be improved
+
+        /*if (containsOnlyBorderCells) {
             containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
                 return raster[cell.countryGridCell] > 0.0;
             });
@@ -438,7 +441,11 @@ static gdx::DenseRaster<double> extract_country_from_pattern(const gdx::DenseRas
             containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
                 return cell.coverage == 1.0 && raster[cell.countryGridCell] > 0.0;
             });
-        }
+        }*/
+
+        containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
+            return raster[cell.countryGridCell] > 0.0;
+        });
 
         if (containsData) {
             normalize_raster(raster);
