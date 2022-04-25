@@ -619,11 +619,14 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath);
         auto countryInventory   = parse_countries(idNumbersPath);
 
-        const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
-        const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());
+        RunType runType = RunType::Emep;
+        std::string scenario;
+
+        const auto grid = read_grid(model.section["grid"].value<std::string_view>());
+        // const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());
+        // const auto scenario                     = read_string(model, "scenario");
         const auto year                         = read_year(model.section["year"]);
         const auto reportYear                   = read_year(model.section["report_year"]);
-        const auto scenario                     = read_string(model, "scenario");
         const auto spatialPatternExceptionsPath = read_optional_path(model, "spatial_pattern_exceptions", basePath);
         auto includedPollutants                 = read_pollutants(model.section["included_pollutants"], pollutantInventory);
 
