@@ -50,7 +50,7 @@ void BrnOutputWriter::append_entries(std::span<const BrnOutputEntry> entries)
 
 void BrnOutputWriter::write_header()
 {
-    fmt::print(_fp, "   ssn    x(m)    y(m)   q(g/s)     hc(MW)  h(m)   d(m)  s(m)  dv cat area  sd  comp temp flow Emap: v" EMAP_VERSION "\n");
+    fmt::print(_fp, "   ssn    x(m)    y(m)        q(g/s) hc(MW)  h(m)   d(m)  s(m) dv cat area  sd comp        temp        flow Emap: v" EMAP_VERSION "\n");
 }
 
 void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& path)
