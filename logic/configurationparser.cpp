@@ -79,7 +79,7 @@ SectorParameterConfiguration parse_sector_parameters_config(const fs::path& diff
 
         std::string sectorName(feature.field_as<std::string_view>(colSector));
         auto pollutantName = feature.field_as<std::string_view>(colPollutant);
-        if (pollutantName == "*") {
+        if (str::trimmed_view(pollutantName) == "*") {
             result.add_parameter(sectorName, config);
         } else {
             result.add_pollutant_specific_parameter(sectorName, polInv.pollutant_from_string(pollutantName), config);

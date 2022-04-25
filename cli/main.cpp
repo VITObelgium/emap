@@ -68,7 +68,7 @@ int main(int argc, char** argv)
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
                lyra::opt(options.logLevel, "number")["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
                lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
-               lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use") |
+               lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use (default=all)") |
                lyra::opt(options.debugGrids)["-d"]["--debug"]("Dumps internal grid usages") |
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
