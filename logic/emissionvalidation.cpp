@@ -44,7 +44,7 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
 
     auto includedPollutants         = _cfg.included_pollutants();
     const auto sectorParametersPath = ModelPaths(_cfg.data_root(), _cfg.output_path()).sector_parameters_config_path();
-    const auto sectorParams         = parse_sector_parameters_config(sectorParametersPath, _cfg.output_sector_level(), _cfg.output_sector_level_name());
+    const auto sectorParams         = parse_sector_parameters_config(sectorParametersPath, _cfg.output_sector_level(), _cfg.pollutants(), _cfg.output_sector_level_name());
 
     std::unordered_map<Pollutant, std::unordered_map<CountrySector, double>> brnTotals;
 
@@ -80,7 +80,7 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
 
         if (_cfg.output_sector_level() == SectorLevel::NFR) {
             int32_t countryCode = static_cast<int32_t>(invEntry.id().country.id());
-            int32_t sectorCode  = sectorParams.at(_cfg.sectors().map_nfr_to_output_name(invEntry.id().sector.nfr_sector())).id;
+            int32_t sectorCode  = sectorParams.get_parameters(_cfg.sectors().map_nfr_to_output_name(invEntry.id().sector.nfr_sector()), invEntry.id().pollutant).id;
 
             summaryEntry.outputTotal = brnTotals[invEntry.id().pollutant][CountrySector(countryCode, sectorCode)];
         }

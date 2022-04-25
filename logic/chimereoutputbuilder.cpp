@@ -9,7 +9,7 @@ namespace emap {
 
 using namespace inf;
 
-ChimereOutputBuilder::ChimereOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+ChimereOutputBuilder::ChimereOutputBuilder(SectorParameterConfiguration sectorParams,
                                            std::unordered_map<CountryId, int32_t> countryMapping,
                                            const RunConfiguration& cfg)
 : _sectorLevel(cfg.output_sector_level())
@@ -21,16 +21,6 @@ ChimereOutputBuilder::ChimereOutputBuilder(std::unordered_map<std::string, Secto
     size_t index = 0;
     for (auto& pol : cfg.included_pollutants()) {
         _pollutantIndexes.emplace(pol, index++);
-    }
-
-    std::vector<std::pair<std::string, SectorParameterConfig>> params(_sectorParams.begin(), _sectorParams.end());
-    std::sort(params.begin(), params.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.second.id < rhs.second.id;
-    });
-
-    index = 0;
-    for (auto& [name, param] : params) {
-        _sectorIndexes[name] = index++;
     }
 }
 
@@ -46,7 +36,7 @@ void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     DatPointSourceOutputEntry entry;
     entry.coordinate  = to_coordinate(emission.coordinate().value());
     entry.countryCode = _countryMapping.at(id.country.id());
-    entry.sectorId    = _sectorParams.at(mappedSectorName).id;
+    entry.sectorId    = _sectorParams.get_parameters(mappedSectorName, id.pollutant).id;
     entry.temperature = emission.temperature();
     entry.velocity    = 0.0;
     entry.height      = emission.height();

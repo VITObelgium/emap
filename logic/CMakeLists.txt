@@ -26,7 +26,7 @@ add_library(emaplogic
     include/emap/spatialpatterndata.h
     include/emap/sector.h sector.cpp
     include/emap/sectorinventory.h sectorinventory.cpp
-    include/emap/sectorparameterconfig.h
+    include/emap/sectorparameterconfig.h sectorparameterconfig.cpp
     include/emap/runconfiguration.h runconfiguration.cpp
     include/emap/outputbuilderinterface.h
     include/emap/outputbuilderfactory.h outputbuilderfactory.cpp

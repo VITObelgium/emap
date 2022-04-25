@@ -148,7 +148,7 @@ TEST_CASE("Resample nodata check")
         }
     }
 
-    // Less than 30% of the cells should have valid data
+    // More than 30% of the cells should have valid data
     CHECK((nodataCount / double(result.size())) < 0.3);
 }
 

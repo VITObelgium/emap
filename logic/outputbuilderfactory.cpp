@@ -74,7 +74,7 @@ std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
 {
     auto modelGrid                  = cfg.model_grid();
     const auto sectorParametersPath = cfg.data_root() / "05_model_parameters" / "sector_parameters.xlsx";
-    auto sectorParams               = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.output_sector_level_name());
+    auto sectorParams               = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.pollutants(), cfg.output_sector_level_name());
 
     if (modelGrid == ModelGrid::Vlops1km || modelGrid == ModelGrid::Vlops250m) {
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "pollutant_parameters.xlsx";

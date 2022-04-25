@@ -17,7 +17,7 @@ public:
         int32_t sd = 0;
     };
 
-    VlopsOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+    VlopsOutputBuilder(SectorParameterConfiguration sectorParams,
                        std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
                        const RunConfiguration& cfg);
 
@@ -41,7 +41,7 @@ private:
     std::unordered_map<Pollutant, std::unordered_map<std::string, std::unordered_map<CountryId, std::unordered_map<inf::Point<double>, Entry>>>> _diffuseSources;
 
     std::unordered_map<Pollutant, std::vector<BrnOutputEntry>> _pointSources;
-    std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
+    SectorParameterConfiguration _sectorParams;
     std::unordered_map<std::string, PollutantParameterConfig> _pollutantParams;
 };
 

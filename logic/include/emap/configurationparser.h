@@ -9,7 +9,10 @@
 
 namespace emap {
 
-std::unordered_map<std::string, SectorParameterConfig> parse_sector_parameters_config(const fs::path& diffuseParametersPath, SectorLevel level, std::string_view outputSectorLevelName);
+SectorParameterConfiguration parse_sector_parameters_config(const fs::path& diffuseParametersPath,
+                                                            SectorLevel level,
+                                                            const PollutantInventory& polInv,
+                                                            std::string_view outputSectorLevelName);
 
 CountryInventory parse_countries(const fs::path& countrySpec);
 SectorInventory parse_sectors(const fs::path& sectorSpec, const fs::path& conversionSpec, const fs::path& ignoreSpec);

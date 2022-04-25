@@ -15,7 +15,7 @@ namespace emap {
 class ChimereOutputBuilder : public IOutputBuilder
 {
 public:
-    ChimereOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+    ChimereOutputBuilder(SectorParameterConfiguration sectorParams,
                          std::unordered_map<CountryId, int32_t> countryMapping,
                          const RunConfiguration& cfg);
 
@@ -36,7 +36,7 @@ private:
 
     std::vector<DatPointSourceOutputEntry> _pointSources;
     std::unordered_map<CountryId, int32_t> _countryMapping;
-    std::unordered_map<std::string, SectorParameterConfig> _sectorParams;
+    SectorParameterConfiguration _sectorParams;
     std::unordered_map<std::string, size_t> _sectorIndexes;
     std::unordered_map<Pollutant, size_t> _pollutantIndexes;
 };

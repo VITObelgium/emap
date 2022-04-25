@@ -10,7 +10,7 @@ namespace emap {
 
 using namespace inf;
 
-VlopsOutputBuilder::VlopsOutputBuilder(std::unordered_map<std::string, SectorParameterConfig> sectorParams,
+VlopsOutputBuilder::VlopsOutputBuilder(SectorParameterConfiguration sectorParams,
                                        std::unordered_map<std::string, PollutantParameterConfig> pollutantParams,
                                        const RunConfiguration& cfg)
 : _sectorLevel(cfg.output_sector_level())
@@ -42,10 +42,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     const auto& pollutantParams = _pollutantParams.at(std::string(id.pollutant.code()));
 
     const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
-    auto sectorParamsIter       = _sectorParams.find(mappedSectorName);
-    if (sectorParamsIter == _sectorParams.end()) {
-        throw RuntimeError("No sector parameters configured for sector {}", id.sector.name());
-    }
+    auto sectorParams           = _sectorParams.get_parameters(mappedSectorName, id.pollutant);
 
     BrnOutputEntry entry;
     entry.ssn   = static_cast<int>(_cfg.year());
@@ -57,7 +54,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.d_m   = 0;
     entry.s_m   = 0;
     entry.dv    = emission.dv().value_or(1);
-    entry.cat   = sectorParamsIter->second.id;
+    entry.cat   = sectorParams.id;
     entry.area  = static_cast<int32_t>(id.country.id());
     entry.sd    = pollutantParams.sd;
     entry.comp  = vlops_pollutant_name(id.pollutant);
@@ -120,12 +117,8 @@ void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)
                 continue;
             }
 
-            auto sectorParamsIter = _sectorParams.find(sectorName);
-            if (sectorParamsIter == _sectorParams.end()) {
-                throw RuntimeError("No sector parameters configured for sector {}", sectorName);
-            }
+            auto sectorParams = _sectorParams.get_parameters(sectorName, pol);
 
-            const auto& sectorParams = sectorParamsIter->second;
             for (const auto& [countryId, locationData] : countryData) {
                 for (const auto& [location, entry] : locationData) {
                     BrnOutputEntry brnEntry;
