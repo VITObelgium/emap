@@ -22,6 +22,7 @@ public:
     void add_pollutant_specific_parameter(const std::string& sector, const Pollutant& pollutant, const SectorParameters& params);
 
     SectorParameters get_parameters(const std::string& sector, const Pollutant& pollutant) const;
+    std::vector<std::string> sector_names_sorted_by_id() const;
 
 private:
     static Pollutant AnyPollutant;

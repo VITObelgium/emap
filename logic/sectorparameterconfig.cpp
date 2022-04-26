@@ -2,6 +2,8 @@
 
 #include "infra/algo.h"
 
+#include <map>
+
 namespace emap {
 
 using namespace inf;
@@ -46,6 +48,17 @@ SectorParameters SectorParameterConfiguration::get_parameters(const std::string&
     }
 
     return SectorParameters(*pollutantParameters);
+}
+
+std::vector<std::string> SectorParameterConfiguration::sector_names_sorted_by_id() const
+{
+    std::map<int32_t, std::string> result;
+
+    for (auto& [sectorName, params] : _parameters) {
+        result.emplace(params.front().id, sectorName);
+    }
+
+    return map_values_as_vector(result);
 }
 
 }

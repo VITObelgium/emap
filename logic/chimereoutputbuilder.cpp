@@ -22,6 +22,11 @@ ChimereOutputBuilder::ChimereOutputBuilder(SectorParameterConfiguration sectorPa
     for (auto& pol : cfg.included_pollutants()) {
         _pollutantIndexes.emplace(pol, index++);
     }
+
+    index = 0;
+    for (const auto& name : _sectorParams.sector_names_sorted_by_id()) {
+        _sectorIndexes[name] = index++;
+    }
 }
 
 void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
