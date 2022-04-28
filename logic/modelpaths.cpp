@@ -14,9 +14,9 @@ fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, dat
     return emissions_dir_path(reportYear) / "pointsources" / country.iso_code();
 }
 
-fs::path ModelPaths::total_emissions_path_nfr(date::year year, date::year reportYear) const
+fs::path ModelPaths::total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const
 {
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(reportYear));
+    return emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(lookupReportYear));
 }
 
 fs::path ModelPaths::total_extra_emissions_path_nfr(date::year reportYear) const
@@ -24,9 +24,9 @@ fs::path ModelPaths::total_extra_emissions_path_nfr(date::year reportYear) const
     return emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(reportYear));
 }
 
-fs::path ModelPaths::total_emissions_path_gnfr(date::year reportYear) const
+fs::path ModelPaths::total_emissions_path_gnfr(date::year reportYear, date::year lookupReportYear) const
 {
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(reportYear));
+    return emissions_dir_path(reportYear) / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(lookupReportYear));
 }
 
 fs::path ModelPaths::total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const

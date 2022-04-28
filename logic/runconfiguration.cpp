@@ -57,7 +57,7 @@ fs::path RunConfiguration::point_source_emissions_dir_path(const Country& countr
 
 fs::path RunConfiguration::total_emissions_path_nfr(date::year year, date::year reportYear) const
 {
-    return _paths.total_emissions_path_nfr(year, reportYear);
+    return _paths.total_emissions_path_nfr(year, _reportYear, reportYear);
 }
 
 fs::path RunConfiguration::total_extra_emissions_path_nfr() const
@@ -67,7 +67,7 @@ fs::path RunConfiguration::total_extra_emissions_path_nfr() const
 
 fs::path RunConfiguration::total_emissions_path_gnfr(date::year reportYear) const
 {
-    return _paths.total_emissions_path_gnfr(reportYear);
+    return _paths.total_emissions_path_gnfr(_reportYear, reportYear);
 }
 
 fs::path RunConfiguration::total_emissions_path_nfr_belgium(const Country& belgianRegian) const

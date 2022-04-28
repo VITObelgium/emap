@@ -16,9 +16,9 @@ public:
     ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot);
 
     fs::path point_source_emissions_dir_path(const Country& country, date::year reportYear) const;
-    fs::path total_emissions_path_nfr(date::year year, date::year reportYear) const;
+    fs::path total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const;
     fs::path total_extra_emissions_path_nfr(date::year reportYear) const;
-    fs::path total_emissions_path_gnfr(date::year reportYear) const;
+    fs::path total_emissions_path_gnfr(date::year reportYear, date::year lookupReportYear) const;
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const;
     fs::path spatial_pattern_path() const;
 
