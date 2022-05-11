@@ -61,12 +61,13 @@ void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id
 
     assert(id.sector.type() == EmissionSector::Type::Nfr);
     const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
+    auto mappedCountry          = _countryMapping.at(id.country.id());
 
     Cell gridCell = _meta.convert_point_to_cell(loc);
     Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
 
     std::scoped_lock lock(_mutex);
-    _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] += emission * 1000.0;
+    _diffuseSources[id.pollutant][mappedCountry][chimereCell][mappedSectorName] += emission * 1000.0;
 }
 
 static std::string_view grid_resolution_string(ModelGrid grid)
@@ -131,13 +132,11 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
     for (const auto& [pol, countryData] : _diffuseSources) {
         std::vector<DatOutputEntry> entries;
 
-        for (const auto& [countryId, cellData] : countryData) {
-            auto mappedCountry = _countryMapping.at(countryId);
-
+        for (const auto& [countryCode, cellData] : countryData) {
             for (const auto& [cell, sectorData] : cellData) {
                 DatOutputEntry entry;
 
-                entry.countryCode = mappedCountry;
+                entry.countryCode = countryCode;
                 entry.cell        = cell;
                 entry.emissions.resize(_sectorIndexes.size(), 0.0);
 

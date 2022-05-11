@@ -32,7 +32,7 @@ private:
     inf::GeoMetadata _meta;
 
     // [pollutant][country][cell][sector] -> value
-    std::unordered_map<Pollutant, std::unordered_map<CountryId, std::unordered_map<inf::Cell, std::unordered_map<std::string, double>>>> _diffuseSources;
+    std::unordered_map<Pollutant, std::unordered_map<int32_t, std::unordered_map<inf::Cell, std::unordered_map<std::string, double>>>> _diffuseSources;
 
     std::vector<DatPointSourceOutputEntry> _pointSources;
     std::unordered_map<CountryId, int32_t> _countryMapping;
