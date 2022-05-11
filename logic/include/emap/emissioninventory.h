@@ -40,6 +40,11 @@ public:
         return _diffuseEmission;
     }
 
+    void set_diffuse_emissions(double value) noexcept
+    {
+        _diffuseEmission = value;
+    }
+
     double point_emission_sum() const noexcept
     {
         return std::accumulate(_pointEmissionEntries.cbegin(), _pointEmissionEntries.cend(), 0.0, [](double total, const auto& current) {

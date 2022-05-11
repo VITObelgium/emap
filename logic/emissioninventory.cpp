@@ -172,7 +172,8 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                                                         const SingleEmissions& pointSourceEmissions,
                                                         const ScalingFactors& diffuseScalings,
                                                         const ScalingFactors& pointScalings,
-                                                        const std::unordered_map<EmissionIdentifier, double>& correctionRatios)
+                                                        const std::unordered_map<EmissionIdentifier, double>& correctionRatios,
+                                                        const RunConfiguration& cfg)
 {
     EmissionInventory result(totalEmissionsNfr.year());
     std::vector<EmissionInventoryEntry> entries;
@@ -220,6 +221,32 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
     result.set_emissions(std::move(entries));
 
+    // Check if pm2.5 > pm10 after scaling, if so set pmcoarse to 0
+    auto pm10Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
+    auto pm25Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
+    auto pmCoarsePol = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
+    if (pm10Pol.has_value() && pm25Pol.has_value() && pmCoarsePol.has_value()) {
+        for (auto country : cfg.countries().list()) {
+            for (auto sector : cfg.sectors().nfr_sectors()) {
+                EmissionIdentifier pm10Id(country, EmissionSector(sector), *pm10Pol);
+                EmissionIdentifier pm25Id(country, EmissionSector(sector), *pm25Pol);
+
+                auto pm10Entry = result.try_emission_with_id(pm10Id);
+                auto pm25Entry = result.try_emission_with_id(pm25Id);
+
+                if (pm25Entry.has_value() && pm10Entry.has_value() && pm25Entry->scaled_diffuse_emissions_sum() > pm10Entry->scaled_diffuse_emissions_sum()) {
+                    EmissionIdentifier pmCoarseId(country, EmissionSector(sector), *pmCoarsePol);
+
+                    if (auto pmCoarseEntry = result.try_emission_with_id(pmCoarseId); pmCoarseEntry.has_value()) {
+                        pmCoarseEntry->set_diffuse_emissions(0.0);
+                        Log::debug("{} {} Reset PMcoarse value after scaling: PM2.5={} PM10={}", country.iso_code(), sector.name(), pm25Entry.value().scaled_diffuse_emissions_sum(), pm10Entry.value().scaled_diffuse_emissions_sum());
+                        result.update_emission(std::move(*pmCoarseEntry));
+                    }
+                }
+            }
+        }
+    }
+
     if (extraEmissions.has_value()) {
         for (const auto& em : *extraEmissions) {
             if (em.sector().type() != EmissionSector::Type::Nfr) {
@@ -265,7 +292,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     // Add missing nfr data to the nfr emissions, don't use merge_unique_emissions, we need to overwrite existing zero entries
     merge_emissions(totalEmissionsNfr, handle_missing_nfr_data(totalEmissionsNfr.year(), nfrSums, gnfrSums, cfg));
 
-    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios);
+    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios, cfg);
 }
 
 EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
