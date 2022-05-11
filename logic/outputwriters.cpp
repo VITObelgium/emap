@@ -61,7 +61,7 @@ void write_brn_output(std::span<const BrnOutputEntry> entries, const fs::path& p
 
 void write_dat_header(const fs::path& path, const std::vector<std::string>& sectors)
 {
-    file::write_as_text(path, fmt::format("country row col {}\n", str::join(sectors, ' ')));
+    file::write_as_text(path, fmt::format("country col row {}\n", str::join(sectors, ' ')));
 }
 
 void write_dat_output(const fs::path& path, std::span<const DatOutputEntry> entries)

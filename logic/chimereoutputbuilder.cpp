@@ -66,7 +66,7 @@ void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id
     Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
 
     std::scoped_lock lock(_mutex);
-    _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] = emission * 1000.0;
+    _diffuseSources[id.pollutant][id.country.id()][chimereCell][mappedSectorName] += emission * 1000.0;
 }
 
 static std::string_view grid_resolution_string(ModelGrid grid)
