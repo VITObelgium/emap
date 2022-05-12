@@ -39,8 +39,9 @@ public:
         fs::path path;
         std::string filenameSuffix; // optional output filename suffix;
         std::string outputLevelName;
-        bool createCountryRasters = false;
-        bool createGridRasters    = false;
+        bool createCountryRasters        = false;
+        bool createGridRasters           = false;
+        bool createSpatialPatternRasters = false;
     };
 
     RunConfiguration(
@@ -104,9 +105,11 @@ public:
     std::string_view output_filename_suffix() const noexcept;
     bool output_country_rasters() const noexcept;
     bool output_grid_rasters() const noexcept;
+    bool output_spatial_pattern_rasters() const noexcept;
     fs::path output_dir_for_rasters() const;
     fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;
     fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
+    fs::path output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const;
 
 private:
     ModelPaths _paths;

@@ -225,6 +225,10 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                             spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, cellCoverageInfo);
                         }
 
+                        if (cfg.output_spatial_pattern_rasters() && !spatialPattern.raster.empty()) {
+                            gdx::write_raster(spatialPattern.raster, cfg.output_path_for_spatial_pattern_raster(emissionId, gridData));
+                        }
+
                         const auto spatPatInfo = apply_emission_to_spatial_pattern(spatialPattern, emissionToSpread, gridData.meta, cellCoverageInfo);
                         if (isCoursestGrid) {
                             if (spatPatInfo.status == SpatialPatternProcessInfo::Status::FallbackToUniformSpread) {
@@ -305,7 +309,11 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
                     auto spatialPattern         = spatialPatternInv.get_spatial_pattern_checked(emissionId, flandersCoverage);
                     const auto diffuseEmissions = emission->scaled_diffuse_emissions_sum();
-                    const auto spatPatInfo      = apply_emission_to_spatial_pattern(spatialPattern, diffuseEmissions, gridData.meta, flandersCoverage);
+                    if (cfg.output_spatial_pattern_rasters() && !spatialPattern.raster.empty()) {
+                        gdx::write_raster(spatialPattern.raster, cfg.output_path_for_spatial_pattern_raster(emissionId, gridData));
+                    }
+
+                    const auto spatPatInfo = apply_emission_to_spatial_pattern(spatialPattern, diffuseEmissions, gridData.meta, flandersCoverage);
 
                     if (spatialPattern.source.patternAvailableButWithoutData) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);

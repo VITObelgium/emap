@@ -237,6 +237,11 @@ bool RunConfiguration::output_grid_rasters() const noexcept
     return _outputConfig.createGridRasters;
 }
 
+bool RunConfiguration::output_spatial_pattern_rasters() const noexcept
+{
+    return _outputConfig.createSpatialPatternRasters;
+}
+
 fs::path RunConfiguration::output_dir_for_rasters() const
 {
     return _paths.output_dir_for_rasters();
@@ -250,6 +255,11 @@ fs::path RunConfiguration::output_path_for_country_raster(const EmissionIdentifi
 fs::path RunConfiguration::output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const
 {
     return _paths.output_path_for_grid_raster(pol, sector, grid);
+}
+
+fs::path RunConfiguration::output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const
+{
+    return _paths.output_path_for_spatial_pattern_raster(id, grid);
 }
 
 }

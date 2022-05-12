@@ -104,6 +104,11 @@ fs::path ModelPaths::output_path_for_grid_raster(const Pollutant& pol, const Emi
     return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
 }
 
+fs::path ModelPaths::output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const
+{
+    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}_spatpat.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+}
+
 fs::path ModelPaths::emissions_dir_path(date::year reportYear) const
 {
     return _dataRoot / "01_data_emissions" / "inventory" / fs::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));

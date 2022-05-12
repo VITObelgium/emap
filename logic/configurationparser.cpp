@@ -632,11 +632,12 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 
         RunConfiguration::Output outputConfig;
 
-        outputConfig.path                 = read_path(output, "path", basePath);
-        outputConfig.outputLevelName      = read_sector_level(output.section["sector_level"].value<std::string_view>());
-        outputConfig.filenameSuffix       = read_string(output, "filename_suffix", "");
-        outputConfig.createCountryRasters = output.section["create_country_rasters"].value<bool>().value_or(false);
-        outputConfig.createGridRasters    = output.section["create_grid_rasters"].value<bool>().value_or(false);
+        outputConfig.path                        = read_path(output, "path", basePath);
+        outputConfig.outputLevelName             = read_sector_level(output.section["sector_level"].value<std::string_view>());
+        outputConfig.filenameSuffix              = read_string(output, "filename_suffix", "");
+        outputConfig.createCountryRasters        = output.section["create_country_rasters"].value<bool>().value_or(false);
+        outputConfig.createGridRasters           = output.section["create_grid_rasters"].value<bool>().value_or(false);
+        outputConfig.createSpatialPatternRasters = output.section["create_spatial_pattern_rasters"].value<bool>().value_or(false);
 
         parse_missing_pollutant_references(basePath / dataPath / "03_spatial_disaggregation" / "pollutant_reference_when_missing.xlsx", pollutantInventory);
         sectorInventory.set_output_mapping(parse_sector_mapping(parametersPath / "mapping_sectors.xlsx", sectorInventory, outputConfig.outputLevelName));

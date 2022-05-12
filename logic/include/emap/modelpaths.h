@@ -38,6 +38,7 @@ public:
     fs::path output_dir_for_rasters() const;
     fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;
     fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
+    fs::path output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const;
 
 private:
     fs::path emissions_dir_path(date::year reportYear) const;
