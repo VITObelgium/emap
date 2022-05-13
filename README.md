@@ -45,6 +45,7 @@ included_pollutants = ["PM2.5", "PM10"]
 
 [output]
 path = "./_output_gnfr"
+filename_suffix = "_test"
 sector_level = "GNFR"
 create_country_rasters = false
 create_grid_rasters = true
@@ -80,6 +81,7 @@ This section configures the model run
 ### Output section
 This section configures the output of the model
 - `path` directory path where the created output files will be stored
+- `filename_suffix` suffix to add to filename of the created files in the output directory
 - `sector_level` the level in which the output will be aggregated
   
   possible values:
