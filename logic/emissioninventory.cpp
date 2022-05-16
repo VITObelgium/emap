@@ -192,11 +192,11 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
             pointSourceEntries = pointSourceEmissions.emissions_with_id(em.id());
             pointEmissionSum   = std::accumulate(pointSourceEntries.cbegin(), pointSourceEntries.cend(), 0.0, [](double total, const auto& current) {
                 return total + current.value().amount().value_or(0.0);
-              });
+            });
 
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
                 // Check if the difference is caused by floating point rounding
-                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-6) {
+                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-5) {
                     // Minor difference caused by rounding, make them the same
                     pointEmissionSum = diffuseEmission;
                 } else {
