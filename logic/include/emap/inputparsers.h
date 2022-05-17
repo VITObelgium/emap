@@ -22,6 +22,8 @@ enum class RespectIgnoreList
     No,
 };
 
+std::optional<double> pmcoarse_from_pm25_pm10(std::optional<double> pm25, std::optional<double> pm10);
+
 SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores);
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg);
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg);

@@ -196,7 +196,7 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
                 // Check if the difference is caused by floating point rounding
-                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-5) {
+                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-4) {
                     // Minor difference caused by rounding, make them the same
                     pointEmissionSum = diffuseEmission;
                 } else {
@@ -396,13 +396,14 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
                             assert(iter->coordinate() == pm10Entry.coordinate());
                         }
 
-                        if (*pm10Val >= pm2_5Val) {
-                            auto pmCoarseVal = EmissionValue(*pm10Val - pm2_5Val);
-                            EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
-                            entry.set_coordinate(pm10Entry.coordinate().value());
-                            result.add_emission(std::move(entry));
-                        } else {
-                            throw RuntimeError("Invalid PM data for sector {} with EIL nr {} (PM10: {}, PM2.5 {})", pm10Entry.id().sector, pm10Entry.source_id(), *pm10Val, pm2_5Val);
+                        try {
+                            if (auto pmCoarseVal = EmissionValue(pmcoarse_from_pm25_pm10(pm2_5Val, pm10Val)); pmCoarseVal.amount().has_value()) {
+                                EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
+                                entry.set_coordinate(pm10Entry.coordinate().value());
+                                result.add_emission(std::move(entry));
+                            }
+                        } catch (const std::exception& e) {
+                            throw RuntimeError("Sector {} with EIL nr {} ({})", pm10Entry.id().sector, pm10Entry.source_id(), e.what());
                         }
                     }
                 }
