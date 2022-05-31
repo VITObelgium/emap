@@ -141,6 +141,20 @@ TEST_CASE("Input parsers")
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5D3), pollutants::PMcoarse)).value().amount() == 0.0);
         }
 
+        SUBCASE("Belgian emissions xlsx (Flanders) no fuel used")
+        {
+            auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", date::year(2022), cfg);
+            REQUIRE(emissions.size() == 3429);
+
+            for (auto& em : emissions) {
+                CHECK(em.sector().type() == EmissionSector::Type::Nfr);
+                CHECK(em.country() == countries::BEF);
+            }
+
+            // Fuel used is empty, make sure it is not used as 0
+            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx)).value().amount().value() == Approx(11.9654509295403));
+        }
+
         SUBCASE("Belgian emissions xlsx (Wallonia)")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);

@@ -525,7 +525,9 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 } else if (const auto* emission = std::get_if<std::string_view>(&field)) {
                     emissionValue = parse_emission_value(*emission);
                     if (!emissionValue.has_value()) {
-                        emissionValue = 0.0;
+                        if (!sectorOverride) {
+                            emissionValue = 0.0;
+                        }
                     } else {
                         emissionValue = (*emissionValue) * polData.unitConversion;
                     }
@@ -544,7 +546,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                     } else {
                         entries.emplace_back(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue));
                     }
-                } else {
+                } else if (!sectorOverride) {
                     const auto value = feature.field_as<std::string>(index);
                     if (!value.empty()) {
                         Log::error("Failed to obtain emission value from {}", value);
