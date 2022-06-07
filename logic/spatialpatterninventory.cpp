@@ -95,7 +95,7 @@ SpatialPatternTableCache::SpatialPatternTableCache(const RunConfiguration& cfg) 
 {
 }
 
-const SpatialPatternData* SpatialPatternTableCache::get_data(const fs::path& path, const EmissionIdentifier& id)
+const SpatialPatternData* SpatialPatternTableCache::get_data(const fs::path& path, const EmissionIdentifier& id, bool allowPollutantMismatch)
 {
     std::scoped_lock lock(_mutex);
     if (_patterns.count(path) == 0) {
@@ -103,13 +103,24 @@ const SpatialPatternData* SpatialPatternTableCache::get_data(const fs::path& pat
         _patterns.emplace(path, std::move(patterns));
     }
 
-    return find_data_for_id(*_patterns.at(path), id);
+    if (allowPollutantMismatch) {
+        return find_data_for_sector(*_patterns.at(path), id.sector);
+    } else {
+        return find_data_for_id(*_patterns.at(path), id);
+    }
 }
 
 const SpatialPatternData* SpatialPatternTableCache::find_data_for_id(const std::vector<SpatialPatternData>& list, const EmissionIdentifier& emissionId) const noexcept
 {
     return inf::find_in_container(list, [&](const SpatialPatternData& src) {
         return src.id == emissionId;
+    });
+}
+
+const SpatialPatternData* SpatialPatternTableCache::find_data_for_sector(const std::vector<SpatialPatternData>& list, const EmissionSector& sector) const noexcept
+{
+    return inf::find_in_container(list, [&](const SpatialPatternData& src) {
+        return src.id.sector == sector;
     });
 }
 
@@ -486,7 +497,7 @@ gdx::DenseRaster<double> SpatialPatternInventory::get_pattern_raster(const Spati
     case SpatialPatternSource::Type::SpatialPatternCEIP:
         return extract_country_from_pattern(parse_spatial_pattern_ceip(src.path, src.usedEmissionId, _cfg), countryCoverage, checkContents);
     case SpatialPatternSource::Type::SpatialPatternFlanders: {
-        const auto* spatialPatternData = _flandersCache.get_data(src.path, src.usedEmissionId);
+        const auto* spatialPatternData = _flandersCache.get_data(src.path, src.usedEmissionId, src.isException);
         if (spatialPatternData != nullptr) {
             auto result = gdx::resample_raster(spatialPatternData->raster, countryCoverage.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
             if ((!checkContents) || gdx::sum(result) > 0.0) {

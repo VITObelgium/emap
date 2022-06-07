@@ -22,10 +22,11 @@ class SpatialPatternTableCache
 public:
     SpatialPatternTableCache(const RunConfiguration& cfg) noexcept;
 
-    const SpatialPatternData* get_data(const fs::path& path, const EmissionIdentifier& id);
+    const SpatialPatternData* get_data(const fs::path& path, const EmissionIdentifier& id, bool allowPollutantMismatch);
 
 private:
     const SpatialPatternData* find_data_for_id(const std::vector<SpatialPatternData>& list, const EmissionIdentifier& emissionId) const noexcept;
+    const SpatialPatternData* find_data_for_sector(const std::vector<SpatialPatternData>& list, const EmissionSector& sector) const noexcept;
 
     std::mutex _mutex;
     const RunConfiguration& _cfg;
