@@ -249,6 +249,8 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
     Log::info("Create country geometries");
     const auto countries = create_country_geometries(boundaries, fieldId, runConfig.countries(), gridProjection, outputDir, suffix);
 
+    std::vector<CountryCellCoverage> result;
+
     const auto grids = grids_for_model_grid((runConfig.model_grid()));
     for (auto iter = grids.begin(); iter != grids.end(); ++iter) {
         const bool coursestGrid = iter == grids.begin();
@@ -275,11 +277,24 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
                 return;
             }
 
-            auto coverageInfo = create_country_coverage(country, geometry, projection, outputGridData.meta, coursestGrid ? CoverageMode::AllCountryCells : CoverageMode::GridCellsOnly);
-            if (!coverageInfo.cells.empty()) {
-                store_country_coverage_vector(coverageInfo, outputDir / fmt::format("spatial_pattern_subgrid_{}_{}{}.gpkg", country.iso_code(), outputGridData.name, suffix));
-            }
+            result.push_back(create_country_coverage(country, geometry, projection, outputGridData.meta, coursestGrid ? CoverageMode::AllCountryCells : CoverageMode::GridCellsOnly));
         });
+
+        // sort the result on country code to get reproducible results in the process country borders function
+        // as the cell coverages (double) of the neigboring countries are added, different order causes minor floating point additions differences
+        std::sort(result.begin(), result.end(), [](const CountryCellCoverage& lhs, const CountryCellCoverage& rhs) {
+            return lhs.country.iso_code() < rhs.country.iso_code();
+        });
+
+        // Update the coverages on the country borders to get appropriate spreading of the emissions
+        // e.g.: if one cell contains 25% water from ocean1 and 25% water from ocean2 and 50% land the coverage of
+        // both oceans will be modified to 50% each, as they will both receive half of the emission for sea sectors
+        result = process_country_borders(result);
+        for (auto coverageInfo : result) {
+            if (!coverageInfo.cells.empty()) {
+                store_country_coverage_vector(coverageInfo, outputDir / fmt::format("spatial_pattern_subgrid_{}_{}{}.gpkg", coverageInfo.country.iso_code(), outputGridData.name, suffix));
+            }
+        }
 
         Log::info("Grid creation took {}", dur.elapsed_time_string());
     }

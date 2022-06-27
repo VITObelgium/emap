@@ -258,7 +258,7 @@ static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const Ge
     return result;
 }
 
-static std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages)
+std::vector<CountryCellCoverage> process_country_borders(const std::vector<CountryCellCoverage>& cellCoverages)
 {
     std::vector<CountryCellCoverage> result;
     result.reserve(cellCoverages.size());
