@@ -141,9 +141,11 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
     for (auto gridIter = gridDefinitions.begin(); gridIter != gridDefinitions.end(); ++gridIter) {
         bool isCoursestGrid = gridIter == gridDefinitions.begin();
 
+        // Current grid definition
         auto& gridDefinition = *gridIter;
         auto& gridData       = grid_data(gridDefinition);
 
+        // Obtain the grid of the upcoming subgrid with finer resolution if it is available
         std::optional<GeoMetadata> subGridMeta;
         if (auto nextIter = gridIter + 1; nextIter != gridDefinitions.end()) {
             subGridMeta = metadata_with_modified_cellsize(grid_data(*nextIter).meta, gridData.meta.cellSize);
@@ -225,6 +227,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                             spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, cellCoverageInfo);
                         }
 
+                        // Write the output raster to disk if configured
                         if (cfg.output_spatial_pattern_rasters() && !spatialPattern.raster.empty()) {
                             gdx::write_raster(spatialPattern.raster, cfg.output_path_for_spatial_pattern_raster(emissionId, gridData));
                         }
@@ -384,27 +387,33 @@ static std::unique_ptr<EmissionValidation> make_validator(const RunConfiguration
 int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)
 {
     try {
+        // configure the maximum allowed concurrency
         tbb::global_control tbbControl(tbb::global_control::max_allowed_parallelism, cfg.max_concurrency().value_or(oneapi::tbb::info::default_concurrency()));
 
+        // data structure that contains all the summary information of the current run
         RunSummary summary(cfg);
 
+        // scan the available spatial patterns for the configured year
         SpatialPatternInventory spatPatInv(cfg);
         spatPatInv.scan_dir(cfg.reporting_year(), cfg.year(), cfg.spatial_pattern_path());
 
+        // remove existing results in the output directory
         clean_output_directory(cfg.output_path());
 
-        auto validator       = make_validator(cfg);
+        // create a validator that compares incoming emissions to outgoing emissions (empty if validation is not enabled)
+        auto validator = make_validator(cfg);
+
+        // create the emission inventory that will contain all the emissions for the configured year
         const auto inventory = make_emission_inventory(cfg, summary);
+
+        // spread the emissions from the inventory based on the spatial spatterns
         spread_emissions(inventory, spatPatInv, cfg, validator.get(), summary, progressCb);
 
-        {
-            chrono::ScopedDurationLog d("Write model run summary");
-            if (validator) {
-                summary.set_validation_results(validator->create_summary(inventory));
-            }
-
-            summary.write_summary(cfg.output_path());
+        // write the model summary
+        if (validator) {
+            summary.set_validation_results(validator->create_summary(inventory));
         }
+        summary.write_summary(cfg.output_path());
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
