@@ -73,12 +73,12 @@ int main(int argc, char** argv)
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
     if (argc == 2 && fs::is_regular_file(fs::u8path(argv[1]))) {
-        // simpilified cli invocation, assume argument is config file
+        // simplified cli invocation, assume argument is config file
         options.config = argv[1];
     } else {
         cli.parse(lyra::args(argc, argv));
         if (options.showHelp) {
-            fmt::print("{}\n", cli);
+            fmt::print("{}\n", fmt::streamed(cli));
             return EXIT_SUCCESS;
         }
     }
