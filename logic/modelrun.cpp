@@ -31,19 +31,6 @@ namespace emap {
 
 using namespace inf;
 
-int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
-{
-    auto runConfig = parse_run_configuration_file(runConfigPath);
-    runConfig.set_max_concurrency(concurrency);
-    std::unique_ptr<inf::LogRegistration> logReg;
-    inf::Log::add_file_sink(runConfig.output_path() / "emap.log");
-
-    logReg = std::make_unique<inf::LogRegistration>("e-map");
-    inf::Log::set_level(logLevel);
-
-    return run_model(runConfig, progressCb);
-}
-
 struct SpatialPatternProcessInfo
 {
     enum class Status
@@ -382,6 +369,20 @@ static std::unique_ptr<EmissionValidation> make_validator(const RunConfiguration
     }
 
     return validator;
+}
+
+int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::optional<int32_t> concurrency, const ModelProgress::Callback& progressCb)
+{
+    // Parse the configuration file
+    auto runConfig = parse_run_configuration_file(runConfigPath);
+    runConfig.set_max_concurrency(concurrency);
+
+    // Configure logging
+    inf::Log::add_file_sink(runConfig.output_path() / "emap.log");
+    auto logReg = std::make_unique<inf::LogRegistration>("e-map");
+    inf::Log::set_level(logLevel);
+
+    return run_model(runConfig, progressCb);
 }
 
 int run_model(const RunConfiguration& cfg, const ModelProgress::Callback& progressCb)

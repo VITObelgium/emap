@@ -34,7 +34,6 @@ The emissions from the emission inventory will now be spread using the spatial p
     ![Edge country](images/edgecountry.png)
     ![Grid](https://via.placeholder.com/15/d16765/d16765.png) Output grid
     ![Country](https://via.placeholder.com/15/84e295/84e295.png) Country cells (Bulgaria)<br/><br/>
-    
     For the country borders, the pecentage of the cell that is contained within the country is calculated.
     For land sectors the contained percentage is calculated taking into the account only the regions of type 'land'. So a cell that contains both land from a single region and sea will have a percentage of 100% for that region.<br/>
     **Example: Cell coverages for Holland**
