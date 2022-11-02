@@ -183,17 +183,22 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         for (auto& line : csv) {
             const auto sectorName    = line.get_string(colSector);
             const auto pollutantName = line.get_string(colPollutant);
-            if (sectorName.empty() || sectorInv.is_ignored_sector(sectorType, sectorName) ||
-                pollutantInv.is_ignored_pollutant(pollutantName)) {
+            const auto country       = countryInv.try_country_from_string(line.get_string(colCountry));
+
+            if (!country.has_value()) {
+                continue;
+            }
+
+            if (sectorName.empty() || sectorInv.is_ignored_sector(sectorType, sectorName, *country) ||
+                pollutantInv.is_ignored_pollutant(pollutantName, *country)) {
                 continue;
             }
 
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
 
             auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
-            auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
             auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
-            if (sector.has_value() && country.has_value() && pollutant.has_value()) {
+            if (sector.has_value() && pollutant.has_value()) {
                 EmissionEntry info(
                     EmissionIdentifier(*country, *sector, *pollutant),
                     EmissionValue(emissionValue));
@@ -226,7 +231,16 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                 }
 
                 result.add_emission(std::move(info));
+            } else {
+                if (!pollutant.has_value()) {
+                    Log::warn("Unknown pollutant name: {}", pollutantName);
+                }
+
+                if (!sector.has_value()) {
+                    Log::warn("Unknown sector name: {}", sectorName);
+                }
             }
+
             ++lineNr;
         }
 
@@ -321,7 +335,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
 
             try {
                 if (respectIgnores == RespectIgnoreList::Yes) {
-                    if (sectorInv.is_ignored_sector(sectorType, sectorName) || pollutantInv.is_ignored_pollutant(pollutant)) {
+                    if (sectorInv.is_ignored_sector(sectorType, sectorName, *country) || pollutantInv.is_ignored_pollutant(pollutant, *country)) {
                         continue;
                     }
                 }
@@ -410,12 +424,12 @@ static Country detect_belgian_region_from_filename(const fs::path& path)
     throw RuntimeError("Could not detect region from filename: {}", filename);
 }
 
-static std::optional<Pollutant> detect_pollutant_name_from_header(std::string_view hdr, const PollutantInventory& pollutantInv)
+static std::optional<Pollutant> detect_pollutant_name_from_header(std::string_view hdr, const PollutantInventory& pollutantInv, const Country& country)
 {
     std::optional<Pollutant> pol;
 
     try {
-        if (!pollutantInv.is_ignored_pollutant(hdr)) {
+        if (!pollutantInv.is_ignored_pollutant(hdr, country)) {
             pol = pollutantInv.pollutant_from_string(hdr);
         }
     } catch (const std::exception&) {
@@ -470,7 +484,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
 
         if (lineNr == pollutantLineNr) {
             for (int i = 0; i < feature.field_count(); ++i) {
-                if (auto pol = detect_pollutant_name_from_header(strip_newline(feature.field_as<std::string_view>(i)), pollutantInv); pol.has_value()) {
+                if (auto pol = detect_pollutant_name_from_header(strip_newline(feature.field_as<std::string_view>(i)), pollutantInv, country); pol.has_value()) {
                     pollutantColumns.emplace(i, *pol);
                 }
             }
@@ -481,7 +495,7 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
         }
 
         if (auto nfrSectorName = feature.field_as<std::string_view>(1); !nfrSectorName.empty()) {
-            if (sectorInv.is_ignored_nfr_sector(nfrSectorName)) {
+            if (sectorInv.is_ignored_nfr_sector(nfrSectorName, country)) {
                 continue;
             }
 
@@ -576,13 +590,13 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
     return SingleEmissions(year, entries);
 }
 
-static std::optional<EmissionSector> emission_sector_from_feature(const gdal::Feature& feature, int colNfr, int colGnfr, const SectorInventory& sectorInv)
+static std::optional<EmissionSector> emission_sector_from_feature(const gdal::Feature& feature, int colNfr, int colGnfr, const Country& country, const SectorInventory& sectorInv)
 {
     try {
         std::string nfrSectorName(str::trimmed_view(feature.field_as<std::string_view>(colNfr)));
         if (!nfrSectorName.empty()) {
             // Nfr sector
-            if (sectorInv.is_ignored_nfr_sector(nfrSectorName)) {
+            if (sectorInv.is_ignored_nfr_sector(nfrSectorName, country)) {
                 return {};
             }
 
@@ -590,7 +604,7 @@ static std::optional<EmissionSector> emission_sector_from_feature(const gdal::Fe
         } else if (colGnfr >= 0) {
             // Gnfr sector
             std::string gnfrSectorName(str::trimmed_view(feature.field_as<std::string_view>(colGnfr)));
-            if (sectorInv.is_ignored_gnfr_sector(gnfrSectorName)) {
+            if (sectorInv.is_ignored_gnfr_sector(gnfrSectorName, country)) {
                 return {};
             }
 
@@ -646,7 +660,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
             continue; // skip empy lines
         }
 
-        if (auto sector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, sectorInv); sector.has_value()) {
+        if (auto sector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, id.country, sectorInv); sector.has_value()) {
             id.sector    = *sector;
             id.pollutant = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
             year         = date::year(feature.field_as<int>(colYear));
@@ -709,7 +723,7 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
 
     bool nfrAvailable = false;
     for (const auto& feature : layer) {
-        if (auto currentSector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, sectorInv); currentSector.has_value()) {
+        if (auto currentSector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, country::BEF, sectorInv); currentSector.has_value()) {
             gdx::DenseRaster<double>* rasterPtr = nullptr;
             if (*currentSector == sector) {
                 rasterPtr = &nfrRaster;

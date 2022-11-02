@@ -32,8 +32,8 @@ SectorInventory::SectorInventory(std::vector<GnfrSector> gnfrSectors,
                                  std::vector<NfrSector> nfrSectors,
                                  InputConversions gnfrSectorConversions,
                                  InputConversions nfrSectorConversions,
-                                 std::vector<std::string> ignoredGnfrSectors,
-                                 std::vector<std::string> ignoredNfrSectors)
+                                 std::vector<IgnoredName> ignoredGnfrSectors,
+                                 std::vector<IgnoredName> ignoredNfrSectors)
 : _gnfrSectors(std::move(gnfrSectors))
 , _nfrSectors(std::move(nfrSectors))
 , _gnfrConversions(std::move(gnfrSectorConversions))
@@ -239,27 +239,27 @@ size_t SectorInventory::nfr_sector_count() const noexcept
     return _nfrSectors.size();
 }
 
-bool SectorInventory::is_ignored_nfr_sector(std::string_view str) const noexcept
+bool SectorInventory::is_ignored_nfr_sector(std::string_view str, const Country& country) const noexcept
 {
-    return std::any_of(_ignoredNfrSectors.begin(), _ignoredNfrSectors.end(), [=](const std::string& ign) {
-        return str::iequals(ign, str);
+    return std::any_of(_ignoredNfrSectors.begin(), _ignoredNfrSectors.end(), [=, countryId = country.id()](const IgnoredName& ign) {
+        return ign.is_ignored_for_country(str, countryId);
     });
 }
 
-bool SectorInventory::is_ignored_gnfr_sector(std::string_view str) const noexcept
+bool SectorInventory::is_ignored_gnfr_sector(std::string_view str, const Country& country) const noexcept
 {
-    return std::any_of(_ignoredGnfrSectors.begin(), _ignoredGnfrSectors.end(), [=](const std::string& ign) {
-        return str::iequals(ign, str);
+    return std::any_of(_ignoredGnfrSectors.begin(), _ignoredGnfrSectors.end(), [=, countryId = country.id()](const IgnoredName& ign) {
+        return ign.is_ignored_for_country(str, countryId);
     });
 }
 
-bool SectorInventory::is_ignored_sector(EmissionSector::Type type, std::string_view str) const noexcept
+bool SectorInventory::is_ignored_sector(EmissionSector::Type type, std::string_view str, const Country& country) const noexcept
 {
     switch (type) {
     case EmissionSector::Type::Nfr:
-        return is_ignored_nfr_sector(str);
+        return is_ignored_nfr_sector(str, country);
     case EmissionSector::Type::Gnfr:
-        return is_ignored_gnfr_sector(str);
+        return is_ignored_gnfr_sector(str, country);
     }
 
     return false;

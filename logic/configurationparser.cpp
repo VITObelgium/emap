@@ -120,14 +120,16 @@ CountryInventory parse_countries(const fs::path& countriesSpec)
     return CountryInventory(std::move(countries));
 }
 
-static std::vector<std::string> parse_ignore_list(const fs::path& ignoreSpec, const std::string& tab)
+static std::vector<IgnoredName> parse_ignore_list(const fs::path& ignoreSpec, const std::string& tab, const CountryInventory& countries)
 {
-    std::vector<std::string> ignored;
+    std::vector<IgnoredName> ignored;
 
     if (fs::is_regular_file(ignoreSpec)) {
         CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
         auto ds    = gdal::VectorDataSet::open(ignoreSpec);
         auto layer = ds.layer(tab);
+
+        auto colExceptions = layer.layer_definition().field_index("country_exceptions");
 
         // When no ignores are present, gdal gets confused and does not recognise the header
         if (const auto colName = layer.layer_definition().field_index("names"); colName >= 0) {
@@ -136,7 +138,17 @@ static std::vector<std::string> parse_ignore_list(const fs::path& ignoreSpec, co
                     continue; // skip empty lines
                 }
 
-                ignored.emplace_back(feature.field_as<std::string_view>(colName));
+                std::unordered_set<CountryId> countryExceptions;
+                if (colExceptions >= 0) {
+                    auto ignoredCountries = str::trimmed_view(feature.field_as<std::string_view>(colExceptions));
+                    if (!ignoredCountries.empty()) {
+                        for (auto country : str::split_view(ignoredCountries, ';')) {
+                            countryExceptions.emplace(countries.country_from_string(country).id());
+                        }
+                    }
+                }
+
+                ignored.emplace_back(IgnoredName(feature.field_as<std::string_view>(colName), countryExceptions));
             }
         }
     }
@@ -146,7 +158,8 @@ static std::vector<std::string> parse_ignore_list(const fs::path& ignoreSpec, co
 
 SectorInventory parse_sectors(const fs::path& sectorSpec,
                               const fs::path& conversionSpec,
-                              const fs::path& ignoreSpec)
+                              const fs::path& ignoreSpec,
+                              const CountryInventory& countries)
 {
     std::vector<GnfrSector> gnfrSectors;
     std::vector<NfrSector> nfrSectors;
@@ -248,8 +261,8 @@ SectorInventory parse_sectors(const fs::path& sectorSpec,
         }
     }
 
-    auto ignoredNfrSectors  = parse_ignore_list(ignoreSpec, "nfr");
-    auto ignoredGnfrSectors = parse_ignore_list(ignoreSpec, "gnfr");
+    auto ignoredNfrSectors  = parse_ignore_list(ignoreSpec, "nfr", countries);
+    auto ignoredGnfrSectors = parse_ignore_list(ignoreSpec, "gnfr", countries);
 
     return SectorInventory(std::move(gnfrSectors), std::move(nfrSectors),
                            std::move(gnfrConversions), std::move(nfrConversions),
@@ -258,7 +271,8 @@ SectorInventory parse_sectors(const fs::path& sectorSpec,
 
 PollutantInventory parse_pollutants(const fs::path& pollutantSpec,
                                     const fs::path& conversionSpec,
-                                    const fs::path& ignoreSpec)
+                                    const fs::path& ignoreSpec,
+                                    const CountryInventory& countries)
 {
     std::vector<Pollutant> pollutants;
     InputConversions conversions;
@@ -303,7 +317,7 @@ PollutantInventory parse_pollutants(const fs::path& pollutantSpec,
         }
     }
 
-    return PollutantInventory(std::move(pollutants), std::move(conversions), parse_ignore_list(ignoreSpec, "pollutant"));
+    return PollutantInventory(std::move(pollutants), std::move(conversions), parse_ignore_list(ignoreSpec, "pollutant", countries));
 }
 
 std::unordered_map<NfrId, std::string> parse_sector_mapping(const fs::path& mappingSpec, const SectorInventory& inv, const std::string& outputLevel)
@@ -615,9 +629,9 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         const auto codeConversionsNumbersPath = parametersPath / "code_conversions.xlsx";
         const auto ignorePath                 = parametersPath / "names_to_be_ignored.xlsx";
 
-        auto sectorInventory    = parse_sectors(idNumbersPath, codeConversionsNumbersPath, ignorePath);
-        auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath);
         auto countryInventory   = parse_countries(idNumbersPath);
+        auto sectorInventory    = parse_sectors(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
+        auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
 
         RunType runType = RunType::Emep;
         std::string scenario;

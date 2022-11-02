@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emap/ignoredname.h"
 #include "emap/sector.h"
 #include "infra/span.h"
 
@@ -17,8 +18,8 @@ public:
                     std::vector<NfrSector> nfrSectors,
                     InputConversions gnfrSectorConversions,
                     InputConversions nfrSectorConversions,
-                    std::vector<std::string> ignoredGnfrSectors,
-                    std::vector<std::string> ignoredNfrSectors);
+                    std::vector<IgnoredName> ignoredGnfrSectors,
+                    std::vector<IgnoredName> ignoredNfrSectors);
 
     void set_output_mapping(std::unordered_map<NfrId, std::string> mapping);
 
@@ -45,9 +46,9 @@ public:
     size_t gnfr_sector_count() const noexcept;
     size_t nfr_sector_count() const noexcept;
 
-    bool is_ignored_nfr_sector(std::string_view str) const noexcept;
-    bool is_ignored_gnfr_sector(std::string_view str) const noexcept;
-    bool is_ignored_sector(EmissionSector::Type type, std::string_view str) const noexcept;
+    bool is_ignored_nfr_sector(std::string_view str, const Country& country) const noexcept;
+    bool is_ignored_gnfr_sector(std::string_view str, const Country& country) const noexcept;
+    bool is_ignored_sector(EmissionSector::Type type, std::string_view str, const Country& country) const noexcept;
 
     std::span<const GnfrSector> gnfr_sectors() const noexcept;
     std::span<const NfrSector> nfr_sectors() const noexcept;
@@ -67,8 +68,8 @@ private:
     InputConversions _nfrConversions;
 
     // List of sectors sector names that need to be ignored and never warned about
-    std::vector<std::string> _ignoredGnfrSectors;
-    std::vector<std::string> _ignoredNfrSectors;
+    std::vector<IgnoredName> _ignoredGnfrSectors;
+    std::vector<IgnoredName> _ignoredNfrSectors;
 
     std::unordered_map<NfrId, std::string> _outputMapping;
 };

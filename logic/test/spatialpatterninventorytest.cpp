@@ -25,16 +25,17 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
 
 TEST_CASE("Spatial pattern selection test")
 {
-    const auto parametersPath  = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    const auto parametersPath = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    CountryInventory countryInventory(std::vector<Country>({countries::NL, countries::BEF}));
     const auto sectorInventory = parse_sectors(parametersPath / "id_nummers.xlsx",
                                                parametersPath / "code_conversions.xlsx",
-                                               parametersPath / "names_to_be_ignored.xlsx");
+                                               parametersPath / "names_to_be_ignored.xlsx",
+                                               countryInventory);
 
     auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx",
                                                parametersPath / "code_conversions.xlsx",
-                                               parametersPath / "names_to_be_ignored.xlsx");
-
-    CountryInventory countryInventory(std::vector<Country>({countries::NL, countries::BEF}));
+                                               parametersPath / "names_to_be_ignored.xlsx", 
+                                               countryInventory);
 
     pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
 
