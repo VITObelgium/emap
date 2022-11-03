@@ -2,9 +2,7 @@
 import os
 import sys
 import sysconfig
-import platform
 import argparse
-import importlib
 
 from deps.vcpkg.scripts.buildtools import vcpkg
 
@@ -37,20 +35,13 @@ if __name__ == "__main__":
             build_dir += "-" + args.build_config.lower()
         vcpkg_root = os.path.join(".", "deps", "vcpkg", "installed", triplet, "tools")
 
-        if args.parent:
-            del vcpkg
-            sys.path.insert(0, os.path.join("..", "vcpkg-ports", "scripts"))
-            from buildtools import vcpkg
-
-            vcpkg_root = os.path.join(
-                "..", "vcpkg-ports", "installed", triplet, "tools"
-            )
-
         cmake_args = ["-DBUILD_TESTING=ON"]
 
         os.environ["VCPKG_OVERLAY_PORTS"] = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "deps", "overlay-ports")
         )
+
+        install_root = f"vcpkgs-{triplet}"
 
         if args.build_dist:
             vcpkg.build_project_release(
@@ -58,6 +49,7 @@ if __name__ == "__main__":
                 triplet=triplet,
                 cmake_args=cmake_args,
                 build_name=build_dir,
+                install_root=install_root,
                 targets=["package"],
                 build_config=args.build_config,
                 run_tests_after_build=args.run_tests,
@@ -67,6 +59,7 @@ if __name__ == "__main__":
                 os.path.abspath(args.source_dir),
                 triplet=triplet,
                 cmake_args=cmake_args,
+                install_root=install_root,
                 build_name=build_dir,
                 build_config=args.build_config,
                 run_tests_after_build=args.run_tests,

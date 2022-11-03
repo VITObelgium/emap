@@ -24,6 +24,7 @@ if __name__ == "__main__":
         elif not triplet:
             triplet = vcpkg.prompt_for_triplet()
 
+        install_root = f"vcpkgs-{triplet}"
         build_root = None
         if args.parent:
             del vcpkg
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         if args.clean:
             vcpkg.clean(triplet=triplet)
         else:
-            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, build_root=build_root, overlay_ports=overlay_ports, clean_after_build=args.clean_after_build)
+            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, build_root=build_root, install_root=install_root, overlay_ports=overlay_ports, clean_after_build=args.clean_after_build)
     except KeyboardInterrupt:
         print("\nInterrupted")
         sys.exit(-1)
