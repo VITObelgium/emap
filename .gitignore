@@ -6,3 +6,4 @@ compile_commands.json
 .vs
 /data
 vcpkg_installed
+vcpkgs-*
