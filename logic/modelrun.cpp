@@ -180,10 +180,6 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         return;
                     }
 
-                    if (cfg.pollutants().is_ignored_pollutant(pollutant.code(), cellCoverageInfo.country)) {
-                        return;
-                    }
-
                     if (cfg.sectors().is_ignored_sector(EmissionSector::Type::Nfr, sector.code(), cellCoverageInfo.country)) {
                         return;
                     }
@@ -294,10 +290,6 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                 // std::for_each(sectors.begin(), sectors.end(), [&](const NfrSector& sector) {
                 tbb::parallel_for_each(sectors, [&](const NfrSector& sector) {
                     EmissionIdentifier emissionId(country::BEF, EmissionSector(sector), pollutant);
-
-                    if (cfg.pollutants().is_ignored_pollutant(pollutant.code(), country::BEF)) {
-                        return;
-                    }
 
                     if (cfg.sectors().is_ignored_sector(EmissionSector::Type::Nfr, sector.code(), country::BEF)) {
                         return;
