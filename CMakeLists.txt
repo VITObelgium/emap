@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(e-map
-    VERSION 2.9.0
+    VERSION 3.0.0
     LANGUAGES CXX
 )
 
@@ -111,5 +111,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/emapc
 if (WIN32)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
 endif ()
+
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Readme.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/Changelog.md
+    DESTINATION .
+)
 
 add_subdirectory(dist)
