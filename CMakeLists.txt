@@ -23,6 +23,9 @@ if (PACKAGE_VERSION_COMMITHASH STREQUAL "dev")
     set(EMAP_DEV_BUILD 1)
 else ()
     set(EMAP_DEV_BUILD 0)
+    if (CMAKE_COMPILER_IS_GNUCXX)
+        add_link_options($<$<CONFIG:RELEASE>:-s>) # strip dist binaries
+    endif ()
 endif ()
 
 if (WIN32)
