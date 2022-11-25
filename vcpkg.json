@@ -9,7 +9,6 @@
         "eigen3",
         "tiff",
         "date",
-        "icu",
         "libxlsxwriter",
         "lyra",
         "fmt",
