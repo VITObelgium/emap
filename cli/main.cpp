@@ -8,6 +8,7 @@
 #include "emap/debugtools.h"
 #include "emap/gridprocessing.h"
 #include "emap/modelrun.h"
+#include "emapconfig.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -54,10 +55,11 @@ int main(int argc, char** argv)
 
     struct Cli
     {
-        bool showHelp   = false;
-        bool noProgress = false;
-        bool consoleLog = false;
-        bool debugGrids = false;
+        bool showHelp    = false;
+        bool showVersion = false;
+        bool noProgress  = false;
+        bool consoleLog  = false;
+        bool debugGrids  = false;
         std::string preprocessPath;
         std::string config;
         int32_t logLevel = 1;
@@ -65,6 +67,7 @@ int main(int argc, char** argv)
     } options;
 
     auto cli = lyra::help(options.showHelp) |
+               lyra::opt(options.showVersion)["-v"]["--version"]("Show version information") |
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
                lyra::opt(options.logLevel, "number")["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
                lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
@@ -79,6 +82,9 @@ int main(int argc, char** argv)
         cli.parse(lyra::args(argc, argv));
         if (options.showHelp) {
             fmt::print("{}\n", fmt::streamed(cli));
+            return EXIT_SUCCESS;
+        } else if (options.showVersion) {
+            fmt::print("E-MAP {} ({})", EMAP_VERSION, EMAP_COMMIT_HASH);
             return EXIT_SUCCESS;
         }
     }
