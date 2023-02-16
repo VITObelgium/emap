@@ -208,9 +208,10 @@ TEST_CASE("Input parsers")
         const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 
         const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
-        REQUIRE(scalings.size() == 7);
+        REQUIRE(scalings.size() == 8);
 
         {
+            // Check that a specific year should overrule the * for years
             EmissionIdentifier id(country::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10);
             CHECK(scalings.point_scaling_for_id(id, 2015_y) == 1.5);
             CHECK(scalings.point_scaling_for_id(id, 2014_y) == 2.5);
@@ -221,6 +222,7 @@ TEST_CASE("Input parsers")
         }
 
         {
+            // Check that a specific year should overrule year ranges
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::NOx);
             CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2009_y).has_value());
             CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
@@ -238,17 +240,27 @@ TEST_CASE("Input parsers")
         }
 
         {
+            // Check fallback to GNFR
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx);
             CHECK(scalings.diffuse_scaling_for_id(id, 2015_y) == 4);
             CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr1A1a)), 2021_y).has_value()); // sector from GNFR A should not match the B code
         }
 
         {
+            // Check year range overlap handling
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::As);
             CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
             CHECK(scalings.diffuse_scaling_for_id(id, 2021_y) == 4);
-            // Overlapping range for 2020: shoult throw
+            // Overlapping range for 2020: should throw
             CHECK_THROWS_AS(scalings.diffuse_scaling_for_id(id, 2020_y), inf::RuntimeError);
+        }
+
+        {
+            // Check gnfr/type wildcard
+
+            EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::Cd);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2005_y) == 0.8);
+            CHECK(scalings.point_scaling_for_id(id, 2005_y) == 0.8);
         }
     }
 

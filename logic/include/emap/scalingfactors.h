@@ -13,6 +13,7 @@ enum class EmissionSourceType
 {
     Point,
     Diffuse,
+    Any,
 };
 
 class ScalingFactor
@@ -68,6 +69,24 @@ public:
     double factor() const noexcept
     {
         return _factor;
+    }
+
+    bool id_matches(const EmissionIdentifier& id) const noexcept
+    {
+        if (_id.sector == sector::AnyGnfr) {
+            return true;
+        }
+
+        return _id == id;
+    }
+
+    bool type_matches(EmissionSourceType type) const noexcept
+    {
+        if (type == EmissionSourceType::Any || _type == EmissionSourceType::Any) {
+            return true;
+        }
+
+        return _type == type;
     }
 
     YearMatch year_match(date::year year) const noexcept

@@ -396,12 +396,18 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
 
 static EmissionSourceType parse_emission_type(std::string_view emissionType)
 {
-    if (str::iequals(emissionType, "point")) {
+    auto trimmed = str::trimmed_view(emissionType);
+
+    if (str::iequals(trimmed, "point")) {
         return EmissionSourceType::Point;
     }
 
-    if (str::iequals(emissionType, "diffuse")) {
+    if (str::iequals(trimmed, "diffuse")) {
         return EmissionSourceType::Diffuse;
+    }
+
+    if (trimmed == "*") {
+        return EmissionSourceType::Any;
     }
 
     throw RuntimeError("Invalid emission type: {}", emissionType);
@@ -445,7 +451,11 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
             } else if (sec = sectorInv.try_sector_from_string(EmissionSector::Type::Gnfr, feature.field_as<std::string_view>(colGnfr)); sec.has_value()) {
                 sector = sector = *sec;
             } else {
-                throw RuntimeError("Invalid sector code: NFR={} GNFR={}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
+                if (str::trimmed_view(feature.field_as<std::string_view>(colGnfr)) == "*") {
+                    sector = sector::AnyGnfr;
+                } else {
+                    throw RuntimeError("Invalid sector code: NFR={} GNFR={}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
+                }
             }
 
             const auto country      = countryInv.country_from_string(feature.field_as<std::string_view>(colCountry));

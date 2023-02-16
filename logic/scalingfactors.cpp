@@ -24,7 +24,7 @@ std::optional<double> ScalingFactors::scaling_for_id(const EmissionIdentifier& i
 
     auto findScalingFactor = [&](const EmissionIdentifier searchId) {
         for (auto& sf : _scalingFactors) {
-            if (sf.id() != searchId || sf.type() != type) {
+            if (!sf.id_matches(searchId) || !sf.type_matches(type)) {
                 continue;
             }
 
