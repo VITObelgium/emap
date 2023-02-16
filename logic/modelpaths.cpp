@@ -59,14 +59,9 @@ fs::path ModelPaths::emission_brn_output_path(date::year year, const Pollutant& 
     return output_path() / std::to_string(yearInt) / fs::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
 }
 
-fs::path ModelPaths::diffuse_scalings_path(date::year reportYear) const
+fs::path ModelPaths::scalings_path() const
 {
-    return emissions_dir_path(reportYear) / "scaling_diffuse.csv";
-}
-
-fs::path ModelPaths::point_source_scalings_path(date::year reportYear) const
-{
-    return emissions_dir_path(reportYear) / "scaling_pointsources.csv";
+    return data_root() / "02_scaling" / "scaling.xlsx";
 }
 
 const fs::path& ModelPaths::data_root() const noexcept

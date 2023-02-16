@@ -170,8 +170,7 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
 static EmissionInventory create_emission_inventory_impl(const SingleEmissions& totalEmissionsNfr,
                                                         const std::optional<SingleEmissions>& extraEmissions,
                                                         const SingleEmissions& pointSourceEmissions,
-                                                        const ScalingFactors& diffuseScalings,
-                                                        const ScalingFactors& pointScalings,
+                                                        const ScalingFactors& scalings,
                                                         const std::unordered_map<EmissionIdentifier, double>& correctionRatios,
                                                         const RunConfiguration& cfg)
 {
@@ -214,8 +213,8 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
         }
 
         EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
-        entry.set_diffuse_scaling(diffuseScalings.scaling_for_id(em.id()).value_or(1.0));
-        entry.set_point_scaling(pointScalings.scaling_for_id(em.id()).value_or(1.0));
+        entry.set_diffuse_scaling(scalings.diffuse_scaling_for_id(em.id(), result.year()).value_or(1.0));
+        entry.set_point_scaling(scalings.point_scaling_for_id(em.id(), result.year()).value_or(1.0));
         entries.push_back(entry);
     }
 
@@ -266,8 +265,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
-                                            const ScalingFactors& diffuseScalings,
-                                            const ScalingFactors& pointScalings,
+                                            const ScalingFactors& scalings,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary)
 {
@@ -292,7 +290,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     // Add missing nfr data to the nfr emissions, don't use merge_unique_emissions, we need to overwrite existing zero entries
     merge_emissions(totalEmissionsNfr, handle_missing_nfr_data(totalEmissionsNfr.year(), nfrSums, gnfrSums, cfg));
 
-    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, nfrCorrectionRatios, cfg);
+    return create_emission_inventory_impl(totalEmissionsNfr, extraEmissions, pointSourceEmissions, scalings, nfrCorrectionRatios, cfg);
 }
 
 EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
@@ -300,8 +298,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
-                                            const ScalingFactors& diffuseScalings,
-                                            const ScalingFactors& pointScalings,
+                                            const ScalingFactors& scalings,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary)
 {
@@ -334,7 +331,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
         correctedGnfrSums[id] = extrapolatedGnfr;
     }
 
-    return create_emission_inventory(totalEmissionsNfr, extrapolatedTotalEmissionsGnfr, extraEmissions, pointSourceEmissions, diffuseScalings, pointScalings, cfg, runSummary);
+    return create_emission_inventory(totalEmissionsNfr, extrapolatedTotalEmissionsGnfr, extraEmissions, pointSourceEmissions, scalings, cfg, runSummary);
 }
 
 static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir, const Pollutant& pol, const RunConfiguration& cfg, RunSummary& runSummary)
@@ -516,8 +513,7 @@ static ScalingFactors read_scaling_factors(const fs::path& p, const RunConfigura
 EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary)
 {
     // Read scaling factors
-    const auto scalingsDiffuse      = read_scaling_factors(cfg.diffuse_scalings_path(), cfg);
-    const auto scalingsPointSource  = read_scaling_factors(cfg.point_source_scalings_path(), cfg);
+    const auto scalings             = read_scaling_factors(cfg.scalings_path(), cfg);
     const auto pointSourcesFlanders = read_country_point_sources(cfg, country::BEF, summary);
     auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
     assert(nfrTotalEmissions.validate_uniqueness());
@@ -543,8 +539,7 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
                                          std::move(gnfrTotalEmissions),
                                          extraEmissions,
                                          pointSourcesFlanders,
-                                         scalingsDiffuse,
-                                         scalingsPointSource,
+                                         scalings,
                                          cfg,
                                          summary);
     } else {
@@ -552,8 +547,7 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
                                          std::move(gnfrTotalEmissions),
                                          extraEmissions,
                                          pointSourcesFlanders,
-                                         scalingsDiffuse,
-                                         scalingsPointSource,
+                                         scalings,
                                          cfg,
                                          summary);
     }

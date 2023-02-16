@@ -92,6 +92,28 @@ static void update_entry(std::vector<EmissionEntry>& entries, const EmissionEntr
     *entryIter = newEntry;
 }
 
+Range<date::year> parse_year_range(std::string_view yearRange)
+{
+    using namespace date;
+
+    auto trimmedYear = inf::str::trimmed_view(yearRange);
+    if (trimmedYear == "*") {
+        return AllYears;
+    }
+
+    auto splitted = inf::str::split_view(trimmedYear, '-');
+    if (splitted.size() == 1) {
+        const auto year = date::year(str::to_uint32_value(yearRange));
+        return Range(year, year);
+    } else if (splitted.size() == 2) {
+        auto year1 = date::year(str::to_uint32_value(splitted[0]));
+        auto year2 = date::year(str::to_uint32_value(splitted[1]));
+        return Range(year1, year2);
+    }
+
+    throw RuntimeError("Invalid year range specification: {}", yearRange);
+}
+
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type;subtype
@@ -372,41 +394,75 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
     }
 }
 
-ScalingFactors parse_scaling_factors(const fs::path& scalingFactorsCsv, const RunConfiguration& cfg)
+static EmissionSourceType parse_emission_type(std::string_view emissionType)
+{
+    if (str::iequals(emissionType, "point")) {
+        return EmissionSourceType::Point;
+    }
+
+    if (str::iequals(emissionType, "diffuse")) {
+        return EmissionSourceType::Diffuse;
+    }
+
+    throw RuntimeError("Invalid emission type: {}", emissionType);
+}
+
+ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunConfiguration& cfg)
 {
     // csv columns: country;nfr_sector;pollutant;factor
 
     const auto& countryInv   = cfg.countries();
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
+    size_t lineNr            = 2;
 
     try {
-        Log::debug("Parse scaling factors: {}", scalingFactorsCsv);
+        Log::debug("Parse scaling factors: {}", scalingFactors);
 
         ScalingFactors result;
-        inf::CsvReader csv(scalingFactorsCsv);
 
-        auto colCountry              = required_csv_column(csv, "country");
-        auto colPollutant            = required_csv_column(csv, "pollutant");
-        auto colFactor               = required_csv_column(csv, "factor");
-        auto [colSector, sectorType] = determine_sector_column(csv);
+        auto ds    = gdal::VectorDataSet::open(scalingFactors);
+        auto layer = ds.layer("Scaling");
 
-        size_t lineNr = 2;
-        for (auto& line : csv) {
-            const auto country   = countryInv.country_from_string(line.get_string(colCountry));
-            const auto sector    = sectorInv.sector_from_string(sectorType, line.get_string(colSector));
-            const auto pollutant = pollutantInv.pollutant_from_string(line.get_string(colPollutant));
-            const auto factor    = to_double(line.get_string(colFactor), lineNr);
+        auto colYear         = layer.required_field_index("year");
+        auto colEmissionType = layer.required_field_index("emission_type");
+        auto colPollutant    = layer.required_field_index("pollutant_code");
+        auto colCountry      = layer.required_field_index("country_iso_code");
+        auto colGnfr         = layer.required_field_index("GNFR_code");
+        auto colNfr          = layer.required_field_index("NFR_code");
+        auto colScaleFactor  = layer.required_field_index("scale_factor");
+
+        for (auto& feature : layer) {
+            const auto year = feature.field_as<std::string_view>(colYear);
+            if (year.empty()) {
+                // skip empty lines
+                continue;
+            }
+
+            EmissionSector sector;
+            if (auto sec = sectorInv.try_sector_from_string(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colNfr)); sec.has_value()) {
+                sector = *sec;
+            } else if (sec = sectorInv.try_sector_from_string(EmissionSector::Type::Gnfr, feature.field_as<std::string_view>(colGnfr)); sec.has_value()) {
+                sector = sector = *sec;
+            } else {
+                throw RuntimeError("Invalid sector code: NFR={} GNFR={}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
+            }
+
+            const auto country      = countryInv.country_from_string(feature.field_as<std::string_view>(colCountry));
+            const auto pollutant    = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
+            const auto emissionType = parse_emission_type(feature.field_as<std::string_view>(colEmissionType));
+            const auto factor       = feature.field_as<double>(colScaleFactor);
 
             if (factor != 1.0) {
-                result.add_scaling_factor(ScalingFactor(EmissionIdentifier(country, sector, pollutant), factor));
+                result.add_scaling_factor(ScalingFactor(EmissionIdentifier(country, sector, pollutant), emissionType, parse_year_range(year), factor));
             }
+
             ++lineNr;
         }
 
         return result;
     } catch (const std::exception& e) {
-        throw RuntimeError("Error parsing {} ({})", scalingFactorsCsv, e.what());
+        throw RuntimeError("Error parsing {} (line {}: {})", scalingFactors, lineNr, e.what());
     }
 }
 

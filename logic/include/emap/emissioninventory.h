@@ -306,8 +306,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
-                                            const ScalingFactors& diffuseScalings,
-                                            const ScalingFactors& pointScalings,
+                                            const ScalingFactors& scalings,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 
@@ -316,8 +315,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             SingleEmissions totalEmissionsGnfr,
                                             const std::optional<SingleEmissions>& extraEmissions,
                                             const SingleEmissions& pointSourceEmissions,
-                                            const ScalingFactors& diffuseScalings,
-                                            const ScalingFactors& pointScalings,
+                                            const ScalingFactors& scalings,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 

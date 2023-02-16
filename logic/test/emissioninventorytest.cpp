@@ -76,11 +76,11 @@ TEST_CASE("Emission inventory")
 
         // no point emissions for Industry CO
 
-        ScalingFactors diffuseScalings, pointScalings;
-        diffuseScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 0.5));
-        pointScalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 2.0));
+        ScalingFactors scalings;
+        scalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionSourceType::Diffuse, 2019_y, 0.5));
+        scalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), EmissionSourceType::Point, 2019_y, 2.0));
 
-        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 
         checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 55.5, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::ES, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 200.0, 0.0); // correction factor should be applied
@@ -95,14 +95,14 @@ TEST_CASE("Emission inventory")
     {
         // empty NFR emissions
         SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
-        ScalingFactors diffuseScalings, pointScalings;
+        ScalingFactors scalings;
 
         SingleEmissions gnfrTotals(date::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::ATL, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::NL, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PM10), EmissionValue(70.0)));
 
-        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 
         // The emission value (100.0) should be spread evenly over the two shipping sectors with type sea for seas
         checkEmission(inv, EmissionIdentifier(countries::ATL, EmissionSector(sectors::nfr::Nfr1A3di_i), pollutants::PM10), 100.0, 0.0);
@@ -127,7 +127,7 @@ TEST_CASE("Emission inventory")
 
     SUBCASE("Correct NFR values based on GNFR")
     {
-        ScalingFactors diffuseScalings, pointScalings;
+        ScalingFactors scalings;
 
         SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
         // all aviation sectors have a value
@@ -149,7 +149,7 @@ TEST_CASE("Emission inventory")
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Aviation), pollutants::NOx), EmissionValue(70.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Offroad), pollutants::NOx), EmissionValue(80.0)));
 
-        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, diffuseScalings, pointScalings, cfg, summary);
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::NOx), (70.0 / (111.0 + 222.0)) * 111.0, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::NOx), (70.0 / (111.0 + 222.0)) * 222.0, 0.0);

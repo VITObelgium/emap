@@ -75,21 +75,6 @@ static std::deque<date::year> create_years_sequence(date::year startYear, std::s
     return years;
 }
 
-static Range<date::year> parse_year_range(std::string_view yearRange)
-{
-    auto splitted = str::split_view(yearRange, '-');
-    if (splitted.size() == 1) {
-        auto year = date::year(str::to_uint32_value(yearRange));
-        return Range(year, year);
-    } else if (splitted.size() == 2) {
-        auto year1 = date::year(str::to_uint32_value(splitted[0]));
-        auto year2 = date::year(str::to_uint32_value(splitted[1]));
-        return Range(year1, year2);
-    }
-
-    throw RuntimeError("Invalid year range specification: {}", yearRange);
-}
-
 SpatialPatternTableCache::SpatialPatternTableCache(const RunConfiguration& cfg) noexcept
 : _cfg(cfg)
 {

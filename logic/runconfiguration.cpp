@@ -90,14 +90,9 @@ fs::path RunConfiguration::emission_brn_output_path(date::year year, const Pollu
     return _paths.emission_brn_output_path(year, pol, sector);
 }
 
-fs::path RunConfiguration::diffuse_scalings_path() const
+fs::path RunConfiguration::scalings_path() const
 {
-    return _paths.diffuse_scalings_path(_reportYear);
-}
-
-fs::path RunConfiguration::point_source_scalings_path() const
-{
-    return _paths.point_source_scalings_path(_reportYear);
+    return _paths.scalings_path();
 }
 
 const fs::path& RunConfiguration::data_root() const noexcept

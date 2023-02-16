@@ -5,6 +5,7 @@
 #include "gdx/algo/sum.h"
 #include "gdx/rasteriterator.h"
 #include "infra/algo.h"
+#include "infra/test/printsupport.h"
 
 #include "testconfig.h"
 #include "testconstants.h"
@@ -206,36 +207,49 @@ TEST_CASE("Input parsers")
         const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
         const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 
-        const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "scaling_diffuse.csv", cfg);
-        REQUIRE(scalings.size() == 4);
+        const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
+        REQUIRE(scalings.size() == 7);
 
-        auto iter = scalings.begin();
-        CHECK(iter->country() == countries::AL);
-        CHECK(iter->sector().name() == "1A2a");
-        CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-        CHECK(iter->pollutant() == pollutants::NOx);
-        CHECK(iter->factor() == 0.5);
-        ++iter;
+        {
+            EmissionIdentifier id(country::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10);
+            CHECK(scalings.point_scaling_for_id(id, 2015_y) == 1.5);
+            CHECK(scalings.point_scaling_for_id(id, 2014_y) == 2.5);
+            CHECK(scalings.point_scaling_for_id(id, 2013_y) == 2.5);
 
-        CHECK(iter->country() == countries::AL);
-        CHECK(iter->sector().name() == "1A2a");
-        CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-        CHECK(iter->pollutant() == pollutants::PM10);
-        CHECK(iter->factor() == 1.3);
-        ++iter;
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2013_y).has_value());
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_pollutant(pollutants::NOx), 2015_y).has_value());
+        }
 
-        CHECK(iter->country() == countries::AM);
-        CHECK(iter->sector().name() == "1A1a");
-        CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-        CHECK(iter->pollutant() == pollutants::NMVOC);
-        CHECK(iter->factor() == 0.8);
-        ++iter;
+        {
+            EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::NOx);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2009_y).has_value());
+            CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2011_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2012_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2013_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2014_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2015_y) == 5);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2016_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2017_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2018_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2019_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2020_y) == 3);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2021_y).has_value());
+        }
 
-        CHECK(iter->country() == countries::AM);
-        CHECK(iter->sector().name() == "1A1a");
-        CHECK(iter->sector().type() == EmissionSector::Type::Nfr);
-        CHECK(iter->pollutant() == pollutants::NOx);
-        CHECK(iter->factor() == 1.5);
+        {
+            EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2015_y) == 4);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr1A1a)), 2021_y).has_value()); // sector from GNFR A should not match the B code
+        }
+
+        {
+            EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::As);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, 2021_y) == 4);
+            // Overlapping range for 2020: shoult throw
+            CHECK_THROWS_AS(scalings.diffuse_scaling_for_id(id, 2020_y), inf::RuntimeError);
+        }
     }
 
     auto rasterForNfrSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {

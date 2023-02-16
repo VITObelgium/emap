@@ -27,8 +27,7 @@ public:
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
     fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
-    fs::path diffuse_scalings_path(date::year reportYear) const;
-    fs::path point_source_scalings_path(date::year reportYear) const;
+    fs::path scalings_path() const;
 
     const fs::path& data_root() const noexcept;
     const fs::path& output_path() const noexcept;

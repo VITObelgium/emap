@@ -58,8 +58,6 @@ if (WIN32)
         # Fixes warning when linking against release c library in debug mode
         # Fixes warning when linking against release c library in debug mode
         add_link_options("$<$<CONFIG:Debug>:/NODEFAULTLIB:MSVCRT;/NODEFAULTLIB:LIBCMT>")
-        # Enable faster linking for debug builds
-        add_link_options($<$<CONFIG:Debug>:/DEBUG:FASTLINK>)
     endif ()
 else ()
     add_compile_options(

@@ -2,16 +2,40 @@
 
 #include "emap/country.h"
 #include "emap/emissions.h"
+#include "emap/inputparsers.h"
 #include "emap/pollutant.h"
 
+#include "infra/range.h"
+
 namespace emap {
+
+enum class EmissionSourceType
+{
+    Point,
+    Diffuse,
+};
 
 class ScalingFactor
 {
 public:
+    enum class YearMatch
+    {
+        Exact,    // The scaling factor applies to the exact year
+        Range,    // The scaling factor applies to a year range
+        WildCard, // The scaling factor applies to the wildcard '*'
+        NoMatch,
+    };
+
     ScalingFactor() = default;
-    ScalingFactor(const EmissionIdentifier& id, double factor)
+    ScalingFactor(const EmissionIdentifier& id, EmissionSourceType type, date::year year, double factor)
+    : ScalingFactor(id, type, {year, year}, factor)
+    {
+    }
+
+    ScalingFactor(const EmissionIdentifier& id, EmissionSourceType type, inf::Range<date::year> yearRange, double factor)
     : _id(id)
+    , _type(type)
+    , _yearRange(yearRange)
     , _factor(factor)
     {
     }
@@ -19,6 +43,11 @@ public:
     const EmissionIdentifier& id() const noexcept
     {
         return _id;
+    }
+
+    EmissionSourceType type() const noexcept
+    {
+        return _type;
     }
 
     EmissionSector sector() const noexcept
@@ -41,10 +70,25 @@ public:
         return _factor;
     }
 
+    YearMatch year_match(date::year year) const noexcept
+    {
+        if (!_yearRange.contains(year)) {
+            return YearMatch::NoMatch;
+        }
+
+        if (_yearRange.begin == _yearRange.end) {
+            return YearMatch::Exact;
+        }
+
+        return _yearRange == AllYears ? YearMatch::WildCard : YearMatch::Range;
+    }
+
 private:
     EmissionIdentifier _id;
+    EmissionSourceType _type = EmissionSourceType::Diffuse;
     Country _country;
     EmissionSector _sector;
+    inf::Range<date::year> _yearRange;
     double _factor = 1.0;
 };
 
@@ -64,21 +108,19 @@ public:
         return _scalingFactors.end();
     }
 
-    std::optional<double> scaling_for_id(const EmissionIdentifier& id) const noexcept
+    std::optional<double> point_scaling_for_id(const EmissionIdentifier& id, date::year year) const
     {
-        auto* scaling = inf::find_in_container(_scalingFactors, [&id](const ScalingFactor& em) {
-            return em.id() == id;
-        });
+        return scaling_for_id(id, EmissionSourceType::Point, year);
+    }
 
-        std::optional<double> result;
-        if (scaling != nullptr) {
-            result = scaling->factor();
-        }
-
-        return result;
+    std::optional<double> diffuse_scaling_for_id(const EmissionIdentifier& id, date::year year) const
+    {
+        return scaling_for_id(id, EmissionSourceType::Diffuse, year);
     }
 
 private:
+    std::optional<double> scaling_for_id(const EmissionIdentifier& id, EmissionSourceType type, date::year year) const;
+
     std::vector<ScalingFactor> _scalingFactors;
 };
 }
