@@ -208,7 +208,7 @@ TEST_CASE("Input parsers")
         const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 
         const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
-        REQUIRE(scalings.size() == 8);
+        REQUIRE(scalings.size() == 9);
 
         {
             // Check that a specific year should overrule the * for years
@@ -252,15 +252,15 @@ TEST_CASE("Input parsers")
             CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
             CHECK(scalings.diffuse_scaling_for_id(id, 2021_y) == 4);
             // Overlapping range for 2020: should throw
-            CHECK_THROWS_AS(scalings.diffuse_scaling_for_id(id, 2020_y), inf::RuntimeError);
+            CHECK_THROWS_WITH_AS(scalings.diffuse_scaling_for_id(id, 2020_y), "Ambiguous scaling factor specification: Multiple matches for NL - 3B1a - As in year 2020", inf::RuntimeError);
         }
 
         {
             // Check gnfr/type wildcard
-
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::Cd);
             CHECK(scalings.diffuse_scaling_for_id(id, 2005_y) == 0.8);
             CHECK(scalings.point_scaling_for_id(id, 2005_y) == 0.8);
+            CHECK(scalings.point_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr2D3d)), 2005_y) == 0.5);
         }
     }
 

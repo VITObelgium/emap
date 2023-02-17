@@ -19,11 +19,11 @@ enum class EmissionSourceType
 class ScalingFactor
 {
 public:
-    enum class YearMatch
+    enum class MatchResult
     {
-        Exact,    // The scaling factor applies to the exact year
-        Range,    // The scaling factor applies to a year range
-        WildCard, // The scaling factor applies to the wildcard '*'
+        Exact,
+        Range,
+        WildCard,
         NoMatch,
     };
 
@@ -71,35 +71,35 @@ public:
         return _factor;
     }
 
-    bool id_matches(const EmissionIdentifier& id) const noexcept
+    MatchResult id_match(const EmissionIdentifier& id) const noexcept
     {
         if (_id.sector == sector::AnyGnfr) {
-            return true;
+            return MatchResult::WildCard;
         }
 
-        return _id == id;
+        return _id == id ? MatchResult::Exact : MatchResult::NoMatch;
     }
 
-    bool type_matches(EmissionSourceType type) const noexcept
+    MatchResult type_match(EmissionSourceType type) const noexcept
     {
         if (type == EmissionSourceType::Any || _type == EmissionSourceType::Any) {
-            return true;
+            return MatchResult::WildCard;
         }
 
-        return _type == type;
+        return _type == type ? MatchResult::Exact : MatchResult::NoMatch;
     }
 
-    YearMatch year_match(date::year year) const noexcept
+    MatchResult year_match(date::year year) const noexcept
     {
         if (!_yearRange.contains(year)) {
-            return YearMatch::NoMatch;
+            return MatchResult::NoMatch;
         }
 
         if (_yearRange.begin == _yearRange.end) {
-            return YearMatch::Exact;
+            return MatchResult::Exact;
         }
 
-        return _yearRange == AllYears ? YearMatch::WildCard : YearMatch::Range;
+        return _yearRange == AllYears ? MatchResult::WildCard : MatchResult::Range;
     }
 
 private:
