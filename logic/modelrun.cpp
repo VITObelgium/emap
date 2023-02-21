@@ -1,5 +1,7 @@
 #include "emap/modelrun.h"
 
+#include "emapconfig.h"
+
 #include "emap/configurationparser.h"
 #include "emap/constants.h"
 #include "emap/countryborders.h"
@@ -389,6 +391,8 @@ int run_model(const fs::path& runConfigPath, inf::Log::Level logLevel, std::opti
     inf::Log::add_file_sink(runConfig.output_path() / "emap.log");
     auto logReg = std::make_unique<inf::LogRegistration>("e-map");
     inf::Log::set_level(logLevel);
+
+    Log::info("E-MAP {} ({})", EMAP_VERSION, EMAP_COMMIT_HASH);
 
     return run_model(runConfig, progressCb);
 }
