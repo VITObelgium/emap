@@ -94,6 +94,16 @@ public:
         _diffuseScaling = factor;
     }
 
+    double point_scaling_factor() const noexcept
+    {
+        return _pointScaling;
+    }
+
+    double diffuse_scaling_factor() const noexcept
+    {
+        return _diffuseScaling;
+    }
+
 private:
     EmissionIdentifier _id;
     double _diffuseEmission = 0.0;
