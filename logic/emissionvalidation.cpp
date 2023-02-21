@@ -43,7 +43,7 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
     result.reserve(emissionInv.size());
 
     auto includedPollutants         = _cfg.included_pollutants();
-    const auto sectorParametersPath = ModelPaths(_cfg.data_root(), _cfg.output_path()).sector_parameters_config_path();
+    const auto sectorParametersPath = ModelPaths(_cfg.scenario(), _cfg.data_root(), _cfg.output_path()).sector_parameters_config_path();
     const auto sectorParams         = parse_sector_parameters_config(sectorParametersPath, _cfg.output_sector_level(), _cfg.pollutants(), _cfg.output_sector_level_name());
 
     std::unordered_map<Pollutant, std::unordered_map<CountrySector, double>> brnTotals;

@@ -13,7 +13,7 @@ namespace emap {
 class ModelPaths
 {
 public:
-    ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot);
+    ModelPaths(std::string_view scenario, const fs::path& dataRoot, const fs::path& outputRoot);
 
     fs::path point_source_emissions_dir_path(const Country& country, date::year reportYear) const;
     fs::path total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const;
@@ -41,7 +41,9 @@ public:
 
 private:
     fs::path emissions_dir_path(date::year reportYear) const;
+    fs::path append_scenario_suffix_if_available(const fs::path& path) const;
 
+    std::string _scenario;
     fs::path _dataRoot;
     fs::path _outputRoot;
 };

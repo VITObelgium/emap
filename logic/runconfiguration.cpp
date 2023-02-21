@@ -34,7 +34,7 @@ RunConfiguration::RunConfiguration(
     PollutantInventory pollutants,
     CountryInventory countries,
     Output outputConfig)
-: _paths(dataPath, outputConfig.path)
+: _paths(scenario, dataPath, outputConfig.path)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _grid(grid)
 , _runType(runType)

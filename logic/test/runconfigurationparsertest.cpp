@@ -87,12 +87,44 @@ TEST_CASE("Parse run configuration")
         CHECK(config.run_type() == RunType::Emep);
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year() == 2018_y);
-        // CHECK(config.scenario() == "scenarionaam");
+        CHECK(config.scenario() == "scenarionaam");
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
         CHECK(config.output_path() == expectedOutput);
         CHECK(config.validation_type() == ValidationType::SumValidation);
         CHECK(config.included_pollutants() == std::vector<Pollutant>{pollutants::CO, pollutants::NOx, pollutants::NMVOC});
+    }
+
+    SUBCASE("scenario processing")
+    {
+        constexpr std::string_view tomlConfig = R"toml(
+            [model]
+                grid = "vlops1km"
+                datapath = "_input"
+                type = "emep"
+                year = 2022
+                report_year = 2021
+                scenario = "scen"
+                scalefactors = "{}"
+                included_pollutants = ["CO", "NOx", "NMVOC"]
+            
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
+
+            [options]
+                validation = true
+        )toml";
+
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR));
+
+        CHECK(config.scenario() == "scen");
+        // Scenario specific input available
+        CHECK(config.total_emissions_path_nfr_belgium(country::BEB) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021_scen.xlsx");
+        CHECK(config.total_emissions_path_gnfr(config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021_scen.txt");
+        // No scenario specific input available
+        CHECK(config.total_emissions_path_nfr_belgium(country::BEF) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx");
+        CHECK(config.total_emissions_path_nfr(1990_y, config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt");
     }
 
     SUBCASE("invalid file: empty")
@@ -141,7 +173,7 @@ TEST_CASE("Parse run configuration")
         CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
     }
 
-    /*SUBCASE("invalid file: scenario is integer")
+    SUBCASE("invalid file: scenario is integer")
     {
         constexpr std::string_view tomlConfig = R"toml(
             [model]
@@ -162,6 +194,6 @@ TEST_CASE("Parse run configuration")
         )toml";
 
         CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
-    }*/
+    }
 }
 }

@@ -3,8 +3,9 @@
 #include <fmt/format.h>
 
 namespace emap {
-ModelPaths::ModelPaths(const fs::path& dataRoot, const fs::path& outputRoot)
-: _dataRoot(dataRoot)
+ModelPaths::ModelPaths(std::string_view scenario, const fs::path& dataRoot, const fs::path& outputRoot)
+: _scenario(scenario)
+, _dataRoot(dataRoot)
 , _outputRoot(outputRoot)
 {
 }
@@ -16,17 +17,17 @@ fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, dat
 
 fs::path ModelPaths::total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const
 {
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(lookupReportYear));
+    return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(lookupReportYear)));
 }
 
 fs::path ModelPaths::total_extra_emissions_path_nfr(date::year reportYear) const
 {
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(reportYear));
+    return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(reportYear)));
 }
 
 fs::path ModelPaths::total_emissions_path_gnfr(date::year reportYear, date::year lookupReportYear) const
 {
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(lookupReportYear));
+    return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(lookupReportYear)));
 }
 
 fs::path ModelPaths::total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const
@@ -35,7 +36,7 @@ fs::path ModelPaths::total_emissions_path_nfr_belgium(const Country& belgianRegi
         throw std::logic_error("Internal error: a belgian region is required");
     }
 
-    return emissions_dir_path(reportYear) / "totals" / fmt::format("{}_{}.xlsx", belgianRegian.iso_code(), static_cast<int>(reportYear));
+    return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("{}_{}.xlsx", belgianRegian.iso_code(), static_cast<int>(reportYear)));
 }
 
 fs::path ModelPaths::spatial_pattern_path() const
@@ -107,6 +108,20 @@ fs::path ModelPaths::output_path_for_spatial_pattern_raster(const EmissionIdenti
 fs::path ModelPaths::emissions_dir_path(date::year reportYear) const
 {
     return _dataRoot / "01_data_emissions" / "inventory" / fs::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
+}
+
+fs::path ModelPaths::append_scenario_suffix_if_available(const fs::path& path) const
+{
+    if (!_scenario.empty()) {
+        auto scenarioPath = path;
+        auto filename     = path.filename();
+        scenarioPath.replace_filename(fs::u8path(fmt::format("{}_{}{}", filename.stem(), _scenario, filename.extension())));
+        if (fs::is_regular_file(scenarioPath)) {
+            return scenarioPath;
+        }
+    }
+
+    return path;
 }
 
 }
