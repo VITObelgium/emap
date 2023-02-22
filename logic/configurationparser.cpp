@@ -613,6 +613,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 
         const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
         const auto scenario                     = read_string(model, "scenario", "");
+        const double rescaleThreshold           = model.section["point_source_rescale_threshold"].value<double>().value_or(100.0);
         const auto year                         = read_year(model.section["year"]);
         const auto reportYear                   = read_year(model.section["report_year"]);
         const auto spatialPatternExceptionsPath = read_optional_path(model, "spatial_pattern_exceptions", basePath);
@@ -640,6 +641,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
                                 year,
                                 reportYear,
                                 scenario,
+                                rescaleThreshold,
                                 std::move(includedPollutants),
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),

@@ -180,8 +180,9 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
     for (const auto& em : totalEmissionsNfr) {
         assert(em.sector().type() == EmissionSector::Type::Nfr);
 
-        double diffuseEmission  = em.value().amount().value_or(0.0);
-        double pointEmissionSum = 0.0;
+        double diffuseEmission        = em.value().amount().value_or(0.0);
+        double pointEmissionSum       = 0.0;
+        double pointEmissionAutoScale = 1.0;
         std::vector<EmissionEntry> pointSourceEntries;
 
         if (em.country().is_belgium()) {
@@ -195,11 +196,21 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
             if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
                 // Check if the difference is caused by floating point rounding
-                if (std::abs(pointEmissionSum - diffuseEmission) < 1e-4) {
+                auto scalingFactor = diffuseEmission / pointEmissionSum;
+                if (pointEmissionSum - diffuseEmission < 1e-4) {
                     // Minor difference caused by rounding, make them the same
                     pointEmissionSum = diffuseEmission;
+                } else if (scalingFactor * 100 > cfg.point_source_rescale_threshold()) {
+                    pointEmissionAutoScale = scalingFactor;
                 } else {
-                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {}", pointEmissionSum, em.country(), diffuseEmission, em.sector(), em.pollutant());
+                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {} and exceeds the rescale threshold {} > {}",
+                                       pointEmissionSum,
+                                       em.country(),
+                                       diffuseEmission,
+                                       em.sector(),
+                                       em.pollutant(),
+                                       scalingFactor * 100,
+                                       cfg.point_source_rescale_threshold());
                 }
             }
         } else {
@@ -214,7 +225,8 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
         EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
         entry.set_diffuse_scaling(scalings.diffuse_scaling_for_id(em.id(), result.year()).value_or(1.0));
-        entry.set_point_scaling(scalings.point_scaling_for_id(em.id(), result.year()).value_or(1.0));
+        entry.set_point_user_scaling(scalings.point_scaling_for_id(em.id(), result.year()).value_or(1.0));
+        entry.set_point_auto_scaling(pointEmissionAutoScale);
         entries.push_back(entry);
     }
 

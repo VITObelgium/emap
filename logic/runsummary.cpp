@@ -25,7 +25,7 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScale)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
 {
     SpatialPatternSummaryInfo info;
     info.source              = source;
@@ -33,13 +33,14 @@ void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, 
     info.emissionsWithinGrid = emissionsWithinGrid;
     info.pointEmissions      = pointEmissions;
     info.diffuseScaling      = diffuseScale;
-    info.pointScaling        = pointScale;
+    info.pointScalingUser    = pointScaleUser;
+    info.pointScalingAuto    = pointScaleAuto;
 
     std::scoped_lock lock(_mutex);
     _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScale)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
 {
     SpatialPatternSummaryInfo info;
     info.source              = source;
@@ -47,7 +48,8 @@ void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSou
     info.emissionsWithinGrid = emissionsWithinGrid;
     info.pointEmissions      = pointEmissions;
     info.diffuseScaling      = diffuseScale;
-    info.pointScaling        = pointScale;
+    info.pointScalingUser    = pointScaleUser;
+    info.pointScalingAuto    = pointScaleAuto;
 
     std::scoped_lock lock(_mutex);
     _spatialPatternsWithoutData.push_back(info);
@@ -104,7 +106,7 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
 
 void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const
 {
-    const std::array<ColumnInfo, 16> headers = {
+    const std::array<ColumnInfo, 17> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"GNFR", 15.0},
@@ -116,7 +118,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         ColumnInfo{"From exceptions", 25.0},
         ColumnInfo{"Year", 15.0},
         ColumnInfo{"Diffuse scaling", 15.0},
-        ColumnInfo{"Point scaling", 15.0},
+        ColumnInfo{"Point scaling (user)", 15.0},
+        ColumnInfo{"Point scaling (auto)", 15.0},
         ColumnInfo{"Path", 125.0},
         ColumnInfo{"Total emissions", 17.0},
         ColumnInfo{"Emissions within grid", 17.0},
@@ -168,7 +171,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
             ++index;
         }
         worksheet_write_number(ws, row, index++, info.diffuseScaling, formatNumber);
-        worksheet_write_number(ws, row, index++, info.pointScaling, formatNumber);
+        worksheet_write_number(ws, row, index++, info.pointScalingUser, formatNumber);
+        worksheet_write_number(ws, row, index++, info.pointScalingAuto, formatNumber);
         worksheet_write_string(ws, row, index++, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
 
         worksheet_write_number(ws, row, index++, info.totalEmissions, formatNumber);

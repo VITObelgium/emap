@@ -46,6 +46,7 @@ public:
         date::year year,
         date::year reportYear,
         std::string_view scenario,
+        double rescaleThreshold,
         std::vector<Pollutant> includedPollutants,
         SectorInventory sectors,
         PollutantInventory pollutants,
@@ -82,6 +83,8 @@ public:
 
     std::string_view scenario() const noexcept;
 
+    double point_source_rescale_threshold() const noexcept;
+
     void set_max_concurrency(std::optional<int32_t> concurrency) noexcept;
     std::optional<int32_t> max_concurrency() const noexcept;
 
@@ -110,6 +113,7 @@ private:
     date::year _year;
     date::year _reportYear;
     std::string _scenario;
+    double _pointRescaleThreshold;
     std::vector<Pollutant> _includedPollutants;
     SectorInventory _sectorInventory;
     PollutantInventory _pollutantInventory;

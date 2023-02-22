@@ -16,6 +16,7 @@ RunConfiguration::RunConfiguration(
     date::year year,
     date::year reportYear,
     std::string_view scenario,
+    double rescaleThreshold,
     std::vector<Pollutant> includedPollutants,
     SectorInventory sectors,
     PollutantInventory pollutants,
@@ -28,6 +29,7 @@ RunConfiguration::RunConfiguration(
 , _year(year)
 , _reportYear(reportYear)
 , _scenario(scenario)
+, _pointRescaleThreshold(rescaleThreshold)
 , _includedPollutants(std::move(includedPollutants))
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
@@ -144,6 +146,11 @@ date::year RunConfiguration::reporting_year() const noexcept
 std::string_view RunConfiguration::scenario() const noexcept
 {
     return _scenario;
+}
+
+double RunConfiguration::point_source_rescale_threshold() const noexcept
+{
+    return _pointRescaleThreshold;
 }
 
 void RunConfiguration::set_max_concurrency(std::optional<int32_t> concurrency) noexcept

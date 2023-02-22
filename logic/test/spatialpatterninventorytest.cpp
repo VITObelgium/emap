@@ -20,7 +20,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "NFR";
 
-    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, ModelGrid::Vlops1km, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, ModelGrid::Vlops1km, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Spatial pattern selection test")
