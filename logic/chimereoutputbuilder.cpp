@@ -134,6 +134,7 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
     write_dat_header(_cfg.output_path() / "output_Chimere_header.dat", sectorNames);
 
     if (!_cfg.output_point_sources_separately()) {
+        // Point sources should be included in the regular output, add them to the diffuse sources
         for (auto& ps : _pointSources) {
             auto polIndex = _pollutantIndexes.at(pol);
             _diffuseSources[pol][ps.countryCode][ps.cell][ps.sectorName] += ps.emissions.at(polIndex);
