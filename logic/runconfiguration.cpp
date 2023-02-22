@@ -8,23 +8,10 @@ namespace emap {
 
 using namespace inf;
 
-std::string run_type_name(RunType type)
-{
-    switch (type) {
-    case RunType::Emep:
-        return "historic";
-    case RunType::Gains:
-        return "future";
-    }
-
-    throw RuntimeError("Invalid run type");
-}
-
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
     const fs::path& spatialPatternExceptions,
     ModelGrid grid,
-    RunType runType,
     ValidationType validation,
     date::year year,
     date::year reportYear,
@@ -37,7 +24,6 @@ RunConfiguration::RunConfiguration(
 : _paths(scenario, dataPath, outputConfig.path)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _grid(grid)
-, _runType(runType)
 , _validation(validation)
 , _year(year)
 , _reportYear(reportYear)
@@ -133,11 +119,6 @@ std::string RunConfiguration::eez_boundaries_field_id() const noexcept
 ModelGrid RunConfiguration::model_grid() const noexcept
 {
     return _grid;
-}
-
-RunType RunConfiguration::run_type() const noexcept
-{
-    return _runType;
 }
 
 ValidationType RunConfiguration::validation_type() const noexcept

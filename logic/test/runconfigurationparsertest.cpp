@@ -44,7 +44,6 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.run_type() == RunType::Emep);
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year() == 2018_y);
         // CHECK(config.scenario() == "scenarionaam");
@@ -84,7 +83,6 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.run_type() == RunType::Emep);
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year() == 2018_y);
         CHECK(config.scenario() == "scenarionaam");

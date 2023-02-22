@@ -450,19 +450,6 @@ static ModelGrid model_grid_from_string(std::string_view grid)
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 
-static RunType run_type_from_string(std::string_view type)
-{
-    if (type == "emep") {
-        return RunType::Emep;
-    }
-
-    if (type == "gains") {
-        return RunType::Gains;
-    }
-
-    throw RuntimeError("Invalid run type: '{}'", type);
-}
-
 static ModelGrid read_grid(std::optional<std::string_view> grid)
 {
     if (!grid.has_value()) {
@@ -470,15 +457,6 @@ static ModelGrid read_grid(std::optional<std::string_view> grid)
     }
 
     return model_grid_from_string(*grid);
-}
-
-static RunType read_run_type(std::optional<std::string_view> type)
-{
-    if (!type.has_value()) {
-        throw RuntimeError("No type present in 'model' section (e.g. type = \"gains\")");
-    }
-
-    return run_type_from_string(*type);
 }
 
 static std::string read_sector_level(std::optional<std::string_view> level)
@@ -633,10 +611,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         auto sectorInventory    = parse_sectors(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
         auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
 
-        RunType runType = RunType::Emep;
-
-        const auto grid = read_grid(model.section["grid"].value<std::string_view>());
-        // const auto runType                      = read_run_type(model.section["type"].value<std::string_view>());
+        const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
         const auto scenario                     = read_string(model, "scenario", "");
         const auto year                         = read_year(model.section["year"]);
         const auto reportYear                   = read_year(model.section["report_year"]);
@@ -661,7 +636,6 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         return RunConfiguration(dataPath,
                                 spatialPatternExceptionsPath,
                                 grid,
-                                runType,
                                 validate ? ValidationType::SumValidation : ValidationType::NoValidation,
                                 year,
                                 reportYear,

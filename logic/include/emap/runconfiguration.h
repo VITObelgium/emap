@@ -12,12 +12,6 @@
 
 namespace emap {
 
-enum class RunType
-{
-    Emep,
-    Gains,
-};
-
 enum class SectorLevel
 {
     GNFR,
@@ -48,7 +42,6 @@ public:
         const fs::path& dataPath,
         const fs::path& spatialPatternExceptions,
         ModelGrid grid,
-        RunType runType,
         ValidationType validation,
         date::year year,
         date::year reportYear,
@@ -80,7 +73,6 @@ public:
     std::string eez_boundaries_field_id() const noexcept;
 
     ModelGrid model_grid() const noexcept;
-    RunType run_type() const noexcept;
     ValidationType validation_type() const noexcept;
 
     date::year year() const noexcept;
@@ -114,7 +106,6 @@ private:
     ModelPaths _paths;
     fs::path _spatialPatternExceptions;
     ModelGrid _grid;
-    RunType _runType;
     ValidationType _validation;
     date::year _year;
     date::year _reportYear;
@@ -129,24 +120,4 @@ private:
     Output _outputConfig;
 };
 
-std::string run_type_name(RunType type);
-
-}
-
-namespace fmt {
-template <>
-struct formatter<emap::RunType>
-{
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const emap::RunType& value, FormatContext& ctx)
-    {
-        return format_to(ctx.out(), run_type_name(value));
-    }
-};
 }

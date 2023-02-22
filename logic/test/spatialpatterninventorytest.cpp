@@ -20,7 +20,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "NFR";
 
-    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, ModelGrid::Vlops1km, RunType::Emep, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, ModelGrid::Vlops1km, ValidationType::NoValidation, 2016_y, 2021_y, "", {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Spatial pattern selection test")
@@ -34,7 +34,7 @@ TEST_CASE("Spatial pattern selection test")
 
     auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx",
                                                parametersPath / "code_conversions.xlsx",
-                                               parametersPath / "names_to_be_ignored.xlsx", 
+                                               parametersPath / "names_to_be_ignored.xlsx",
                                                countryInventory);
 
     pollutantInventory.add_fallback_for_pollutant(pollutantInventory.pollutant_from_string("PMcoarse"), pollutantInventory.pollutant_from_string("PM10"));
