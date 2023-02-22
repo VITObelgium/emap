@@ -76,6 +76,8 @@ This section configures the model run
 - `report_year` the report year of the emission data of the model run
 - `spatial_pattern_exceptions` path to an xlsx file in which exceptions for spatial patterns are configured. These exceptions overrule the standard rules for spatial patterns.
 - `included_pollutants` List of pollutants to include in the model run, this setting is optional, if it is not present all the configured pollutants will be included in the run.
+- `scenario` First search for input files with the `_scenario` suffix before using the default input files, allows easy creation of scenarios with modified input files
+- `point_source_rescale_threshold` The threshold for allowing automatic rescaling of point sources when they exceed the reported total emissions [0 - 100]
 
 ### Output section
 This section configures the output of the model
@@ -89,6 +91,7 @@ This section configures the output of the model
     - "SNAP"
 - `create_country_rasters` set this option to true to generate geotiffs containing the emissions for the individual countries for each pollutant and each sector
 - `create_grid_rasters` set this option to true to generate geotiffs for the configured grid for each pollutant and each sector
+- `separate_point_sources` configure wheter point sources should be output separately for chimere grids (default = true)
 
 ### Options section
 Additional options
