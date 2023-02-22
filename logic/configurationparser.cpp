@@ -624,6 +624,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         outputConfig.path                        = read_path(output, "path", basePath);
         outputConfig.outputLevelName             = read_sector_level(output.section["sector_level"].value<std::string_view>());
         outputConfig.filenameSuffix              = read_string(output, "filename_suffix", "");
+        outputConfig.separatePointSources        = output.section["separate_point_sources"].value<bool>().value_or(true);
         outputConfig.createCountryRasters        = output.section["create_country_rasters"].value<bool>().value_or(false);
         outputConfig.createGridRasters           = output.section["create_grid_rasters"].value<bool>().value_or(false);
         outputConfig.createSpatialPatternRasters = output.section["create_spatial_pattern_rasters"].value<bool>().value_or(false);

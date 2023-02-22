@@ -225,6 +225,11 @@ bool RunConfiguration::output_spatial_pattern_rasters() const noexcept
     return _outputConfig.createSpatialPatternRasters;
 }
 
+bool RunConfiguration::output_point_sources_separately() const noexcept
+{
+    return _outputConfig.separatePointSources;
+}
+
 fs::path RunConfiguration::output_dir_for_rasters() const
 {
     return _paths.output_dir_for_rasters();

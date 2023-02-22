@@ -3,6 +3,7 @@
 #include "datoutputentry.h"
 #include "emap/outputbuilderinterface.h"
 #include "infra/cell.h"
+#include "infra/point.h"
 
 #include <cstdint>
 #include <mutex>
@@ -26,6 +27,8 @@ public:
     void flush(WriteMode mode) override;
 
 private:
+    inf::Cell coordinate_to_chimere_cell(const inf::Point<double>& point) const;
+
     std::mutex _mutex;
     SectorLevel _sectorLevel;
     const RunConfiguration& _cfg;

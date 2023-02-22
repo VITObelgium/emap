@@ -29,6 +29,12 @@ ChimereOutputBuilder::ChimereOutputBuilder(SectorParameterConfiguration sectorPa
     }
 }
 
+Cell ChimereOutputBuilder::coordinate_to_chimere_cell(const inf::Point<double>& point) const
+{
+    Cell gridCell = _meta.convert_point_to_cell(point);
+    return Cell(_meta.rows - gridCell.r, gridCell.c + 1);
+}
+
 void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 {
     assert(emission.coordinate().has_value());
@@ -36,12 +42,12 @@ void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 
     const auto& id = emission.id();
 
-    const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
-
     DatPointSourceOutputEntry entry;
+    entry.sectorName  = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
+    entry.cell        = coordinate_to_chimere_cell(emission.coordinate().value());
     entry.coordinate  = to_coordinate(emission.coordinate().value());
     entry.countryCode = _countryMapping.at(id.country.id());
-    entry.sectorId    = _sectorParams.get_parameters(mappedSectorName, id.pollutant).id;
+    entry.sectorId    = _sectorParams.get_parameters(entry.sectorName, id.pollutant).id;
     entry.temperature = emission.temperature();
     entry.velocity    = 0.0;
     entry.height      = emission.height();
@@ -61,10 +67,8 @@ void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id
 
     assert(id.sector.type() == EmissionSector::Type::Nfr);
     const auto mappedSectorName = _cfg.sectors().map_nfr_to_output_name(id.sector.nfr_sector());
-    auto mappedCountry          = _countryMapping.at(id.country.id());
-
-    Cell gridCell = _meta.convert_point_to_cell(loc);
-    Cell chimereCell(_meta.rows - gridCell.r, gridCell.c + 1);
+    const auto mappedCountry    = _countryMapping.at(id.country.id());
+    const auto chimereCell      = coordinate_to_chimere_cell(loc);
 
     std::scoped_lock lock(_mutex);
     _diffuseSources[id.pollutant][mappedCountry][chimereCell][mappedSectorName] += emission * 1000.0;
@@ -129,6 +133,15 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
 
     write_dat_header(_cfg.output_path() / "output_Chimere_header.dat", sectorNames);
 
+    if (!_cfg.output_point_sources_separately()) {
+        for (auto& ps : _pointSources) {
+            auto polIndex = _pollutantIndexes.at(pol);
+            _diffuseSources[pol][ps.countryCode][ps.cell][ps.sectorName] += ps.emissions.at(polIndex);
+        }
+
+        _pointSources.clear();
+    }
+
     for (const auto& [pol, countryData] : _diffuseSources) {
         std::vector<DatOutputEntry> entries;
 
@@ -157,6 +170,10 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
 
 void ChimereOutputBuilder::flush(WriteMode /*mode*/)
 {
+    if (!_cfg.output_point_sources_separately()) {
+        return;
+    }
+
     std::vector<std::string> pollutants(_pollutantIndexes.size());
     for (auto& [pol, index] : _pollutantIndexes) {
         pollutants[index] = pol.code();
