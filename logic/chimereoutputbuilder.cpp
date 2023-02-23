@@ -42,21 +42,35 @@ void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
 
     const auto& id = emission.id();
 
-    DatPointSourceOutputEntry entry;
-    entry.sectorName  = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
-    entry.cell        = coordinate_to_chimere_cell(emission.coordinate().value());
-    entry.coordinate  = to_coordinate(emission.coordinate().value());
-    entry.countryCode = _countryMapping.at(id.country.id());
-    entry.sectorId    = _sectorParams.get_parameters(entry.sectorName, id.pollutant).id;
-    entry.temperature = emission.temperature();
-    entry.velocity    = 0.0;
-    entry.height      = emission.height();
-    entry.diameter    = emission.diameter();
-    entry.emissions.resize(_pollutantIndexes.size(), 0.0);
-    entry.emissions[_pollutantIndexes.at(id.pollutant)] = emission.value().amount().value_or(0.0) * 1000.0;
+    if (!_meta.is_on_map(emission.coordinate().value())) {
+        return;
+    }
 
-    std::scoped_lock lock(_mutex);
-    _pointSources.push_back(entry);
+    const auto sectorName = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
+
+    if (_cfg.output_point_sources_separately()) {
+        DatPointSourceOutputEntry entry;
+        entry.coordinate  = to_coordinate(emission.coordinate().value());
+        entry.countryCode = _countryMapping.at(id.country.id());
+        entry.sectorId    = _sectorParams.get_parameters(sectorName, id.pollutant).id;
+        entry.temperature = emission.temperature();
+        entry.velocity    = 0.0;
+        entry.height      = emission.height();
+        entry.diameter    = emission.diameter();
+        entry.emissions.resize(_pollutantIndexes.size(), 0.0);
+        entry.emissions[_pollutantIndexes.at(id.pollutant)] = emission.value().amount().value_or(0.0) * 1000.0;
+
+        std::scoped_lock lock(_mutex);
+        _pointSources.push_back(entry);
+    } else {
+        const auto polIndex    = _pollutantIndexes.at(id.pollutant);
+        const auto countryCode = _countryMapping.at(id.country.id());
+        const auto cell        = coordinate_to_chimere_cell(emission.coordinate().value());
+        const auto sectorName  = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
+
+        std::scoped_lock lock(_mutex);
+        _diffuseSources[id.pollutant][countryCode][cell][sectorName] += emission.value().amount().value_or(0.0) * 1000.0;
+    }
 }
 
 void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, Point<double> loc, double emission, int32_t /*cellSizeInM*/)
@@ -126,23 +140,6 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
         throw RuntimeError("Different pollutant?");
     }
 
-    std::vector<std::string> sectorNames(_sectorIndexes.size());
-    for (auto& [name, index] : _sectorIndexes) {
-        sectorNames[index] = str::replace(name, " ", "");
-    }
-
-    write_dat_header(_cfg.output_path() / "output_Chimere_header.dat", sectorNames);
-
-    if (!_cfg.output_point_sources_separately()) {
-        // Point sources should be included in the regular output, add them to the diffuse sources
-        for (auto& ps : _pointSources) {
-            auto polIndex = _pollutantIndexes.at(pol);
-            _diffuseSources[pol][ps.countryCode][ps.cell][ps.sectorName] += ps.emissions.at(polIndex);
-        }
-
-        _pointSources.clear();
-    }
-
     for (const auto& [pol, countryData] : _diffuseSources) {
         std::vector<DatOutputEntry> entries;
 
@@ -169,9 +166,21 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
     _diffuseSources.clear();
 }
 
+std::vector<std::string> ChimereOutputBuilder::sector_names() const
+{
+    std::vector<std::string> sectorNames(_sectorIndexes.size());
+    for (auto& [name, index] : _sectorIndexes) {
+        sectorNames[index] = str::replace(name, " ", "");
+    }
+
+    return sectorNames;
+}
+
 void ChimereOutputBuilder::flush(WriteMode /*mode*/)
 {
-    if (!_cfg.output_point_sources_separately()) {
+    write_dat_header(_cfg.output_path() / "output_Chimere_header.dat", sector_names());
+
+    if (_pointSources.empty()) {
         return;
     }
 

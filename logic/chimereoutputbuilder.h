@@ -28,6 +28,7 @@ public:
 
 private:
     inf::Cell coordinate_to_chimere_cell(const inf::Point<double>& point) const;
+    std::vector<std::string> sector_names() const;
 
     std::mutex _mutex;
     SectorLevel _sectorLevel;

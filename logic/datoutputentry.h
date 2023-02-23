@@ -18,11 +18,9 @@ struct DatOutputEntry
 struct DatPointSourceOutputEntry
 {
     int32_t countryCode = 0;
-    inf::Cell cell;
     inf::Coordinate coordinate;
-    int32_t pig      = 0;
-    int32_t sectorId = 0;
-    std::string sectorName;
+    int32_t pig        = 0;
+    int32_t sectorId   = 0;
     double temperature = 0.0;
     double velocity    = 0.0;
     double height      = 0.0;
