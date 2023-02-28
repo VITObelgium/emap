@@ -357,7 +357,7 @@ static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir,
         scenarioMatch = fmt::format("emap_{}_{}_{}_", scenario, pol.code(), static_cast<int>(cfg.year()));
     }
 
-    std::unordered_set<fs::path> pathsToUse;
+    std::set<fs::path> pathsToUse;
 
     auto insertMatchingFiles = [&pathsToUse](std::string_view match, const fs::path& dir) {
         for (auto iter : fs::directory_iterator(dir)) {
