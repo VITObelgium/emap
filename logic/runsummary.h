@@ -33,6 +33,8 @@ public:
 
     void write_summary(const fs::path& outputDir) const;
 
+    const std::set<fs::path>& used_point_sources() const noexcept;
+
 private:
     struct GnfrCorrection
     {

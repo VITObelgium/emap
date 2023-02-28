@@ -70,6 +70,11 @@ const fs::path& ModelPaths::data_root() const noexcept
     return _dataRoot;
 }
 
+void ModelPaths::set_data_root(const fs::path& root)
+{
+    _dataRoot = root;
+}
+
 const fs::path& ModelPaths::output_path() const noexcept
 {
     return _outputRoot;

@@ -348,18 +348,41 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
 
 static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir, const Pollutant& pol, const RunConfiguration& cfg, RunSummary& runSummary)
 {
-    auto match = fmt::format("emap_{}_{}_", pol.code(), static_cast<int>(cfg.year()));
+    // first check if emap_{scenario}_{pol}_{year}_ exists
+    // otherwise use emap_{pol}_{year}_
 
-    SingleEmissions result(cfg.year());
+    auto scenarioMatch = std::string();
+    auto match         = fmt::format("emap_{}_{}_", pol.code(), static_cast<int>(cfg.year()));
+    if (auto scenario = cfg.scenario(); !scenario.empty()) {
+        scenarioMatch = fmt::format("emap_{}_{}_{}_", scenario, pol.code(), static_cast<int>(cfg.year()));
+    }
 
-    for (auto iter : fs::directory_iterator(dir)) {
-        if (iter.is_regular_file() && iter.path().extension() == ".csv") {
-            const auto& path = iter.path();
-            if (str::starts_with(path.filename().u8string(), match)) {
-                merge_unique_emissions(result, parse_point_sources(path, cfg));
-                runSummary.add_point_source(path);
+    std::unordered_set<fs::path> pathsToUse;
+
+    auto insertMatchingFiles = [&pathsToUse](std::string_view match, const fs::path& dir) {
+        for (auto iter : fs::directory_iterator(dir)) {
+            if (iter.is_regular_file() && iter.path().extension() == ".csv") {
+                const auto& path = iter.path();
+                if (str::starts_with(path.filename().u8string(), match)) {
+                    pathsToUse.insert(iter.path());
+                }
             }
         }
+    };
+
+    if (!scenarioMatch.empty()) {
+        // Find scenario specific matches
+        insertMatchingFiles(scenarioMatch, dir);
+    }
+
+    if (pathsToUse.empty()) {
+        insertMatchingFiles(match, dir);
+    }
+
+    SingleEmissions result(cfg.year());
+    for (auto& path : pathsToUse) {
+        merge_unique_emissions(result, parse_point_sources(path, cfg));
+        runSummary.add_point_source(path);
     }
 
     return result;

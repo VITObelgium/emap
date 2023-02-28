@@ -30,6 +30,7 @@ public:
     fs::path scalings_path() const;
 
     const fs::path& data_root() const noexcept;
+    void set_data_root(const fs::path& root);
     const fs::path& output_path() const noexcept;
     fs::path boundaries_vector_path() const noexcept;
     fs::path eez_boundaries_vector_path() const noexcept;

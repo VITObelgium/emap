@@ -357,6 +357,11 @@ void RunSummary::write_summary(const fs::path& outputDir) const
     write_summary_spreadsheet(outputDir / "summary.xlsx");
 }
 
+const std::set<fs::path>& RunSummary::used_point_sources() const noexcept
+{
+    return _pointSources;
+}
+
 void RunSummary::write_summary_spreadsheet(const fs::path& path) const
 {
     std::error_code ec;

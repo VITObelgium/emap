@@ -3,6 +3,7 @@
 #include "emap/configurationparser.h"
 #include "emap/scalingfactors.h"
 
+#include "infra/tempdir.h"
 #include "runsummary.h"
 #include "testconfig.h"
 #include "testconstants.h"
@@ -21,7 +22,13 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+}
+
+static void create_empty_point_source_file(const fs::path& path)
+{
+    const auto csvHeader = "type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;debiet_Nm3/u;dv;type_emissie;EIL_nummer;exploitatie_naam;NACE_code;EIL_Emissiepunt_Jaar_Naam;Activiteit_type";
+    file::write_as_text(path, csvHeader);
 }
 
 TEST_CASE("Emission inventory")
@@ -165,6 +172,39 @@ TEST_CASE("Emission inventory")
 
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), 111.0, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::As), 222.0, 0.0);
+    }
+
+    SUBCASE("Use scenario point sources if present")
+    {
+        TempDir temp("pointscenario");
+
+        // Modify the data root, so we can change the available point source files
+        cfg.set_data_root(temp.path());
+
+        const auto pointSourcesPath = temp.path() / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "BEF";
+
+        SUBCASE("Both scenario and non scenario available")
+        {
+            const auto pm10ScenarioPath1     = pointSourcesPath / fmt::format("emap_test_PM10_{}_something.csv", static_cast<int>(cfg.year()));
+            const auto pm10ScenarioPath2     = pointSourcesPath / fmt::format("emap_test_PM10_{}_something_else.csv", static_cast<int>(cfg.year()));
+            const auto pm10OtherScenarioPath = pointSourcesPath / fmt::format("emap_test2_PM10_{}_something.csv", static_cast<int>(cfg.year()));
+            const auto pm10NonScenarioPath   = pointSourcesPath / fmt::format("emap_PM10_{}_something.csv", static_cast<int>(cfg.year()));
+            const auto noxNonScenarioPath    = pointSourcesPath / fmt::format("emap_NOx_{}_something.csv", static_cast<int>(cfg.year()));
+
+            create_empty_point_source_file(pm10ScenarioPath1);
+            create_empty_point_source_file(pm10ScenarioPath2);
+            create_empty_point_source_file(pm10OtherScenarioPath);
+            create_empty_point_source_file(pm10NonScenarioPath);
+            create_empty_point_source_file(noxNonScenarioPath);
+
+            RunSummary summary;
+            read_country_point_sources(cfg, countries::BEF, summary);
+
+            CHECK(summary.used_point_sources().size() == 3);
+            CHECK(summary.used_point_sources().count(pm10ScenarioPath1) == 1);  // The PM10 scenario specific file should be used, the other PM10 files are ignored
+            CHECK(summary.used_point_sources().count(pm10ScenarioPath2) == 1);  // The PM10 scenario specific file should be used, the other PM10 files are ignored
+            CHECK(summary.used_point_sources().count(noxNonScenarioPath) == 1); // The regular NOx file will be used as there is no scenario specific one
+        }
     }
 }
 

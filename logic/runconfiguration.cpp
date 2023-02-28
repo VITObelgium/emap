@@ -88,6 +88,11 @@ const fs::path& RunConfiguration::data_root() const noexcept
     return _paths.data_root();
 }
 
+void RunConfiguration::set_data_root(const fs::path& root)
+{
+    _paths.set_data_root(root);
+}
+
 const fs::path& RunConfiguration::output_path() const noexcept
 {
     return _paths.output_path();
