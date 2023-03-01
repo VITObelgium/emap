@@ -20,7 +20,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.outputLevelName      = "NFR";
     outputConfig.separatePointSources = poinSourcesSeparate;
 
-    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Output builders")

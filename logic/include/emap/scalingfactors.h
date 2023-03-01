@@ -28,22 +28,28 @@ public:
     };
 
     ScalingFactor() = default;
-    ScalingFactor(const EmissionIdentifier& id, EmissionSourceType type, date::year year, double factor)
-    : ScalingFactor(id, type, {year, year}, factor)
+    ScalingFactor(std::optional<Country> country,
+                  std::optional<EmissionSector> sector,
+                  std::optional<Pollutant> pollutant,
+                  EmissionSourceType type,
+                  date::year year, double factor)
+    : ScalingFactor(country, sector, pollutant, type, {year, year}, factor)
     {
     }
 
-    ScalingFactor(const EmissionIdentifier& id, EmissionSourceType type, inf::Range<date::year> yearRange, double factor)
-    : _id(id)
+    ScalingFactor(std::optional<Country> country,
+                  std::optional<EmissionSector> sector,
+                  std::optional<Pollutant> pollutant,
+                  EmissionSourceType type,
+                  inf::Range<date::year> yearRange,
+                  double factor)
+    : _country(country)
+    , _sector(sector)
+    , _pollutant(pollutant)
     , _type(type)
     , _yearRange(yearRange)
     , _factor(factor)
     {
-    }
-
-    const EmissionIdentifier& id() const noexcept
-    {
-        return _id;
     }
 
     EmissionSourceType type() const noexcept
@@ -51,19 +57,14 @@ public:
         return _type;
     }
 
-    EmissionSector sector() const noexcept
+    std::optional<Country> country() const noexcept
     {
-        return _id.sector;
+        return _country;
     }
 
-    Country country() const noexcept
+    std::optional<Pollutant> pollutant() const noexcept
     {
-        return _id.country;
-    }
-
-    Pollutant pollutant() const noexcept
-    {
-        return _id.pollutant;
+        return _pollutant;
     }
 
     double factor() const noexcept
@@ -73,11 +74,25 @@ public:
 
     MatchResult id_match(const EmissionIdentifier& id) const noexcept
     {
-        if (_id.sector == sector::AnyGnfr) {
-            return MatchResult::WildCard;
+        if (_pollutant.has_value() && id.pollutant != *_pollutant) {
+            return MatchResult::NoMatch;
         }
 
-        return _id == id ? MatchResult::Exact : MatchResult::NoMatch;
+        if (_sector.has_value() && id.sector != *_sector) {
+            if (_sector->type() == EmissionSector::Type::Nfr || (EmissionSector(id.sector.gnfr_sector()) != *_sector)) {
+                return MatchResult::NoMatch;
+            }
+        }
+
+        if (_country.has_value() && id.country != *_country) {
+            return MatchResult::NoMatch;
+        }
+
+        if (_pollutant.has_value() && (_sector.has_value() && _sector->type() == EmissionSector::Type::Nfr) && _country.has_value()) {
+            return MatchResult::Exact;
+        }
+
+        return MatchResult::WildCard;
     }
 
     MatchResult type_match(EmissionSourceType type) const noexcept
@@ -102,11 +117,28 @@ public:
         return _yearRange == AllYears ? MatchResult::WildCard : MatchResult::Range;
     }
 
+    MatchResult match(const EmissionIdentifier& id, EmissionSourceType type, date::year year) const noexcept
+    {
+        const auto idMatch   = id_match(id);
+        const auto typeMatch = type_match(type);
+        const auto yearMatch = year_match(year);
+
+        if (idMatch == MatchResult::NoMatch || typeMatch == MatchResult::NoMatch || yearMatch == MatchResult::NoMatch) {
+            return MatchResult::NoMatch;
+        }
+
+        if (idMatch == MatchResult::WildCard || typeMatch == MatchResult::WildCard || yearMatch == MatchResult::WildCard || yearMatch == MatchResult::Range) {
+            return MatchResult::WildCard;
+        }
+
+        return MatchResult::Exact;
+    }
+
 private:
-    EmissionIdentifier _id;
+    std::optional<Country> _country;
+    std::optional<EmissionSector> _sector;
+    std::optional<Pollutant> _pollutant;
     EmissionSourceType _type = EmissionSourceType::Diffuse;
-    Country _country;
-    EmissionSector _sector;
     inf::Range<date::year> _yearRange;
     double _factor = 1.0;
 };

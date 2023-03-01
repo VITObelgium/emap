@@ -538,7 +538,7 @@ static ScalingFactors read_scaling_factors(const fs::path& p, const RunConfigura
 {
     ScalingFactors scalings;
 
-    if (fs::is_regular_file(p)) {
+    if (!p.empty() && fs::is_regular_file(p)) {
         scalings = parse_scaling_factors(p, cfg);
     }
 
@@ -548,7 +548,7 @@ static ScalingFactors read_scaling_factors(const fs::path& p, const RunConfigura
 EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary)
 {
     // Read scaling factors
-    const auto scalings             = read_scaling_factors(cfg.scalings_path(), cfg);
+    const auto scalings             = read_scaling_factors(cfg.emission_scalings_path(), cfg);
     const auto pointSourcesFlanders = read_country_point_sources(cfg, country::BEF, summary);
     auto nfrTotalEmissions          = read_nfr_emissions(cfg.year(), cfg, summary);
     assert(nfrTotalEmissions.validate_uniqueness());

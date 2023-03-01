@@ -211,10 +211,6 @@ private:
     std::variant<NfrSector, GnfrSector> _sector;
 };
 
-namespace sector {
-const EmissionSector AnyGnfr(GnfrSector("Any", GnfrId(-1), "*", "Any GNFR sector", EmissionDestination::Invalid));
-}
-
 }
 
 namespace fmt {

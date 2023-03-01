@@ -11,6 +11,7 @@ using namespace inf;
 RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
     const fs::path& spatialPatternExceptions,
+    const fs::path& emissionScalings,
     ModelGrid grid,
     ValidationType validation,
     date::year year,
@@ -24,6 +25,7 @@ RunConfiguration::RunConfiguration(
     Output outputConfig)
 : _paths(scenario, dataPath, outputConfig.path)
 , _spatialPatternExceptions(spatialPatternExceptions)
+, _emissionScalingsPath(emissionScalings)
 , _grid(grid)
 , _validation(validation)
 , _year(year)
@@ -78,9 +80,9 @@ fs::path RunConfiguration::emission_brn_output_path(date::year year, const Pollu
     return _paths.emission_brn_output_path(year, pol, sector);
 }
 
-fs::path RunConfiguration::scalings_path() const
+const fs::path& RunConfiguration::emission_scalings_path() const noexcept
 {
-    return _paths.scalings_path();
+    return _emissionScalingsPath;
 }
 
 const fs::path& RunConfiguration::data_root() const noexcept

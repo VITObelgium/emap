@@ -25,7 +25,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")
@@ -208,14 +208,14 @@ TEST_CASE("Input parsers")
         const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 
         const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
-        REQUIRE(scalings.size() == 9);
+        REQUIRE(scalings.size() == 10);
 
         {
             // Check that a specific year should overrule the * for years
             EmissionIdentifier id(country::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10);
-            CHECK(scalings.point_scaling_for_id(id, 2015_y) == 1.5);
-            CHECK(scalings.point_scaling_for_id(id, 2014_y) == 2.5);
-            CHECK(scalings.point_scaling_for_id(id, 2013_y) == 2.5);
+            CHECK(scalings.point_scaling_for_id(id, 2015_y) == 2.5);
+            CHECK(scalings.point_scaling_for_id(id, 2014_y) == 1.5);
+            CHECK(scalings.point_scaling_for_id(id, 2013_y) == 1.5);
 
             CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2013_y).has_value());
             CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_pollutant(pollutants::NOx), 2015_y).has_value());
@@ -247,12 +247,10 @@ TEST_CASE("Input parsers")
         }
 
         {
-            // Check year range overlap handling
+            // Check year range overlap handling, first match will be taken
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::As);
             CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
             CHECK(scalings.diffuse_scaling_for_id(id, 2021_y) == 4);
-            // Overlapping range for 2020: should throw
-            CHECK_THROWS_WITH_AS(scalings.diffuse_scaling_for_id(id, 2020_y), "Ambiguous scaling factor specification: Multiple matches for NL - 3B1a - As in year 2020", inf::RuntimeError);
         }
 
         {
@@ -261,6 +259,15 @@ TEST_CASE("Input parsers")
             CHECK(scalings.diffuse_scaling_for_id(id, 2005_y) == 0.8);
             CHECK(scalings.point_scaling_for_id(id, 2005_y) == 0.8);
             CHECK(scalings.point_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr2D3d)), 2005_y) == 0.5);
+        }
+
+        {
+            // Check pollutant/country/type wildcard
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::Cd), 2000_y) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 1999_y).has_value());
         }
     }
 

@@ -22,7 +22,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 static void create_empty_point_source_file(const fs::path& path)
@@ -84,8 +84,8 @@ TEST_CASE("Emission inventory")
         // no point emissions for Industry CO
 
         ScalingFactors scalings;
-        scalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionSourceType::Diffuse, 2019_y, 0.5));
-        scalings.add_scaling_factor(ScalingFactor(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), EmissionSourceType::Point, 2019_y, 2.0));
+        scalings.add_scaling_factor(ScalingFactor(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx, EmissionSourceType::Diffuse, 2019_y, 0.5));
+        scalings.add_scaling_factor(ScalingFactor(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse, EmissionSourceType::Point, 2019_y, 2.0));
 
         const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 

@@ -42,6 +42,7 @@ public:
     RunConfiguration(
         const fs::path& dataPath,
         const fs::path& spatialPatternExceptions,
+        const fs::path& emissionScalings,
         ModelGrid grid,
         ValidationType validation,
         date::year year,
@@ -64,13 +65,12 @@ public:
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
     fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
-    fs::path scalings_path() const;
-
     const fs::path& data_root() const noexcept;
     void set_data_root(const fs::path& root);
 
     const fs::path& output_path() const noexcept;
     const fs::path& spatial_pattern_exceptions() const noexcept;
+    const fs::path& emission_scalings_path() const noexcept;
     fs::path boundaries_vector_path() const noexcept;
     fs::path eez_boundaries_vector_path() const noexcept;
     std::string boundaries_field_id() const noexcept;
@@ -112,6 +112,7 @@ public:
 private:
     ModelPaths _paths;
     fs::path _spatialPatternExceptions;
+    fs::path _emissionScalingsPath;
     ModelGrid _grid;
     ValidationType _validation;
     date::year _year;

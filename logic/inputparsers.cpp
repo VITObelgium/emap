@@ -445,26 +445,41 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
                 continue;
             }
 
-            EmissionSector sector;
+            // Empty optional values mean match any (*)
+            std::optional<Country> country;
+            std::optional<Pollutant> pollutant;
+            std::optional<EmissionSector> sector;
             if (auto sec = sectorInv.try_sector_from_string(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colNfr)); sec.has_value()) {
                 sector = *sec;
             } else if (sec = sectorInv.try_sector_from_string(EmissionSector::Type::Gnfr, feature.field_as<std::string_view>(colGnfr)); sec.has_value()) {
                 sector = sector = *sec;
             } else {
-                if (str::trimmed_view(feature.field_as<std::string_view>(colGnfr)) == "*") {
-                    sector = sector::AnyGnfr;
-                } else {
+                if (str::trimmed_view(feature.field_as<std::string_view>(colGnfr)) != "*") {
                     throw RuntimeError("Invalid sector code: NFR={} GNFR={}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
                 }
             }
 
-            const auto country      = countryInv.country_from_string(feature.field_as<std::string_view>(colCountry));
-            const auto pollutant    = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
+            if (auto cnt = countryInv.try_country_from_string(feature.field_as<std::string_view>(colCountry)); cnt.has_value()) {
+                country = *cnt;
+            } else {
+                if (str::trimmed_view(feature.field_as<std::string_view>(colCountry)) != "*") {
+                    throw RuntimeError("Invalid country code: {}", feature.field_as<std::string_view>(colCountry));
+                }
+            }
+
+            if (auto pol = pollutantInv.try_pollutant_from_string(feature.field_as<std::string_view>(colPollutant)); pol.has_value()) {
+                pollutant = *pol;
+            } else {
+                if (str::trimmed_view(feature.field_as<std::string_view>(colPollutant)) != "*") {
+                    throw RuntimeError("Invalid pollutant code: {}", feature.field_as<std::string_view>(colCountry));
+                }
+            }
+
             const auto emissionType = parse_emission_type(feature.field_as<std::string_view>(colEmissionType));
             const auto factor       = feature.field_as<double>(colScaleFactor);
 
             if (factor != 1.0) {
-                result.add_scaling_factor(ScalingFactor(EmissionIdentifier(country, sector, pollutant), emissionType, parse_year_range(year), factor));
+                result.add_scaling_factor(ScalingFactor(country, sector, pollutant, emissionType, parse_year_range(year), factor));
             }
 
             ++lineNr;
