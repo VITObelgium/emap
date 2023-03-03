@@ -22,7 +22,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 static void create_empty_point_source_file(const fs::path& path)
@@ -204,6 +204,64 @@ TEST_CASE("Emission inventory")
             CHECK(summary.used_point_sources().count(pm10ScenarioPath1) == 1);  // The PM10 scenario specific file should be used, the other PM10 files are ignored
             CHECK(summary.used_point_sources().count(pm10ScenarioPath2) == 1);  // The PM10 scenario specific file should be used, the other PM10 files are ignored
             CHECK(summary.used_point_sources().count(noxNonScenarioPath) == 1); // The regular NOx file will be used as there is no scenario specific one
+        }
+    }
+
+    SUBCASE("Auto scale point sources, below threshold")
+    {
+        // empty NFR emissions
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        ScalingFactors scalings;
+
+        // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 170 = 88%
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(120.0), Coordinate(10, 10)));
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(50.0), Coordinate(10, 20)));
+
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(150.0)));
+
+        SingleEmissions gnfrTotals(date::year(2019));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(150.0)));
+
+        CHECK_THROWS_AS(create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary), RuntimeError);
+    }
+
+    SUBCASE("Auto scale point sources, above threshold")
+    {
+        EmissionIdentifier emissionId(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10);
+        EmissionIdentifier emissionIdWithUserScaling(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::PM10);
+
+        // empty NFR emissions
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        ScalingFactors scalings;
+        scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector, emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, 2019_y, 2.0));
+
+        // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 160 = 93.75%
+        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(110.0), Coordinate(10, 10)));
+        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(50.0), Coordinate(10, 20)));
+        totalEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(150.0)));
+
+        // This point emission has a user scaling of 2.0, this should not influence the auto scaling
+        pointEmissions.add_emission(EmissionEntry(emissionIdWithUserScaling, EmissionValue(50.0), Coordinate(10, 20)));
+        totalEmissions.add_emission(EmissionEntry(emissionIdWithUserScaling, EmissionValue(70.0)));
+
+        SingleEmissions gnfrTotals(date::year(2019));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PM10), EmissionValue(150.0)));
+
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
+
+        checkEmission(inv, emissionId, 0, 150.0);
+        checkEmission(inv, emissionIdWithUserScaling, 20, 100.0);
+
+        {
+            const auto emission = inv.emissions_with_id(emissionId).front();
+            CHECK(emission.point_auto_scaling_factor() == 150.0 / 160.0);
+            CHECK(emission.point_user_scaling_factor() == 1.0);
+        }
+
+        {
+            const auto emission = inv.emissions_with_id(emissionIdWithUserScaling).front();
+            CHECK(emission.point_auto_scaling_factor() == 1.0);
+            CHECK(emission.point_user_scaling_factor() == 2.0);
         }
     }
 }

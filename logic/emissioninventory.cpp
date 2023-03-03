@@ -223,7 +223,9 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
             diffuseEmission *= find_in_map_optional(correctionRatios, convert_emission_id_to_gnfr_level(em.id())).value_or(1.0);
         }
 
-        EmissionInventoryEntry entry(em.id(), diffuseEmission - pointEmissionSum, std::move(pointSourceEntries));
+        diffuseEmission = std::max(0.0, diffuseEmission - (pointEmissionSum * pointEmissionAutoScale));
+
+        EmissionInventoryEntry entry(em.id(), diffuseEmission, std::move(pointSourceEntries));
         entry.set_diffuse_scaling(scalings.diffuse_scaling_for_id(em.id(), result.year()).value_or(1.0));
         entry.set_point_user_scaling(scalings.point_scaling_for_id(em.id(), result.year()).value_or(1.0));
         entry.set_point_auto_scaling(pointEmissionAutoScale);
