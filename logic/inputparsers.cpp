@@ -439,7 +439,7 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
         auto colScaleFactor  = layer.required_field_index("scale_factor");
 
         for (auto& feature : layer) {
-            const auto year = feature.field_as<std::string_view>(colYear);
+            const auto year = feature.field_as<std::string>(colYear);
             if (year.empty()) {
                 // skip empty lines
                 continue;

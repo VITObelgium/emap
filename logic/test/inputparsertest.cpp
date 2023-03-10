@@ -271,6 +271,11 @@ TEST_CASE("Input parsers")
         }
     }
 
+    SUBCASE("Scalings year is integer")
+    {
+        CHECK_NOTHROW(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_year_integer.xlsx", cfg));
+    }
+
     auto rasterForNfrSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {
         return find_in_container_required(spd, [&sector](const SpatialPatternData& d) {
                    return d.id.sector.nfr_sector() == sector;
@@ -303,4 +308,5 @@ TEST_CASE("Input parsers")
         CHECK(gdx::sum(spatialPattern) == Approx(18.0750674).epsilon(1e-4));
     }
 }
+
 }

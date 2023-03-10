@@ -653,7 +653,7 @@ std::vector<SpatialPatternInventory::SpatialPatternException> SpatialPatternInve
 
             if (sector.has_value()) {
                 SpatialPatternException ex;
-                ex.yearRange      = parse_year_range(feature.field_as<std::string_view>(colYear));
+                ex.yearRange      = parse_year_range(feature.field_as<std::string>(colYear));
                 ex.emissionId     = EmissionIdentifier(country, *sector, pollutant);
                 ex.spatialPattern = exceptionsFile.parent_path() / fs::u8path(feature.field_as<std::string_view>(colPath));
                 ex.type           = exception_type_from_string(feature.field_as<std::string_view>(colType));
