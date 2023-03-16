@@ -200,10 +200,10 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                 if (pointEmissionSum - diffuseEmission < 1e-4) {
                     // Minor difference caused by rounding, make them the same
                     pointEmissionSum = diffuseEmission;
-                } else if (scalingFactor * 100 > cfg.point_source_rescale_threshold()) {
+                } else if (scalingFactor * 100 >= cfg.point_source_rescale_threshold()) {
                     pointEmissionAutoScale = scalingFactor;
                 } else {
-                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {} and exceeds the rescale threshold {} > {}",
+                    throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {} and fails the rescale threshold {} < {}",
                                        pointEmissionSum,
                                        em.country(),
                                        diffuseEmission,
