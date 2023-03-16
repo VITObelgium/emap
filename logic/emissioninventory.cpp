@@ -202,6 +202,13 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                     pointEmissionSum = diffuseEmission;
                 } else if (scalingFactor * 100 >= cfg.point_source_rescale_threshold()) {
                     pointEmissionAutoScale = scalingFactor;
+                    Log::info("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {} but is within the rescale threshold {} >= {}", pointEmissionSum,
+                              em.country(),
+                              diffuseEmission,
+                              em.sector(),
+                              em.pollutant(),
+                              scalingFactor * 100,
+                              cfg.point_source_rescale_threshold());
                 } else {
                     throw RuntimeError("The sum of the point emissions ({}) for {} is bigger than the total emissions ({}) for sector {} and pollutant {} and fails the rescale threshold {} < {}",
                                        pointEmissionSum,
