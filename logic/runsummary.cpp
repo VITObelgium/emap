@@ -25,31 +25,31 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
 {
     SpatialPatternSummaryInfo info;
-    info.source              = source;
-    info.totalEmissions      = totalEmissions;
-    info.emissionsWithinGrid = emissionsWithinGrid;
-    info.pointEmissions      = pointEmissions;
-    info.diffuseScaling      = diffuseScale;
-    info.pointScalingUser    = pointScaleUser;
-    info.pointScalingAuto    = pointScaleAuto;
+    info.source                           = source;
+    info.scaledDiffuseEmissions           = scaledDiffuseEmissions;
+    info.scaledDiffuseEmissionsWithinGrid = scaledDiffuseEmissionsWithinGrid;
+    info.scaledPointEmissions             = scaledPointEmissions;
+    info.diffuseScaling                   = diffuseScale;
+    info.pointScalingUser                 = pointScaleUser;
+    info.pointScalingAuto                 = pointScaleAuto;
 
     std::scoped_lock lock(_mutex);
     _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double totalEmissions, double emissionsWithinGrid, double pointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
 {
     SpatialPatternSummaryInfo info;
-    info.source              = source;
-    info.totalEmissions      = totalEmissions;
-    info.emissionsWithinGrid = emissionsWithinGrid;
-    info.pointEmissions      = pointEmissions;
-    info.diffuseScaling      = diffuseScale;
-    info.pointScalingUser    = pointScaleUser;
-    info.pointScalingAuto    = pointScaleAuto;
+    info.source                           = source;
+    info.scaledDiffuseEmissions           = scaledDiffuseEmissions;
+    info.scaledDiffuseEmissionsWithinGrid = scaledDiffuseEmissionsWithinGrid;
+    info.scaledPointEmissions             = scaledPointEmissions;
+    info.diffuseScaling                   = diffuseScale;
+    info.pointScalingUser                 = pointScaleUser;
+    info.pointScalingAuto                 = pointScaleAuto;
 
     std::scoped_lock lock(_mutex);
     _spatialPatternsWithoutData.push_back(info);
@@ -175,9 +175,9 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         worksheet_write_number(ws, row, index++, info.pointScalingAuto, formatNumber);
         worksheet_write_string(ws, row, index++, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);
 
-        worksheet_write_number(ws, row, index++, info.totalEmissions, formatNumber);
-        worksheet_write_number(ws, row, index++, info.emissionsWithinGrid, formatNumber);
-        worksheet_write_number(ws, row, index++, info.pointEmissions, formatNumber);
+        worksheet_write_number(ws, row, index++, info.scaledDiffuseEmissions, formatNumber);
+        worksheet_write_number(ws, row, index++, info.scaledDiffuseEmissionsWithinGrid, formatNumber);
+        worksheet_write_number(ws, row, index++, info.scaledPointEmissions, formatNumber);
     };
 
     for (const auto& info : sources) {
@@ -372,7 +372,7 @@ void RunSummary::write_summary_spreadsheet(const fs::path& path) const
     emission_sources_to_spreadsheet(wb, "emission sources");
     validated_gnfr_corrections_to_spreadsheet(wb, "GNFR emission correction", _validatedGnfrCorrections);
     gnfr_corrections_to_spreadsheet(wb, "NFR emission correction", _gnfrCorrections);
-    sources_to_spreadsheet(wb, "spatial patterns", _spatialPatterns, _spatialPatternsWithoutData);
+    sources_to_spreadsheet(wb, "emission processing", _spatialPatterns, _spatialPatternsWithoutData);
     validation_results_to_spreadsheet(wb, "result validation", _validationResults);
 }
 

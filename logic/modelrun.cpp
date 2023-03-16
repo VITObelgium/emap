@@ -44,11 +44,11 @@ struct SpatialPatternProcessInfo
 
     double emissions_outside_of_the_grid() const noexcept
     {
-        return totalEmissions - emissionsWithinOutput;
+        return diffuseEmissions - emissionsWithinOutput;
     }
 
     Status status                = Status::Ok;
-    double totalEmissions        = 0.0;
+    double diffuseEmissions      = 0.0;
     double emissionsWithinOutput = 0.0;
 };
 
@@ -58,7 +58,7 @@ static SpatialPatternProcessInfo apply_emission_to_spatial_pattern(SpatialPatter
                                                                    const CountryCellCoverage& countryCoverage)
 {
     SpatialPatternProcessInfo info;
-    info.totalEmissions = emissionValue;
+    info.diffuseEmissions = emissionValue;
 
     if (emissionValue == 0) {
         info.status           = SpatialPatternProcessInfo::Status::NoEmissionToSpread;
@@ -228,9 +228,9 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         const auto spatPatInfo = apply_emission_to_spatial_pattern(spatialPattern, emissionToSpread, gridData.meta, cellCoverageInfo);
                         if (isCoursestGrid) {
                             if (spatPatInfo.status == SpatialPatternProcessInfo::Status::FallbackToUniformSpread) {
-                                summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                                summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
                             } else {
-                                summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                                summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
                             }
                         }
 
@@ -317,9 +317,9 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
                     if (spatialPattern.source.patternAvailableButWithoutData) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-                        summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                        summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.totalEmissions, spatPatInfo.emissionsWithinOutput, emission->point_emission_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                        summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
                     }
 
                     if (validator) {
