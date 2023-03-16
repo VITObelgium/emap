@@ -65,6 +65,8 @@ public:
     fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
     fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
+    bool pmcoarse_calculation_needed() const noexcept;
+
     const fs::path& data_root() const noexcept;
     void set_data_root(const fs::path& root);
 
@@ -92,6 +94,7 @@ public:
     std::optional<int32_t> max_concurrency() const noexcept;
 
     std::vector<Pollutant> included_pollutants() const;
+    bool pollutant_is_included(std::string_view pollutant) const noexcept;
 
     const SectorInventory& sectors() const noexcept;
     const PollutantInventory& pollutants() const noexcept;

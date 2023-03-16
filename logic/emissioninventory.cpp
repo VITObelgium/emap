@@ -403,47 +403,49 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
             }
         }
 
-        try {
-            const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
-            const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
-            const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
+        if (cfg.pmcoarse_calculation_needed()) {
+            try {
+                const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
+                const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
+                const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
 
-            if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
-                // Calculate PMcoarse data from pm10 and pm2.5 data
-                const auto pm10Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
-                auto pm2_5Emissions      = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
+                if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
+                    // Calculate PMcoarse data from pm10 and pm2.5 data
+                    const auto pm10Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
+                    auto pm2_5Emissions      = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
 
-                std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
-                    return lhs.source_id() < rhs.source_id();
-                });
+                    std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
+                        return lhs.source_id() < rhs.source_id();
+                    });
 
-                for (auto& pm10Entry : pm10Emissions) {
-                    auto pm10Val = pm10Entry.value().amount();
-                    if (pm10Val.has_value()) {
-                        auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
-                            return entry.source_id() < srcId;
-                        });
+                    for (auto& pm10Entry : pm10Emissions) {
+                        auto pm10Val = pm10Entry.value().amount();
+                        if (pm10Val.has_value()) {
+                            auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
+                                return entry.source_id() < srcId;
+                            });
 
-                        double pm2_5Val = 0.0;
-                        if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
-                            pm2_5Val = iter->value().amount().value_or(0.0);
-                            assert(iter->coordinate() == pm10Entry.coordinate());
-                        }
-
-                        try {
-                            if (auto pmCoarseVal = EmissionValue(pmcoarse_from_pm25_pm10(pm2_5Val, pm10Val)); pmCoarseVal.amount().has_value()) {
-                                EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
-                                entry.set_coordinate(pm10Entry.coordinate().value());
-                                result.add_emission(std::move(entry));
+                            double pm2_5Val = 0.0;
+                            if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
+                                pm2_5Val = iter->value().amount().value_or(0.0);
+                                assert(iter->coordinate() == pm10Entry.coordinate());
                             }
-                        } catch (const std::exception& e) {
-                            throw RuntimeError("Sector {} with EIL nr {} ({})", pm10Entry.id().sector, pm10Entry.source_id(), e.what());
+
+                            try {
+                                if (auto pmCoarseVal = EmissionValue(pmcoarse_from_pm25_pm10(pm2_5Val, pm10Val)); pmCoarseVal.amount().has_value()) {
+                                    EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
+                                    entry.set_coordinate(pm10Entry.coordinate().value());
+                                    result.add_emission(std::move(entry));
+                                }
+                            } catch (const std::exception& e) {
+                                throw RuntimeError("Sector {} with EIL nr {} ({})", pm10Entry.id().sector, pm10Entry.source_id(), e.what());
+                            }
                         }
                     }
                 }
+            } catch (const std::exception& e) {
+                Log::debug("Failed to create PMcoarse point sources: {}", e.what());
             }
-        } catch (const std::exception& e) {
-            Log::debug("Failed to create PMcoarse point sources: {}", e.what());
         }
 
         const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;

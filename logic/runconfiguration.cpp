@@ -1,6 +1,7 @@
 #include "emap/runconfiguration.h"
 
 #include "configurationutil.h"
+#include "emap/constants.h"
 #include "infra/exception.h"
 #include "infra/string.h"
 
@@ -78,6 +79,12 @@ fs::path RunConfiguration::emission_output_raster_path(date::year year, const Em
 fs::path RunConfiguration::emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const
 {
     return _paths.emission_brn_output_path(year, pol, sector);
+}
+
+bool RunConfiguration::pmcoarse_calculation_needed() const noexcept
+{
+    return pollutant_is_included(constants::pollutant::PM10) &&
+           pollutant_is_included(constants::pollutant::PM2_5);
 }
 
 const fs::path& RunConfiguration::emission_scalings_path() const noexcept
@@ -177,6 +184,18 @@ std::vector<Pollutant> RunConfiguration::included_pollutants() const
     }
 
     return _includedPollutants;
+}
+
+bool RunConfiguration::pollutant_is_included(std::string_view pollutantName) const noexcept
+{
+    auto pol = _pollutantInventory.try_pollutant_from_string(pollutantName);
+
+    if (_includedPollutants.empty()) {
+        // All pollutants are included, if we know the pollutant return true
+        return pol.has_value();
+    }
+
+    return container_contains(_includedPollutants, *pol);
 }
 
 const SectorInventory& RunConfiguration::sectors() const noexcept

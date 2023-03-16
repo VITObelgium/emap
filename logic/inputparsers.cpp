@@ -387,7 +387,9 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
         }
 
         SingleEmissions emissions(requestYear, std::move(entries));
-        merge_unique_emissions(emissions, calculate_pmcoarse_emissions(pollutantInv, emissions));
+        if (cfg.pmcoarse_calculation_needed()) {
+            merge_unique_emissions(emissions, calculate_pmcoarse_emissions(pollutantInv, emissions));
+        }
         return emissions;
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
