@@ -29,22 +29,25 @@ public:
 
     ScalingFactor() = default;
     ScalingFactor(std::optional<Country> country,
-                  std::optional<EmissionSector> sector,
+                  std::optional<NfrSector> nfrSector,
+                  std::optional<GnfrSector> gnfrSector,
                   std::optional<Pollutant> pollutant,
                   EmissionSourceType type,
                   date::year year, double factor)
-    : ScalingFactor(country, sector, pollutant, type, {year, year}, factor)
+    : ScalingFactor(country, nfrSector, gnfrSector, pollutant, type, {year, year}, factor)
     {
     }
 
     ScalingFactor(std::optional<Country> country,
-                  std::optional<EmissionSector> sector,
+                  std::optional<NfrSector> nfrSector,
+                  std::optional<GnfrSector> gnfrSector,
                   std::optional<Pollutant> pollutant,
                   EmissionSourceType type,
                   inf::Range<date::year> yearRange,
                   double factor)
     : _country(country)
-    , _sector(sector)
+    , _nfrSector(nfrSector)
+    , _gnfrSector(gnfrSector)
     , _pollutant(pollutant)
     , _type(type)
     , _yearRange(yearRange)
@@ -74,12 +77,19 @@ public:
 
     MatchResult id_match(const EmissionIdentifier& id) const noexcept
     {
+        assert(id.sector.type() == EmissionSector::Type::Nfr);
+
         if (_pollutant.has_value() && id.pollutant != *_pollutant) {
             return MatchResult::NoMatch;
         }
 
-        if (_sector.has_value() && id.sector != *_sector) {
-            if (_sector->type() == EmissionSector::Type::Nfr || (EmissionSector(id.sector.gnfr_sector()) != *_sector)) {
+        if (!_nfrSector.has_value()) {
+            // Nfr is a wildcard, check the GNFR sector for a match
+            if (_gnfrSector.has_value() && id.sector.gnfr_sector() != *_gnfrSector) {
+                return MatchResult::NoMatch;
+            }
+        } else {
+            if (id.sector.nfr_sector() != *_nfrSector) {
                 return MatchResult::NoMatch;
             }
         }
@@ -88,7 +98,7 @@ public:
             return MatchResult::NoMatch;
         }
 
-        if (_pollutant.has_value() && (_sector.has_value() && _sector->type() == EmissionSector::Type::Nfr) && _country.has_value()) {
+        if (_pollutant.has_value() && _nfrSector.has_value() && _country.has_value()) {
             return MatchResult::Exact;
         }
 
@@ -136,7 +146,8 @@ public:
 
 private:
     std::optional<Country> _country;
-    std::optional<EmissionSector> _sector;
+    std::optional<NfrSector> _nfrSector;
+    std::optional<GnfrSector> _gnfrSector;
     std::optional<Pollutant> _pollutant;
     EmissionSourceType _type = EmissionSourceType::Diffuse;
     inf::Range<date::year> _yearRange;

@@ -84,8 +84,8 @@ TEST_CASE("Emission inventory")
         // no point emissions for Industry CO
 
         ScalingFactors scalings;
-        scalings.add_scaling_factor(ScalingFactor(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx, EmissionSourceType::Diffuse, 2019_y, 0.5));
-        scalings.add_scaling_factor(ScalingFactor(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse, EmissionSourceType::Point, 2019_y, 2.0));
+        scalings.add_scaling_factor(ScalingFactor(countries::FR, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::NOx, EmissionSourceType::Diffuse, 2019_y, 0.5));
+        scalings.add_scaling_factor(ScalingFactor(countries::BEB, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::PMcoarse, EmissionSourceType::Point, 2019_y, 2.0));
 
         const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 
@@ -233,7 +233,7 @@ TEST_CASE("Emission inventory")
         // empty NFR emissions
         SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
         ScalingFactors scalings;
-        scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector, emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, 2019_y, 2.0));
+        scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector.nfr_sector(), emissionIdWithUserScaling.sector.gnfr_sector(), emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, 2019_y, 2.0));
 
         // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 160 = 93.75%
         pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(110.0), Coordinate(10, 10)));

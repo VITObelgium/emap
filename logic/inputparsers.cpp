@@ -450,15 +450,30 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
             // Empty optional values mean match any (*)
             std::optional<Country> country;
             std::optional<Pollutant> pollutant;
-            std::optional<EmissionSector> sector;
+            std::optional<NfrSector> nfrSector;
+            std::optional<GnfrSector> gnfrSector;
             if (auto sec = sectorInv.try_sector_from_string(EmissionSector::Type::Nfr, feature.field_as<std::string_view>(colNfr)); sec.has_value()) {
-                sector = *sec;
-            } else if (sec = sectorInv.try_sector_from_string(EmissionSector::Type::Gnfr, feature.field_as<std::string_view>(colGnfr)); sec.has_value()) {
-                sector = sector = *sec;
-            } else {
-                if (str::trimmed_view(feature.field_as<std::string_view>(colGnfr)) != "*") {
-                    throw RuntimeError("Invalid sector code: NFR={} GNFR={}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
+                nfrSector = sec->nfr_sector();
+            }
+
+            if (auto sec = sectorInv.try_sector_from_string(EmissionSector::Type::Gnfr, feature.field_as<std::string_view>(colGnfr)); sec.has_value()) {
+                gnfrSector = sec->gnfr_sector();
+            }
+
+            if (!nfrSector.has_value()) {
+                if (auto name = feature.field_as<std::string_view>(colNfr); name != "*") {
+                    throw RuntimeError("Invalid NFR sector: {}", name);
                 }
+            }
+
+            if (!gnfrSector.has_value()) {
+                if (auto name = feature.field_as<std::string_view>(colGnfr); name != "*") {
+                    throw RuntimeError("Invalid GNFR sector: {}", name);
+                }
+            }
+
+            if (nfrSector.has_value() && gnfrSector.has_value() && (EmissionSector(*nfrSector).gnfr_sector() != *gnfrSector)) {
+                throw RuntimeError("GNFR sector column does not match with the NFR sector column: {} <-> {}", feature.field_as<std::string_view>(colNfr), feature.field_as<std::string_view>(colGnfr));
             }
 
             if (auto cnt = countryInv.try_country_from_string(feature.field_as<std::string_view>(colCountry)); cnt.has_value()) {
@@ -481,7 +496,7 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
             const auto factor       = feature.field_as<double>(colScaleFactor);
 
             if (factor != 1.0) {
-                result.add_scaling_factor(ScalingFactor(country, sector, pollutant, emissionType, parse_year_range(year), factor));
+                result.add_scaling_factor(ScalingFactor(country, nfrSector, gnfrSector, pollutant, emissionType, parse_year_range(year), factor));
             }
 
             ++lineNr;

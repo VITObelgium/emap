@@ -75,6 +75,11 @@ public:
         return id() == other.id();
     }
 
+    bool operator!=(const GnfrSector& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
     bool operator<(const GnfrSector& other) const noexcept
     {
         return id() < other.id();
@@ -125,6 +130,11 @@ public:
     bool operator==(const NfrSector& other) const noexcept
     {
         return id() == other.id();
+    }
+
+    bool operator!=(const NfrSector& other) const noexcept
+    {
+        return !(*this == other);
     }
 
     bool operator<(const NfrSector& other) const noexcept
