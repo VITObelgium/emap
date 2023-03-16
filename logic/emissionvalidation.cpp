@@ -48,10 +48,9 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
 
     std::unordered_map<Pollutant, std::unordered_map<CountrySector, double>> brnTotals;
 
-    if (_cfg.output_sector_level() == SectorLevel::NFR) {
+    if (_cfg.model_output_format() == ModelOuputFormat::Brn && _cfg.output_sector_level() == SectorLevel::NFR) {
         for (auto& pol : includedPollutants) {
             const auto path = _cfg.output_path() / fmt::format("{}_OPS_{}{}.brn", pol.code(), static_cast<int>(_cfg.year()), _cfg.output_filename_suffix());
-
             try {
                 const auto brnEntries = read_brn_output(path);
                 BrnAnalyzer analyzer(brnEntries);
@@ -60,6 +59,8 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
                 throw RuntimeError("Error parsing brn {}: ({})", path, e.what());
             }
         }
+    } else {
+        Log::warn("Validation not implemented for this run configuration");
     }
 
     for (auto& invEntry : emissionInv) {

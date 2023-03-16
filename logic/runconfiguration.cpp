@@ -137,6 +137,30 @@ ModelGrid RunConfiguration::model_grid() const noexcept
     return _grid;
 }
 
+ModelOuputFormat RunConfiguration::model_output_format() const
+{
+    switch (model_grid()) {
+    case ModelGrid::Vlops1km:
+    case ModelGrid::Vlops250m:
+        return ModelOuputFormat::Brn;
+    case ModelGrid::Chimere05deg:
+    case ModelGrid::Chimere01deg:
+    case ModelGrid::Chimere005degLarge:
+    case ModelGrid::Chimere005degSmall:
+    case ModelGrid::Chimere0025deg:
+    case ModelGrid::ChimereEmep:
+    case ModelGrid::ChimereCams:
+    case ModelGrid::ChimereRio1:
+    case ModelGrid::ChimereRio4:
+    case ModelGrid::ChimereRio32:
+        return ModelOuputFormat::Dat;
+    default:
+        break;
+    }
+
+    throw RuntimeError("Unexpected grid definition");
+}
+
 ValidationType RunConfiguration::validation_type() const noexcept
 {
     return _validation;

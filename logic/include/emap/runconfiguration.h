@@ -19,6 +19,12 @@ enum class SectorLevel
     Custom,
 };
 
+enum class ModelOuputFormat
+{
+    Brn,
+    Dat,
+};
+
 enum class ValidationType
 {
     NoValidation,
@@ -79,6 +85,7 @@ public:
     std::string eez_boundaries_field_id() const noexcept;
 
     ModelGrid model_grid() const noexcept;
+    ModelOuputFormat model_output_format() const;
     ValidationType validation_type() const noexcept;
 
     date::year year() const noexcept;

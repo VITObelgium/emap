@@ -76,25 +76,17 @@ std::unique_ptr<IOutputBuilder> make_output_builder(const RunConfiguration& cfg)
     const auto sectorParametersPath = cfg.data_root() / "05_model_parameters" / "sector_parameters.xlsx";
     auto sectorParams               = parse_sector_parameters_config(sectorParametersPath, cfg.output_sector_level(), cfg.pollutants(), cfg.output_sector_level_name());
 
-    if (modelGrid == ModelGrid::Vlops1km || modelGrid == ModelGrid::Vlops250m) {
+    switch (cfg.model_output_format()) {
+    case ModelOuputFormat::Brn: {
         const auto pollutantParametersPath = cfg.data_root() / "05_model_parameters" / "pollutant_parameters.xlsx";
-
-        auto pollutantParams = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
-
+        auto pollutantParams               = parse_pollutant_parameters_config(pollutantParametersPath, cfg.pollutants());
         return std::make_unique<VlopsOutputBuilder>(std::move(sectorParams), std::move(pollutantParams), cfg);
-    } else if (modelGrid == ModelGrid::Chimere05deg ||
-               modelGrid == ModelGrid::Chimere01deg ||
-               modelGrid == ModelGrid::Chimere005degLarge ||
-               modelGrid == ModelGrid::Chimere005degSmall ||
-               modelGrid == ModelGrid::Chimere0025deg ||
-               modelGrid == ModelGrid::ChimereEmep ||
-               modelGrid == ModelGrid::ChimereCams ||
-               modelGrid == ModelGrid::ChimereRio1 ||
-               modelGrid == ModelGrid::ChimereRio4 ||
-               modelGrid == ModelGrid::ChimereRio32) {
+    }
+    case ModelOuputFormat::Dat: {
         const auto countryMappingPath = cfg.data_root() / "05_model_parameters" / "chimere_mapping_country.xlsx";
         auto countryMapping           = parse_chimere_country_mapping(countryMappingPath, cfg.countries());
         return std::make_unique<ChimereOutputBuilder>(std::move(sectorParams), std::move(countryMapping), cfg);
+    }
     }
 
     throw RuntimeError("No known output builder for the specified grid definition");
