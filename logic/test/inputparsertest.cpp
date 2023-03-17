@@ -46,7 +46,7 @@ TEST_CASE("Input parsers")
             cfg.set_year(1990_y);
 
             auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
-            REQUIRE(emissions.size() == 11);
+            REQUIRE(emissions.size() == 9);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
@@ -60,14 +60,14 @@ TEST_CASE("Input parsers")
             CHECK(em.value().amount() == Approx(0.0003408784));
             CHECK(em.value().unit() == "Gg");
 
-            // PMCoarse equals to PM10 when no PM2.5 is available (PMcoarse from the input is not used because it is on the ignore list)
+            // PMCoarse should not be read
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10)).value().amount() == 2.0);
-            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PMcoarse)).value().amount() == 2.0);
+            CHECK_THROWS(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PMcoarse)));
 
             // PMCoarse equals to PM10 - PM2.5
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PM10)).value().amount() == 5.5);
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PM2_5)).value().amount() == 2.0);
-            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PMcoarse)).value().amount() == 3.5);
+            CHECK_THROWS(emissions.emission_with_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::PMcoarse)));
         }
 
         SUBCASE("gnfr sectors")
@@ -93,11 +93,12 @@ TEST_CASE("Input parsers")
         SUBCASE("Belgian emissions xlsx (Brussels)")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019), cfg);
-            REQUIRE(emissions.size() == 3429);
+            REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
                 CHECK(em.country() == countries::BEB);
+                CHECK(em.pollutant() != pollutants::PMcoarse);
             }
 
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx)).value().amount() == Approx(1.23536111037259));
@@ -108,11 +109,12 @@ TEST_CASE("Input parsers")
         SUBCASE("Belgian emissions xlsx (Flanders)")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019), cfg);
-            REQUIRE(emissions.size() == 3429);
+            REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
                 CHECK(em.country() == countries::BEF);
+                CHECK(em.pollutant() != pollutants::PMcoarse);
             }
 
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::SOx)).value().amount() == Approx(0.476353773));
@@ -135,21 +137,20 @@ TEST_CASE("Input parsers")
 
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::PM10)).value().amount() == Approx(0.335221546632635));
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::PM2_5)).value().amount() == Approx(0.214834979288184));
-            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::PMcoarse)).value().amount() == Approx(0.120386567344451));
 
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5D3), pollutants::PM10)).value().amount() == 0.0);
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5D3), pollutants::PM2_5)).value().amount() == 0.0);
-            CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5D3), pollutants::PMcoarse)).value().amount() == 0.0);
         }
 
         SUBCASE("Belgian emissions xlsx (Flanders) no fuel used")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", date::year(2022), cfg);
-            REQUIRE(emissions.size() == 3429);
+            REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
                 CHECK(em.country() == countries::BEF);
+                CHECK(em.pollutant() != pollutants::PMcoarse);
             }
 
             // Fuel used is empty, make sure it is not used as 0
@@ -159,11 +160,12 @@ TEST_CASE("Input parsers")
         SUBCASE("Belgian emissions xlsx (Wallonia)")
         {
             auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);
-            REQUIRE(emissions.size() == 3429);
+            REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
                 CHECK(em.sector().type() == EmissionSector::Type::Nfr);
                 CHECK(em.country() == countries::BEW);
+                CHECK(em.pollutant() != pollutants::PMcoarse);
             }
 
             CHECK(emissions.emission_with_id(EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr3Dc), pollutants::TSP)).value().amount() == Approx(0.800281464075));
@@ -281,6 +283,7 @@ TEST_CASE("Input parsers")
         CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_invalid_gnfr.xlsx", cfg), RuntimeError);
         CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_gnfr_mismatch.xlsx", cfg), RuntimeError);
         CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_empty_nfr.xlsx", cfg), RuntimeError);
+        CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_pmcoarse.xlsx", cfg), RuntimeError);
     }
 
     auto rasterForNfrSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {

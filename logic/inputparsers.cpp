@@ -272,55 +272,6 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     }
 }
 
-static SingleEmissions calculate_pmcoarse_emissions(const PollutantInventory& inv, const SingleEmissions& emissions)
-{
-    std::vector<EmissionEntry> entries;
-
-    try {
-        auto pm10     = inv.pollutant_from_string(constants::pollutant::PM10);
-        auto pm2_5    = inv.pollutant_from_string(constants::pollutant::PM2_5);
-        auto pmCoarse = inv.pollutant_from_string(constants::pollutant::PMCoarse);
-
-        for (auto& em : emissions) {
-            if (em.pollutant() == pm10 && em.value().amount().has_value()) {
-                auto pm25Id      = em.id();
-                pm25Id.pollutant = pm2_5;
-
-                double pm25Value = 0.0;
-                if (auto pm2_5Emission = emissions.try_emission_with_id(em.id().with_pollutant(pm2_5)); pm2_5Emission.has_value()) {
-                    pm25Value = pm2_5Emission->value().amount().value_or(0.0);
-                }
-
-                entries.emplace_back(em.id().with_pollutant(pmCoarse), EmissionValue((*em.value().amount()) - pm25Value));
-            }
-        }
-    } catch (const std::exception&) {
-        // Not all required pollutants are part of this configuration
-    }
-
-    return SingleEmissions(emissions.year(), std::move(entries));
-}
-
-std::optional<double> pmcoarse_from_pm25_pm10(std::optional<double> pm2_5, std::optional<double> pm10)
-{
-    if (pm10.has_value()) {
-        auto correctedPm25 = pm2_5.value_or(0.0);
-        auto correctedPm10 = *pm10;
-
-        if (correctedPm10 < correctedPm25) {
-            if (std::abs(*pm10 - correctedPm25) > 1e-5) {
-                throw RuntimeError("Invalid PM data (PM10: {}, PM2.5 {})", *pm10, correctedPm25);
-            } else {
-                correctedPm10 = correctedPm25;
-            }
-        }
-
-        return correctedPm10 - correctedPm25;
-    }
-
-    return {};
-}
-
 SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores)
 {
     // First lines are comments
@@ -386,11 +337,7 @@ SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path&
             }
         }
 
-        SingleEmissions emissions(requestYear, std::move(entries));
-        if (cfg.pmcoarse_calculation_needed()) {
-            merge_unique_emissions(emissions, calculate_pmcoarse_emissions(pollutantInv, emissions));
-        }
-        return emissions;
+        return SingleEmissions(requestYear, std::move(entries));
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} ({})", emissionsCsv, e.what());
     }
@@ -485,6 +432,9 @@ ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunCo
             }
 
             if (auto pol = pollutantInv.try_pollutant_from_string(feature.field_as<std::string_view>(colPollutant)); pol.has_value()) {
+                if (pol->code() == constants::pollutant::PMCoarse) {
+                    throw RuntimeError("PMCoarse is not allowed to be scaled");
+                }
                 pollutant = *pol;
             } else {
                 if (str::trimmed_view(feature.field_as<std::string_view>(colPollutant)) != "*") {
@@ -627,8 +577,6 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 throw RuntimeError("Invalid format: Sector appears before the Pollutant header");
             }
 
-            std::optional<double> pm10, pm2_5;
-
             for (const auto& [index, polData] : pollutantColumns) {
                 const auto field = feature.field(index);
                 std::optional<double> emissionValue;
@@ -646,12 +594,6 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                 }
 
                 if (emissionValue.has_value()) {
-                    if (polData.pollutant.code() == constants::pollutant::PM10) {
-                        pm10 = emissionValue;
-                    } else if (polData.pollutant.code() == constants::pollutant::PM2_5) {
-                        pm2_5 = emissionValue;
-                    }
-
                     if (sectorOverride) {
                         // update the existing emission with the higher priority version
                         update_entry(entries, EmissionEntry(EmissionIdentifier(country, nfrSector, polData.pollutant), EmissionValue(*emissionValue)));
@@ -663,23 +605,6 @@ SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::yea
                     if (!value.empty()) {
                         Log::error("Failed to obtain emission value from {}", value);
                     }
-                }
-            }
-
-            if (const auto pmCoarse = pollutantInv.try_pollutant_from_string(constants::pollutant::PMCoarse); pmCoarse.has_value()) {
-                // This config has a PMCoarse pollutant, add it as difference of PM10 and PM2.5
-
-                try {
-                    if (auto pmcVal = EmissionValue(pmcoarse_from_pm25_pm10(pm2_5, pm10)); pmcVal.amount().has_value()) {
-                        if (sectorOverride) {
-                            // update the existing emission with the higher priority version
-                            update_entry(entries, EmissionEntry(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal));
-                        } else {
-                            entries.emplace_back(EmissionIdentifier(country, nfrSector, *pmCoarse), pmcVal);
-                        }
-                    }
-                } catch (const std::exception& e) {
-                    throw RuntimeError("Sector {} ({})", nfrSector, e.what());
                 }
             }
         }

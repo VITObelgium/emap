@@ -167,6 +167,139 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
     return result;
 }
 
+// Call the callback with the matchine emissions from both arrays
+template <typename Callback>
+static void zip_point_emissions(std::span<const EmissionEntry> pol1Points, std::span<const EmissionEntry> pol2Points, Callback&& callback)
+{
+    auto pol2PointsCopy = container_as_vector(pol2Points);
+
+    for (auto& pol1Entry : pol1Points) {
+        if (pol1Entry.value().amount().has_value()) {
+            auto iter = std::lower_bound(pol2PointsCopy.begin(), pol2PointsCopy.end(), pol1Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
+                return entry.source_id() < srcId;
+            });
+
+            if (iter != pol2PointsCopy.end() && iter->source_id() == pol1Entry.source_id()) {
+                assert(iter->coordinate() == pol1Entry.coordinate());
+                callback(pol1Entry, *iter);
+            }
+        }
+    }
+}
+
+static void validate_pm10_pm25(const EmissionInventoryEntry& pm10, const EmissionInventoryEntry& pm25)
+{
+    const double diffThreshold = 1e-5;
+
+    {
+        // validate the point emissions, perform validation after the autoscaling, do not take user scalings into account
+        auto pm10AutoScale = pm10.point_auto_scaling_factor();
+        auto pm25AutoScale = pm25.point_auto_scaling_factor();
+
+        auto pm10UserScale = pm10.point_user_scaling_factor();
+        auto pm25UserScale = pm25.point_user_scaling_factor();
+
+        zip_point_emissions(pm10.point_emissions(), pm25.point_emissions(), [diffThreshold, pm10AutoScale, pm25AutoScale, pm10UserScale, pm25UserScale](const EmissionEntry& pm10, const EmissionEntry& pm25) {
+            const auto pm10AutoScaled = pm10.value().amount().value() * pm10AutoScale;
+            const auto pm25AutoScaled = pm25.value().amount().value() * pm25AutoScale;
+            if (pm10AutoScaled < pm25AutoScaled) {
+                const auto diff = pm25AutoScaled - pm10AutoScaled;
+                if (diff > diffThreshold) {
+                    throw RuntimeError("Invalid PM point data for {} (PM10: {} (auto scale = {}), PM2.5 {} (auto scale = {}))", pm10.id(), *pm10.value().amount(), pm10AutoScale, *pm25.value().amount(), pm25AutoScale);
+                }
+            }
+
+            const auto pm10UserScaled = pm10AutoScaled * pm10UserScale;
+            const auto pm25UserScaled = pm25AutoScaled * pm25UserScale;
+            if (pm10UserScaled < pm25UserScaled) {
+                const auto diff = pm25UserScaled - pm10UserScaled;
+                if (diff > diffThreshold) {
+                    throw RuntimeError("Invalid PM point data for {} after user scaling (PM10: {} (auto scale = {} user scale = {}), PM2.5 {} (auto scale = {} user scale = {}))", pm10.id(), *pm10.value().amount(), pm10AutoScale, pm10UserScale, *pm25.value().amount(), pm25AutoScale, pm25UserScale);
+                }
+            }
+        });
+    }
+
+    {
+        // validate the diffuse emissions, do not take user scalings into account
+        auto pm10Diffuse = pm10.diffuse_emissions();
+        auto pm25Diffuse = pm25.diffuse_emissions();
+
+        if (pm10Diffuse < pm25Diffuse) {
+            if (pm25Diffuse - pm10Diffuse > diffThreshold) {
+                throw RuntimeError("Invalid PM diffuse data for {} (PM10: {}, PM2.5 {})", pm10.id(), pm10Diffuse, pm25Diffuse);
+            }
+        }
+
+        const auto pm10UserScaled = pm10Diffuse * pm10.diffuse_scaling_factor();
+        const auto pm25UserScaled = pm25Diffuse * pm25.diffuse_scaling_factor();
+
+        if (pm10UserScaled < pm25UserScaled) {
+            if (pm25UserScaled - pm10UserScaled > diffThreshold) {
+                throw RuntimeError("Invalid PM diffuse data after user scaling for {} (PM10: {} (user scale = {}), PM2.5 {} (user scale = {}))", pm10.id(), pm10Diffuse, pm10.diffuse_scaling_factor(), pm25Diffuse, pm25.diffuse_scaling_factor());
+            }
+        }
+    }
+}
+
+static void calculate_pmcoarse_emissions(const RunConfiguration& cfg, EmissionInventory& inv)
+{
+    // Check if pm2.5 > pm10 after scaling, if so set pmcoarse to 0
+    auto pm10Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
+    auto pm25Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
+    auto pmCoarsePol = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
+
+    if (pm10Pol.has_value() && pm25Pol.has_value() && pmCoarsePol.has_value()) {
+        for (auto country : cfg.countries().list()) {
+            for (auto sector : cfg.sectors().nfr_sectors()) {
+                EmissionIdentifier pm10Id(country, EmissionSector(sector), *pm10Pol);
+                EmissionIdentifier pm25Id(country, EmissionSector(sector), *pm25Pol);
+
+                auto pm10Entry = inv.try_emission_with_id(pm10Id);
+                auto pm25Entry = inv.try_emission_with_id(pm25Id);
+
+                if (pm25Entry.has_value() && pm10Entry.has_value()) {
+                    EmissionIdentifier pmCoarseId(country, EmissionSector(sector), *pmCoarsePol);
+
+                    // Verify pm10 is larger then pm2.5
+                    validate_pm10_pm25(*pm10Entry, *pm25Entry);
+
+                    std::vector<EmissionEntry> pmCoarsePoints;
+
+                    // Calculate the PMCoarse point sources
+                    auto pm10AutoScale = pm10Entry->point_auto_scaling_factor();
+                    auto pm25AutoScale = pm25Entry->point_auto_scaling_factor();
+                    auto pm10UserScale = pm10Entry->point_user_scaling_factor();
+                    auto pm25UserScale = pm25Entry->point_user_scaling_factor();
+                    zip_point_emissions(pm10Entry->point_emissions(), pm25Entry->point_emissions(), [=, &pmCoarsePoints](const EmissionEntry& pm10, const EmissionEntry& pm25) {
+                        try {
+                            auto pm10Scaled = *pm10.value().amount() * pm10AutoScale * pm10UserScale;
+                            auto pm25Scaled = *pm25.value().amount() * pm25AutoScale * pm25UserScale;
+
+                            EmissionEntry entry(EmissionIdentifier(country, pm10.id().sector, *pmCoarsePol), EmissionValue(pm10Scaled - pm25Scaled));
+                            entry.set_coordinate(pm10.coordinate().value());
+                            pmCoarsePoints.push_back(std::move(entry));
+                        } catch (const std::exception& e) {
+                            throw RuntimeError("Sector {} with EIL nr {} ({})", pm10.id().sector, pm10.source_id(), e.what());
+                        }
+                    });
+
+                    // Calculate the PMCoarse diffuse sources
+                    const auto pm25Sum     = pm25Entry->scaled_diffuse_emissions_sum();
+                    const auto pm10Sum     = pm10Entry->scaled_diffuse_emissions_sum();
+                    double pmCoarseDiffuse = pm10Sum - pm25Sum;
+                    if (pmCoarseDiffuse < -1e-5) {
+                        pmCoarseDiffuse = 0.0;
+                        Log::debug("{} {} PM2.5 value is bigger then PM10 value after scaling: PM2.5={} PM10={}", country.iso_code(), sector.name(), pm25Sum, pm10Sum);
+                    }
+
+                    inv.add_emission(EmissionInventoryEntry(pmCoarseId, pmCoarseDiffuse, pmCoarsePoints));
+                }
+            }
+        }
+    }
+}
+
 static EmissionInventory create_emission_inventory_impl(const SingleEmissions& totalEmissionsNfr,
                                                         const std::optional<SingleEmissions>& extraEmissions,
                                                         const SingleEmissions& pointSourceEmissions,
@@ -241,30 +374,8 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
     result.set_emissions(std::move(entries));
 
-    // Check if pm2.5 > pm10 after scaling, if so set pmcoarse to 0
-    auto pm10Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
-    auto pm25Pol     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
-    auto pmCoarsePol = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
-    if (pm10Pol.has_value() && pm25Pol.has_value() && pmCoarsePol.has_value()) {
-        for (auto country : cfg.countries().list()) {
-            for (auto sector : cfg.sectors().nfr_sectors()) {
-                EmissionIdentifier pm10Id(country, EmissionSector(sector), *pm10Pol);
-                EmissionIdentifier pm25Id(country, EmissionSector(sector), *pm25Pol);
-
-                auto pm10Entry = result.try_emission_with_id(pm10Id);
-                auto pm25Entry = result.try_emission_with_id(pm25Id);
-
-                if (pm25Entry.has_value() && pm10Entry.has_value() && pm25Entry->scaled_diffuse_emissions_sum() > pm10Entry->scaled_diffuse_emissions_sum()) {
-                    EmissionIdentifier pmCoarseId(country, EmissionSector(sector), *pmCoarsePol);
-
-                    if (auto pmCoarseEntry = result.try_emission_with_id(pmCoarseId); pmCoarseEntry.has_value()) {
-                        pmCoarseEntry->set_diffuse_emissions(0.0);
-                        Log::debug("{} {} Reset PMcoarse value after scaling: PM2.5={} PM10={}", country.iso_code(), sector.name(), pm25Entry.value().scaled_diffuse_emissions_sum(), pm10Entry.value().scaled_diffuse_emissions_sum());
-                        result.update_emission(std::move(*pmCoarseEntry));
-                    }
-                }
-            }
-        }
+    if (cfg.pmcoarse_calculation_needed()) {
+        calculate_pmcoarse_emissions(cfg, result);
     }
 
     if (extraEmissions.has_value()) {
@@ -407,51 +518,6 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
         for (const auto& pollutant : cfg.included_pollutants()) {
             if (pollutant.code() != constants::pollutant::PMCoarse) {
                 merge_unique_emissions(result, read_country_pollutant_point_sources(pointEmissionsDir, pollutant, cfg, runSummary));
-            }
-        }
-
-        if (cfg.pmcoarse_calculation_needed()) {
-            try {
-                const auto pm10     = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM10);
-                const auto pm2_5    = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PM2_5);
-                const auto pmCoarse = cfg.pollutants().try_pollutant_from_string(constants::pollutant::PMCoarse);
-
-                if (pm10.has_value() && pm2_5.has_value() && pmCoarse.has_value()) {
-                    // Calculate PMcoarse data from pm10 and pm2.5 data
-                    const auto pm10Emissions = read_country_pollutant_point_sources(pointEmissionsDir, *pm10, cfg, runSummary);
-                    auto pm2_5Emissions      = read_country_pollutant_point_sources(pointEmissionsDir, *pm2_5, cfg, runSummary);
-
-                    std::sort(pm2_5Emissions.begin(), pm2_5Emissions.end(), [](const EmissionEntry& lhs, const EmissionEntry& rhs) {
-                        return lhs.source_id() < rhs.source_id();
-                    });
-
-                    for (auto& pm10Entry : pm10Emissions) {
-                        auto pm10Val = pm10Entry.value().amount();
-                        if (pm10Val.has_value()) {
-                            auto iter = std::lower_bound(pm2_5Emissions.begin(), pm2_5Emissions.end(), pm10Entry.source_id(), [](const EmissionEntry& entry, std::string_view srcId) {
-                                return entry.source_id() < srcId;
-                            });
-
-                            double pm2_5Val = 0.0;
-                            if (iter != pm2_5Emissions.end() && iter->source_id() == pm10Entry.source_id()) {
-                                pm2_5Val = iter->value().amount().value_or(0.0);
-                                assert(iter->coordinate() == pm10Entry.coordinate());
-                            }
-
-                            try {
-                                if (auto pmCoarseVal = EmissionValue(pmcoarse_from_pm25_pm10(pm2_5Val, pm10Val)); pmCoarseVal.amount().has_value()) {
-                                    EmissionEntry entry(EmissionIdentifier(country, pm10Entry.id().sector, *pmCoarse), pmCoarseVal);
-                                    entry.set_coordinate(pm10Entry.coordinate().value());
-                                    result.add_emission(std::move(entry));
-                                }
-                            } catch (const std::exception& e) {
-                                throw RuntimeError("Sector {} with EIL nr {} ({})", pm10Entry.id().sector, pm10Entry.source_id(), e.what());
-                            }
-                        }
-                    }
-                }
-            } catch (const std::exception& e) {
-                Log::debug("Failed to create PMcoarse point sources: {}", e.what());
             }
         }
 
@@ -598,5 +664,4 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
                                          summary);
     }
 }
-
 }
