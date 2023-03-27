@@ -1,4 +1,5 @@
 #include "runsummary.h"
+#include "emap/emissioninventory.h"
 
 #include "enuminfo.h"
 #include "infra/cast.h"
@@ -25,31 +26,33 @@ RunSummary::RunSummary(const RunConfiguration& cfg)
 {
 }
 
-void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
+void RunSummary::add_spatial_pattern_source(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, const EmissionInventoryEntry& emission)
 {
     SpatialPatternSummaryInfo info;
     info.source                           = source;
     info.scaledDiffuseEmissions           = scaledDiffuseEmissions;
     info.scaledDiffuseEmissionsWithinGrid = scaledDiffuseEmissionsWithinGrid;
-    info.scaledPointEmissions             = scaledPointEmissions;
-    info.diffuseScaling                   = diffuseScale;
-    info.pointScalingUser                 = pointScaleUser;
-    info.pointScalingAuto                 = pointScaleAuto;
+    info.scaledPointEmissions             = emission.scaled_point_emissions_sum();
+    info.diffuseScalingUser               = emission.diffuse_user_scaling_factor();
+    info.diffuseScalingAuto               = emission.diffuse_auto_scaling_factor();
+    info.pointScalingUser                 = emission.point_user_scaling_factor();
+    info.pointScalingAuto                 = emission.point_auto_scaling_factor();
 
     std::scoped_lock lock(_mutex);
     _spatialPatterns.push_back(info);
 }
 
-void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto)
+void RunSummary::add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, const EmissionInventoryEntry& emission)
 {
     SpatialPatternSummaryInfo info;
     info.source                           = source;
     info.scaledDiffuseEmissions           = scaledDiffuseEmissions;
     info.scaledDiffuseEmissionsWithinGrid = scaledDiffuseEmissionsWithinGrid;
-    info.scaledPointEmissions             = scaledPointEmissions;
-    info.diffuseScaling                   = diffuseScale;
-    info.pointScalingUser                 = pointScaleUser;
-    info.pointScalingAuto                 = pointScaleAuto;
+    info.scaledPointEmissions             = emission.scaled_point_emissions_sum();
+    info.diffuseScalingUser               = emission.diffuse_user_scaling_factor();
+    info.diffuseScalingAuto               = emission.diffuse_auto_scaling_factor();
+    info.pointScalingUser                 = emission.point_user_scaling_factor();
+    info.pointScalingAuto                 = emission.point_auto_scaling_factor();
 
     std::scoped_lock lock(_mutex);
     _spatialPatternsWithoutData.push_back(info);
@@ -106,7 +109,7 @@ static std::string spatial_pattern_source_type_to_string(SpatialPatternSource::T
 
 void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tabName, std::span<const SpatialPatternSummaryInfo> sources, std::span<const SpatialPatternSummaryInfo> sourcesWithoutData) const
 {
-    const std::array<ColumnInfo, 17> headers = {
+    const std::array<ColumnInfo, 18> headers = {
         ColumnInfo{"Country", 15.0},
         ColumnInfo{"Sector", 15.0},
         ColumnInfo{"GNFR", 15.0},
@@ -117,7 +120,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         ColumnInfo{"Uniform spread fallback", 25.0},
         ColumnInfo{"From exceptions", 25.0},
         ColumnInfo{"Year", 15.0},
-        ColumnInfo{"Diffuse scaling", 15.0},
+        ColumnInfo{"Diffuse scaling user", 15.0},
+        ColumnInfo{"Diffuse scaling auto", 15.0},
         ColumnInfo{"Point scaling user", 15.0},
         ColumnInfo{"Point scaling auto", 15.0},
         ColumnInfo{"Path", 125.0},
@@ -170,7 +174,8 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         } else {
             ++index;
         }
-        worksheet_write_number(ws, row, index++, info.diffuseScaling, formatNumber);
+        worksheet_write_number(ws, row, index++, info.diffuseScalingUser, formatNumber);
+        worksheet_write_number(ws, row, index++, info.diffuseScalingAuto, formatNumber);
         worksheet_write_number(ws, row, index++, info.pointScalingUser, formatNumber);
         worksheet_write_number(ws, row, index++, info.pointScalingAuto, formatNumber);
         worksheet_write_string(ws, row, index++, str::from_u8(info.source.path.generic_u8string()).c_str(), nullptr);

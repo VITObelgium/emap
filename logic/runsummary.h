@@ -15,14 +15,16 @@ struct lxw_workbook;
 
 namespace emap {
 
+class EmissionInventoryEntry;
+
 class RunSummary
 {
 public:
     RunSummary() = default;
     RunSummary(const RunConfiguration& cfg);
 
-    void add_spatial_pattern_source(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto);
-    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, double scaledPointEmissions, double diffuseScale, double pointScaleUser, double pointScaleAuto);
+    void add_spatial_pattern_source(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, const EmissionInventoryEntry& emission);
+    void add_spatial_pattern_source_without_data(const SpatialPatternSource& source, double scaledDiffuseEmissions, double scaledDiffuseEmissionsWithinGrid, const EmissionInventoryEntry& emission);
     void add_point_source(const fs::path& pointSource);
     void add_totals_source(const fs::path& totalsSource);
 
@@ -59,7 +61,8 @@ private:
         double scaledDiffuseEmissions           = 0.0;
         double scaledDiffuseEmissionsWithinGrid = 0.0;
         double scaledPointEmissions             = 0.0;
-        double diffuseScaling                   = 1.0;
+        double diffuseScalingUser               = 1.0;
+        double diffuseScalingAuto               = 1.0;
         double pointScalingUser                 = 1.0;
         double pointScalingAuto                 = 1.0;
     };

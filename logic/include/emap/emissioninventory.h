@@ -76,7 +76,7 @@ public:
 
     double scaled_diffuse_emissions_sum() const noexcept
     {
-        return _diffuseEmission * _diffuseScaling;
+        return _diffuseEmission * _diffuseUserScaling * _diffuseAutoScaling;
     }
 
     double scaled_point_emissions_sum() const noexcept
@@ -94,9 +94,14 @@ public:
         _pointUserScaling = factor;
     }
 
-    void set_diffuse_scaling(double factor) noexcept
+    void set_diffuse_auto_scaling(double factor) noexcept
     {
-        _diffuseScaling = factor;
+        _diffuseAutoScaling = factor;
+    }
+
+    void set_diffuse_user_scaling(double factor) noexcept
+    {
+        _diffuseUserScaling = factor;
     }
 
     double point_auto_scaling_factor() const noexcept
@@ -109,18 +114,24 @@ public:
         return _pointUserScaling;
     }
 
-    double diffuse_scaling_factor() const noexcept
+    double diffuse_auto_scaling_factor() const noexcept
     {
-        return _diffuseScaling;
+        return _diffuseAutoScaling;
+    }
+
+    double diffuse_user_scaling_factor() const noexcept
+    {
+        return _diffuseUserScaling;
     }
 
 private:
     EmissionIdentifier _id;
     double _diffuseEmission = 0.0;
     std::vector<EmissionEntry> _pointEmissionEntries;
-    double _pointAutoScaling = 1.0; // Automatic correction of the point sources when they exceed the total emission
-    double _pointUserScaling = 1.0; // User defined scaling of the point sources
-    double _diffuseScaling   = 1.0;
+    double _pointAutoScaling   = 1.0; // Automatic correction of the point sources when they exceed the total emission
+    double _pointUserScaling   = 1.0; // User defined scaling of the point sources
+    double _diffuseAutoScaling = 1.0;
+    double _diffuseUserScaling = 1.0;
 };
 
 template <typename TEmission>

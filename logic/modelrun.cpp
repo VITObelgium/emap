@@ -228,9 +228,9 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         const auto spatPatInfo = apply_emission_to_spatial_pattern(spatialPattern, emissionToSpread, gridData.meta, cellCoverageInfo);
                         if (isCoursestGrid) {
                             if (spatPatInfo.status == SpatialPatternProcessInfo::Status::FallbackToUniformSpread) {
-                                summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                                summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, *emission);
                             } else {
-                                summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                                summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, *emission);
                             }
                         }
 
@@ -317,9 +317,9 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
                     if (spatialPattern.source.patternAvailableButWithoutData) {
                         Log::debug("No spatial pattern information available for {}: falling back to uniform spread", emissionId);
-                        summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                        summary.add_spatial_pattern_source_without_data(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, *emission);
                     } else {
-                        summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, emission->scaled_point_emissions_sum(), emission->diffuse_scaling_factor(), emission->point_user_scaling_factor(), emission->point_auto_scaling_factor());
+                        summary.add_spatial_pattern_source(spatialPattern.source, spatPatInfo.diffuseEmissions, spatPatInfo.emissionsWithinOutput, *emission);
                     }
 
                     if (validator) {

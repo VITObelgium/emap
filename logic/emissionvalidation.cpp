@@ -52,9 +52,13 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
         for (auto& pol : includedPollutants) {
             const auto path = _cfg.output_path() / fmt::format("{}_OPS_{}{}.brn", pol.code(), static_cast<int>(_cfg.year()), _cfg.output_filename_suffix());
             try {
-                const auto brnEntries = read_brn_output(path);
-                BrnAnalyzer analyzer(brnEntries);
-                brnTotals.emplace(pol, analyzer.create_totals());
+                if (fs::exists(path)) {
+                    const auto brnEntries = read_brn_output(path);
+                    BrnAnalyzer analyzer(brnEntries);
+                    brnTotals.emplace(pol, analyzer.create_totals());
+                } else {
+                    brnTotals.emplace(pol, std::unordered_map<CountrySector, double>());
+                }
             } catch (const std::exception& e) {
                 throw RuntimeError("Error parsing brn {}: ({})", path, e.what());
             }
