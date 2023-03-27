@@ -30,11 +30,6 @@ public:
         return _id;
     }
 
-    double total_emissions() const noexcept
-    {
-        return point_emission_sum() + _diffuseEmission;
-    }
-
     double diffuse_emissions() const noexcept
     {
         return _diffuseEmission;
@@ -64,7 +59,7 @@ public:
         std::transform(_pointEmissionEntries.begin(), _pointEmissionEntries.end(), std::back_inserter(result), [=](const EmissionEntry& entry) {
             auto scaledEntry = entry;
             scaledEntry.set_value(entry.value() * _pointAutoScaling * _pointUserScaling);
-            return entry;
+            return scaledEntry;
         });
         return result;
     }

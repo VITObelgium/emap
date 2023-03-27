@@ -255,7 +255,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         }
 
                         // Add the point sources to the grid
-                        auto pointEmissions = container_as_vector(emission->point_emissions());
+                        auto pointEmissions = container_as_vector(emission->scaled_point_emissions());
                         if (subGridMeta.has_value()) {
                             // remove the points from the subGrid
                             remove_from_container(pointEmissions, [meta = *subGridMeta](const EmissionEntry& entry) {
