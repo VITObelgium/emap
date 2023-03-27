@@ -63,7 +63,6 @@ void ChimereOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
         std::scoped_lock lock(_mutex);
         _pointSources.push_back(entry);
     } else {
-        const auto polIndex    = _pollutantIndexes.at(id.pollutant);
         const auto countryCode = _countryMapping.at(id.country.id());
         const auto cell        = coordinate_to_chimere_cell(emission.coordinate().value());
         const auto sectorName  = _cfg.sectors().map_nfr_to_output_name(emission.id().sector.nfr_sector());
