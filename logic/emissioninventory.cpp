@@ -172,6 +172,9 @@ template <typename Callback>
 static void zip_point_emissions(std::span<const EmissionEntry> pol1Points, std::span<const EmissionEntry> pol2Points, Callback&& callback)
 {
     auto pol2PointsCopy = container_as_vector(pol2Points);
+    std::sort(pol2PointsCopy.begin(), pol2PointsCopy.end(), [](const EmissionEntry& entry1, const EmissionEntry& entry2) {
+        return entry1.source_id() < entry2.source_id();
+    });
 
     for (auto& pol1Entry : pol1Points) {
         if (pol1Entry.value().amount().has_value()) {
@@ -187,19 +190,19 @@ static void zip_point_emissions(std::span<const EmissionEntry> pol1Points, std::
     }
 }
 
-static void validate_pm10_pm25(const EmissionInventoryEntry& pm10, const EmissionInventoryEntry& pm25)
+static void validate_pm10_pm25(const EmissionInventoryEntry& pm10Emissions, const EmissionInventoryEntry& pm25Emissions)
 {
     const double diffThreshold = 1e-5;
 
     {
         // validate the point emissions, perform validation after the autoscaling, do not take user scalings into account
-        const auto pm10AutoScale = pm10.point_auto_scaling_factor();
-        const auto pm25AutoScale = pm25.point_auto_scaling_factor();
+        const auto pm10AutoScale = pm10Emissions.point_auto_scaling_factor();
+        const auto pm25AutoScale = pm25Emissions.point_auto_scaling_factor();
 
-        const auto pm10UserScale = pm10.point_user_scaling_factor();
-        const auto pm25UserScale = pm25.point_user_scaling_factor();
+        const auto pm10UserScale = pm10Emissions.point_user_scaling_factor();
+        const auto pm25UserScale = pm25Emissions.point_user_scaling_factor();
 
-        zip_point_emissions(pm10.point_emissions(), pm25.point_emissions(), [diffThreshold, pm10AutoScale, pm25AutoScale, pm10UserScale, pm25UserScale](const EmissionEntry& pm10, const EmissionEntry& pm25) {
+        zip_point_emissions(pm10Emissions.point_emissions(), pm25Emissions.point_emissions(), [diffThreshold, pm10AutoScale, pm25AutoScale, pm10UserScale, pm25UserScale](const EmissionEntry& pm10, const EmissionEntry& pm25) {
             const auto pm10AutoScaled = pm10.value().amount().value() * pm10AutoScale;
             const auto pm25AutoScaled = pm25.value().amount().value() * pm25AutoScale;
             if (pm10AutoScaled < pm25AutoScaled) {
@@ -222,20 +225,20 @@ static void validate_pm10_pm25(const EmissionInventoryEntry& pm10, const Emissio
 
     {
         // validate the diffuse emissions, do not take user scalings into account
-        const auto pm10AutoScale = pm10.diffuse_auto_scaling_factor();
-        const auto pm25AutoScale = pm25.diffuse_auto_scaling_factor();
+        const auto pm10AutoScale = pm10Emissions.diffuse_auto_scaling_factor();
+        const auto pm25AutoScale = pm25Emissions.diffuse_auto_scaling_factor();
 
-        const auto pm10UserScale = pm10.diffuse_user_scaling_factor();
-        const auto pm25UserScale = pm25.diffuse_user_scaling_factor();
+        const auto pm10UserScale = pm10Emissions.diffuse_user_scaling_factor();
+        const auto pm25UserScale = pm25Emissions.diffuse_user_scaling_factor();
 
-        const auto pm10Diffuse = pm10.diffuse_emissions() * pm10AutoScale;
-        const auto pm25Diffuse = pm25.diffuse_emissions() * pm25AutoScale;
+        const auto pm10Diffuse = pm10Emissions.diffuse_emissions() * pm10AutoScale;
+        const auto pm25Diffuse = pm25Emissions.diffuse_emissions() * pm25AutoScale;
 
         bool autoScaledValueValid = true;
         if (pm10Diffuse < pm25Diffuse) {
             if (pm25Diffuse - pm10Diffuse > diffThreshold) {
                 autoScaledValueValid = false;
-                Log::warn("Invalid PM diffuse data for {} (PM10: {}, PM2.5 {})", pm10.id(), pm10Diffuse, pm25Diffuse);
+                Log::warn("Invalid PM diffuse data for {} (PM10: {}, PM2.5 {})", pm10Emissions.id(), pm10Diffuse, pm25Diffuse);
             }
         }
 
@@ -246,7 +249,7 @@ static void validate_pm10_pm25(const EmissionInventoryEntry& pm10, const Emissio
             if (pm25UserScaled - pm10UserScaled > diffThreshold) {
                 if (autoScaledValueValid) {
                     // Invalid value is caused by the user scaling
-                    throw RuntimeError("Invalid PM diffuse data after user scaling for {} (PM10: {} (auto scale = {} user scale = {}), PM2.5 {} (auto scale = {} user scale = {}))", pm10.id(), pm10Diffuse, pm10AutoScale, pm10UserScale, pm25Diffuse, pm25AutoScale, pm25UserScale);
+                    throw RuntimeError("Invalid PM diffuse data after user scaling for {} (PM10: {} (auto scale = {} user scale = {}), PM2.5 {} (auto scale = {} user scale = {}))", pm10Emissions.id(), pm10Diffuse, pm10AutoScale, pm10UserScale, pm25Diffuse, pm25AutoScale, pm25UserScale);
                 }
             }
         }
@@ -339,7 +342,7 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                 return total + current.value().amount().value_or(0.0);
             });
 
-            if (diffuseEmission > 0 && pointEmissionSum > diffuseEmission) {
+            if (diffuseEmission > 0 && pointEmissionSum > (diffuseEmission * diffuseEmissionAutoScale)) {
                 // Check if the difference is caused by floating point rounding
                 auto scalingFactor = diffuseEmission / pointEmissionSum;
                 if (pointEmissionSum - diffuseEmission < 1e-4) {

@@ -147,6 +147,18 @@ public:
         _coordinate = std::optional<Coordinate>(coordinate);
     }
 
+    EmissionEntry& with_source_id(std::string_view srcId) & noexcept
+    {
+        set_source_id(srcId);
+        return *this;
+    }
+
+    EmissionEntry&& with_source_id(std::string_view srcId) && noexcept
+    {
+        set_source_id(srcId);
+        return std::move(*this);
+    }
+
     void set_source_id(std::string_view srcId) noexcept
     {
         _sourceId = srcId;

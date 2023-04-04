@@ -17,7 +17,7 @@
             "name": "gdal",
             "features": [
                 "expat",
-                "spatialite",
+                "sqlite",
                 "geos"
             ]
         },

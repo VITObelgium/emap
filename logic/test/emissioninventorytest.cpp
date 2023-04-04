@@ -264,6 +264,32 @@ TEST_CASE("Emission inventory")
             CHECK(emission.point_user_scaling_factor() == 2.0);
         }
     }
+
+    SUBCASE("PMCoarse calculation")
+    {
+        // empty NFR emissions
+        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        ScalingFactors scalings;
+
+        // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 170 = 88%
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(120.0), Coordinate(10, 10)).with_source_id("id1"));
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(50.0), Coordinate(10, 20)).with_source_id("id2"));
+
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(100.0), Coordinate(10, 10)).with_source_id("id1"));
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(40.0), Coordinate(10, 20)).with_source_id("id2"));
+
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(300.0)));
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(150.0)));
+
+        SingleEmissions gnfrTotals(date::year(2019));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(300.0)));
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM2_5), EmissionValue(100.0)));
+
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
+        checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), 300.0 - 170.0 /* 130 */, 170.0);
+        checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), 150.0 - 140.0 /* 10 */, 140.0);
+        checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 120.0, 30.0);
+    }
 }
 
 }

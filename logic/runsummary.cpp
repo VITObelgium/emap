@@ -125,7 +125,7 @@ void RunSummary::sources_to_spreadsheet(lxw_workbook* wb, const std::string& tab
         ColumnInfo{"Point scaling user", 15.0},
         ColumnInfo{"Point scaling auto", 15.0},
         ColumnInfo{"Path", 125.0},
-        ColumnInfo{"Total emissions", 17.0},
+        ColumnInfo{"Diffuse emissions", 17.0},
         ColumnInfo{"Emissions within grid", 17.0},
         ColumnInfo{"Point Emissions", 17.0},
     };
