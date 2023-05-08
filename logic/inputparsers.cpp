@@ -196,6 +196,9 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         auto colEilPoint       = required_csv_column(csv, "EIL_Emissiepunt_Jaar_Naam");
 
         auto colSubType = csv.column_index("subtype");
+        if (!colSubType.has_value()) {
+            colSubType = csv.column_index("pointsource_index");
+        }
 
         auto [colSector, sectorType] = determine_sector_column(csv);
         auto colX                    = csv.column_index("x");
