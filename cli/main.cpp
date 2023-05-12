@@ -84,7 +84,7 @@ int main(int argc, char** argv)
             fmt::print("{}\n", fmt::streamed(cli));
             return EXIT_SUCCESS;
         } else if (options.showVersion) {
-            fmt::print("E-MAP {} ({})", EMAP_VERSION, EMAP_COMMIT_HASH);
+            fmt::print("E-MAP {} ({})\n", EMAP_VERSION, EMAP_COMMIT_HASH);
             return EXIT_SUCCESS;
         }
     }
