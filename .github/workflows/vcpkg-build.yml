@@ -24,18 +24,10 @@ jobs:
           lfs: false
       - name: Install linux dependencies
         if: ${{ matrix.cfg.os == 'ubuntu-latest' }}
-        run: sudo apt-get install nasm openssl ninja-build
+        run: sudo apt-get install nasm openssl
       - name: Install osx dependencies
         if: ${{ matrix.cfg.os == 'macos-latest' }}
-        run: brew install nasm ninja automake autoconf
-      - name: Cache vcpkg binary
-        id: cache-vcpkg-bin
-        uses: actions/cache@v4
-        with:
-          path: |
-            deps/vcpkg/vcpkg
-            deps/vcpkg/vcpkg.exe
-          key: ${{ runner.os }}-${{ hashFiles('deps/vcpkg/bootstrap.cmake') }}
+        run: brew install nasm automake autoconf
       - name: Cache vcpkg packages
         id: cache-vcpkg
         uses: actions/cache@v4
@@ -46,5 +38,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.cfg.triplet }}-${{ hashFiles('vcpkg.json', '.git/modules/deps/vcpkg/shallow') }}
       - name: Bootstrap the ports
         run: python bootstrap.py --triplet ${{ matrix.cfg.triplet }} --clean-after-build
+      - name: Install build tools
+        run: ./deps/vcpkg/vcpkg fetch ninja
       - name: Build the code
         run: python build.py --triplet ${{ matrix.cfg.triplet }} --run-tests --dist
