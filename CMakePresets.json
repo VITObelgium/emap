@@ -12,11 +12,11 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/vcpkg",
             "cacheVariables": {
-              "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
-              "VCPKG_APPLOCAL_DEPS": "OFF",
-              "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
-              "BUILD_TESTING": "ON",
-              "VCPKG_MANIFEST_MODE": "OFF"
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_APPLOCAL_DEPS": "OFF",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+                "BUILD_TESTING": "ON",
+                "VCPKG_MANIFEST_MODE": "OFF"
             },
             "environment": {
                 "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
@@ -27,7 +27,7 @@
             "inherits": "vcpkg-base",
             "hidden": true,
             "cacheVariables": {
-                "CMAKE_OSX_DEPLOYMENT_TARGET": "11.3",
+                "VCPKG_OSX_DEPLOYMENT_TARGET": "11.3",
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake",
                 "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
             }
@@ -46,26 +46,26 @@
             }
         },
         {
-          "name": "x64-windows-static-vs2022 debug",
-          "inherits": "windows-base",
-          "displayName": "Windows x64 Debug",
-          "description": "Vcpkg debug build for x64 on windows",
-          "cacheVariables": {
-            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
-            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
-            "CMAKE_BUILD_TYPE": "Debug"
-          }
+            "name": "x64-windows-static-vs2022 debug",
+            "inherits": "windows-base",
+            "displayName": "Windows x64 Debug",
+            "description": "Vcpkg debug build for x64 on windows",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
+                "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
         },
         {
-          "name": "x64-windows-static-vs2022 release",
-          "inherits": "windows-base",
-          "displayName": "Windows x64 Release",
-          "description": "Vcpkg release build for x64 on windows",
-          "cacheVariables": {
-            "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
-            "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
-            "CMAKE_BUILD_TYPE": "Release"
-          }
+            "name": "x64-windows-static-vs2022 release",
+            "inherits": "windows-base",
+            "displayName": "Windows x64 Release",
+            "description": "Vcpkg release build for x64 on windows",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
+                "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         },
         {
             "name": "arm64-osx",
@@ -75,7 +75,9 @@
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "arm64-osx",
                 "CMAKE_OSX_ARCHITECTURES": "arm64",
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "Release",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkgs-arm64-osx",
+                "VCPKG_ALLOW_SYSTEM_LIBS": "ON"
             }
         },
         {

@@ -12,7 +12,7 @@ jobs:
         cfg:
           - { os: ubuntu-latest, triplet: x64-linux }
           - { os: windows-2022, triplet: x64-windows-static-vs2022 }
-          #- { os: macos-latest, triplet: x64-osx-10_15 }
+          - { os: macos-13, triplet: x64-osx }
 
     steps:
       - uses: actions/setup-python@v5
@@ -42,3 +42,14 @@ jobs:
         run: ./deps/vcpkg/vcpkg fetch ninja
       - name: Build the code
         run: python build.py --triplet ${{ matrix.cfg.triplet }} --run-tests --dist
+      - name: Archive build logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            deps/vcpkg/buildtrees/**/config*.log
+            deps/vcpkg/buildtrees/**/build*.log
+            deps/vcpkg/buildtrees/**/install*.log
+            deps/vcpkg/buildtrees/**/package*.log
+
