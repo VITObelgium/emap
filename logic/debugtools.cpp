@@ -2,13 +2,12 @@
 #include "emap/configurationparser.h"
 #include "emap/countryborders.h"
 #include "emap/gridprocessing.h"
-#include "geometry.h"
 
 #include "infra/chrono.h"
 #include "infra/gdal.h"
 #include "infra/gdalalgo.h"
+#include "infra/geometry.h"
 
-#include <geos/geom/DefaultCoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/MultiPolygon.h>

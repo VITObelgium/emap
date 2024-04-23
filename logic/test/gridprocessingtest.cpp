@@ -1,6 +1,6 @@
 #include "emap/gridprocessing.h"
 #include "emap/configurationparser.h"
-#include "geometry.h"
+#include "infra/geometry.h"
 #include "testconstants.h"
 
 #include "gdx/algo/sum.h"
@@ -17,7 +17,7 @@
 #include "testconfig.h"
 
 #include <doctest/doctest.h>
-#include <geos/geom/CoordinateArraySequence.h>
+#include <geos/geom/CoordinateSequence.h>
 #include <geos/geom/GeometryFactory.h>
 
 namespace emap::test {
@@ -31,9 +31,13 @@ TEST_CASE("create_geometry_extent")
     auto geomFactory = geos::geom::GeometryFactory::create();
 
     const GeoMetadata gridMeta(4, 3, 50.0, -50.0, 50.0, {});
-    geos::geom::CoordinateArraySequence coords(std::vector<geos::geom::Coordinate>({{110.0, 55.0}, {130.0, 75.0}, {120.0, 65.0}, {110.0, 55.0}}));
 
-    const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(coords), {});
+    auto coords = std::make_unique<geos::geom::CoordinateSequence>(std::initializer_list<geos::geom::Coordinate>{geos::geom::Coordinate{110.0, 55.0},
+                                                                                                                 geos::geom::Coordinate{130.0, 75.0},
+                                                                                                                 geos::geom::Coordinate{120.0, 65.0},
+                                                                                                                 geos::geom::Coordinate{110.0, 55.0}});
+
+    const auto poly = geomFactory->createPolygon(geomFactory->createLinearRing(std::move(coords)), {});
 
     auto meta = create_geometry_intersection_extent(*poly, gridMeta);
     CHECK(GeoMetadata(1, 1, 100.0, 50.0, 50.0, {}) == meta);

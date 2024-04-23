@@ -39,7 +39,6 @@ add_library(emaplogic
     enuminfo.h
     emissionvalidation.h emissionvalidation.cpp
     unitconversion.h
-    geometry.h geometry.cpp
     gridrasterbuilder.h
     emissionscollector.h emissionscollector.cpp
     outputwriters.h outputwriters.cpp
