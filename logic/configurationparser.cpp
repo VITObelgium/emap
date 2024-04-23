@@ -661,6 +661,10 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 
 RunConfiguration parse_run_configuration_file(const fs::path& config)
 {
+    if (config.empty()) {
+        throw RuntimeError("No config file provided");
+    }
+
     return parse_run_configuration_impl(file::read_as_text(config), config);
 }
 
