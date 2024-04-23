@@ -146,7 +146,7 @@ TEST_CASE("Spatial pattern selection test")
     {
         // Available in 2018 at gnfr (not in 2016 or 2015 or 2017 or 2014)
         const auto sp = inv.get_spatial_pattern(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr1B2b), pollutants::NOx), nlCoverage);
-        CHECK(sp.source.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2018" / "CAMS_emissions_REG-APv5.1_2018_nox_D_Fugitives.tif");
+        CHECK(sp.source.path == fs::u8path(TEST_DATA_DIR) / "spatialinventory" / "rest" / "reporting_2021" / "CAMS" / "2018" / "CAMS_emissions_REG-ANTv6.1_2018_nox_D_Fugitives.tif");
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1B2b));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Fugitive));
