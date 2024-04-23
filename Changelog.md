@@ -1,3 +1,7 @@
+Release 3.1.1
+-------------
+- Relaxed CAMS spatial patter filename regex
+
 Release 3.1.0
 -------------
 - Added `separate_point_sources` output config option to configure wheter point sources should be output separately for chimere grids
