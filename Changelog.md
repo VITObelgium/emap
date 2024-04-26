@@ -1,6 +1,7 @@
 Release 3.1.1
 -------------
 - Relaxed CAMS spatial patter filename regex
+- Bugfix: Use the same spatial pattern on higher resolutions in case of uniform spread fallback on coursest resolution
 
 Release 3.1.0
 -------------
