@@ -162,6 +162,10 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
             return ProgressStatusResult::Continue;
         });
 
+        if (countryCoverages.empty()) {
+            throw RuntimeError("Unexpected country data: no country intersections found for grid '{}'", gridData.name);
+        }
+
         Log::debug("Create country coverages took {}", dur.elapsed_time_string());
 
         progress.reset(cfg.included_pollutants().size() * cfg.sectors().nfr_sectors().size());
