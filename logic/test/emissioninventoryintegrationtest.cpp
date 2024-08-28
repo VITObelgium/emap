@@ -46,7 +46,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
         )toml";
 
         RunSummary summary;
-        auto cfg = parse_run_configuration(configToml, fs::u8path(INTEGRATION_TEST_DATA_DIR));
+        auto cfg = parse_run_configuration(configToml, file::u8path(INTEGRATION_TEST_DATA_DIR));
 
         auto nfrTotalEmissions = read_nfr_emissions(cfg.year(), cfg, summary);
         auto pointSources      = read_country_point_sources(cfg, countries::BEF, summary);
@@ -97,7 +97,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
     {
         TempDir temp("emap_model_run");
 
-        std::string_view configToml = R"toml(
+        constexpr std::string_view configToml = R"toml(
             [model]
                 grid = "vlops1km"
                 datapath = "./_input"
@@ -120,7 +120,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
         const auto outputPath = temp.path() / "output";
 
         RunSummary summary;
-        auto cfg = parse_run_configuration(fmt::format(configToml, outputPath.generic_u8string()), fs::u8path(INTEGRATION_TEST_DATA_DIR));
+        auto cfg = parse_run_configuration(fmt::format(configToml, file::generic_u8string(outputPath)), file::u8path(INTEGRATION_TEST_DATA_DIR));
 
         CHECK(run_model(cfg, [](const auto&) { return inf::ProgressStatusResult::Continue; }) == EXIT_SUCCESS);
 
@@ -186,7 +186,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
 
         RunSummary summary;
 
-        auto cfg            = parse_run_configuration(configToml, fs::u8path(INTEGRATION_TEST_DATA_DIR));
+        auto cfg            = parse_run_configuration(configToml, file::u8path(INTEGRATION_TEST_DATA_DIR));
         auto pointEmissions = read_country_point_sources(cfg, countries::BEF, summary);
         double pm10Sum      = 0.0;
         double pm25Sum      = 0.0;

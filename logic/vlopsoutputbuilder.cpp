@@ -84,7 +84,7 @@ static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, 
     }
     filename += ".brn";
 
-    return fs::u8path(filename);
+    return file::u8path(filename);
 }
 
 void VlopsOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode mode)

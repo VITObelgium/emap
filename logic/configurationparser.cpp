@@ -478,7 +478,7 @@ static fs::path read_optional_path(const NamedSection& ns, std::string_view name
     }
 
     if (auto pathValue = nodeValue.value<std::string_view>(); pathValue.has_value()) {
-        auto result = fs::u8path(*pathValue);
+        auto result = file::u8path(*pathValue);
         if ((!result.empty()) && result.is_relative()) {
             result = fs::absolute(basePath / result);
         }

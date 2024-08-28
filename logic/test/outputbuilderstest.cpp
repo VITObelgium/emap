@@ -20,15 +20,15 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.outputLevelName      = "NFR";
     outputConfig.separatePointSources = poinSourcesSeparate;
 
-    return RunConfiguration(fs::u8path(TEST_DATA_DIR) / "_input", {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Output builders")
 {
     TempDir tempDir("Output builder");
 
-    const auto parametersPath     = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
-    const auto countryInventory   = parse_countries(fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
+    const auto parametersPath     = file::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    const auto countryInventory   = parse_countries(file::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters" / "id_nummers.xlsx");
     const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
     const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 

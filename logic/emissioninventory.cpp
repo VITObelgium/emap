@@ -499,7 +499,7 @@ static SingleEmissions read_country_pollutant_point_sources(const fs::path& dir,
         for (auto iter : fs::directory_iterator(dir)) {
             if (iter.is_regular_file() && iter.path().extension() == ".csv") {
                 const auto& path = iter.path();
-                if (str::starts_with(path.filename().u8string(), match)) {
+                if (str::starts_with(file::u8string(path.filename()), match)) {
                     pathsToUse.insert(iter.path());
                 }
             }

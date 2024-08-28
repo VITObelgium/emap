@@ -91,19 +91,16 @@ private:
 
 }
 
-namespace fmt {
 template <>
-struct formatter<emap::Pollutant>
+struct fmt::formatter<emap::Pollutant>
 {
-    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    FMT_CONSTEXPR20 auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
-    auto format(const emap::Pollutant& val, FormatContext& ctx) const -> decltype(ctx.out())
+    auto format(const emap::Pollutant& val, format_context& ctx) const -> format_context::iterator
     {
-        return format_to(ctx.out(), "{}", val.code());
+        return fmt::format_to(ctx.out(), "{}", val.code());
     }
 };
-}

@@ -289,55 +289,47 @@ inline EmissionIdentifier convert_emission_id_to_gnfr_level(const EmissionIdenti
 
 }
 
-namespace fmt {
 template <>
-struct formatter<emap::EmissionIdentifier>
+struct fmt::formatter<emap::EmissionIdentifier>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
+    FMT_CONSTEXPR20 auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
-    auto format(const emap::EmissionIdentifier& val, FormatContext& ctx)
+    auto format(const emap::EmissionIdentifier& val, format_context& ctx) const -> format_context::iterator
     {
-        return format_to(ctx.out(), "{} - {} - {}", val.country, val.sector, val.pollutant);
+        return fmt::format_to(ctx.out(), "{} - {} - {}", val.country, val.sector, val.pollutant);
     }
 };
 
 template <>
-struct formatter<emap::EmissionType>
+struct fmt::formatter<emap::EmissionType>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
+    FMT_CONSTEXPR20 auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
-    auto format(const emap::EmissionType& val, FormatContext& ctx)
+    auto format(const emap::EmissionType& val, format_context& ctx) const -> format_context::iterator
     {
-        return format_to(ctx.out(), emission_type_name(val));
+        return fmt::format_to(ctx.out(), "{}", emission_type_name(val));
     }
 };
 
 template <>
-struct formatter<emap::EmissionSector::Type>
+struct fmt::formatter<emap::EmissionSector::Type>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
+    FMT_CONSTEXPR20 auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
-    auto format(const emap::EmissionSector::Type& val, FormatContext& ctx)
+    auto format(const emap::EmissionSector::Type& val, format_context& ctx) const -> format_context::iterator
     {
-        return format_to(ctx.out(), emission_sector_type_name(val));
+        return fmt::format_to(ctx.out(), "{}", emission_sector_type_name(val));
     }
 };
-}
 
 namespace std {
 template <>

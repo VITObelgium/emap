@@ -283,7 +283,7 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
 
 static fs::path reporing_dir(date::year reportYear)
 {
-    return fs::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
+    return file::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
 }
 
 void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath)
@@ -655,7 +655,7 @@ std::vector<SpatialPatternInventory::SpatialPatternException> SpatialPatternInve
                 SpatialPatternException ex;
                 ex.yearRange      = parse_year_range(feature.field_as<std::string>(colYear));
                 ex.emissionId     = EmissionIdentifier(country, *sector, pollutant);
-                ex.spatialPattern = exceptionsFile.parent_path() / fs::u8path(feature.field_as<std::string_view>(colPath));
+                ex.spatialPattern = exceptionsFile.parent_path() / file::u8path(feature.field_as<std::string_view>(colPath));
                 ex.type           = exception_type_from_string(feature.field_as<std::string_view>(colType));
 
                 if (feature.field_is_valid(colViaNfr)) {

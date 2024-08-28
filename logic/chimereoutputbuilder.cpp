@@ -120,13 +120,13 @@ static std::string_view grid_resolution_string(ModelGrid grid)
 static fs::path create_chimere_output_name(ModelGrid grid, const Pollutant& pol, date::year year, std::string_view suffix)
 {
     // output_Chimere_resolutie_polluent_zichtjaar_suffix
-    return fs::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(grid), pol.code(), static_cast<int32_t>(year), suffix));
+    return file::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(grid), pol.code(), static_cast<int32_t>(year), suffix));
 }
 
 static fs::path create_chimere_point_source_output_name(date::year year, std::string_view suffix)
 {
     // output_Chimere_pointsources_zichtjaar_suffix_ps
-    return fs::u8path(fmt::format("output_Chimere_pointsources_{}{}_ps.dat", static_cast<int32_t>(year), suffix));
+    return file::u8path(fmt::format("output_Chimere_pointsources_{}{}_ps.dat", static_cast<int32_t>(year), suffix));
 }
 
 void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mode*/)

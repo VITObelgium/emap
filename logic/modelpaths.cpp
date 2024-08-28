@@ -3,6 +3,9 @@
 #include <fmt/format.h>
 
 namespace emap {
+
+using namespace inf;
+
 ModelPaths::ModelPaths(std::string_view scenario, const fs::path& dataRoot, const fs::path& outputRoot)
 : _scenario(scenario)
 , _dataRoot(dataRoot)
@@ -51,13 +54,13 @@ fs::path ModelPaths::sector_parameters_config_path() const
 
 fs::path ModelPaths::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
 {
-    return output_path() / std::to_string(static_cast<int>(year)) / fs::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));
+    return output_path() / std::to_string(static_cast<int>(year)) / file::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));
 }
 
 fs::path ModelPaths::emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const
 {
     const int yearInt = static_cast<int>(year);
-    return output_path() / std::to_string(yearInt) / fs::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
+    return output_path() / std::to_string(yearInt) / file::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
 }
 
 const fs::path& ModelPaths::data_root() const noexcept
@@ -92,22 +95,22 @@ fs::path ModelPaths::output_dir_for_rasters() const
 
 fs::path ModelPaths::output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const
 {
-    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+    return output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}_{}.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
 }
 
 fs::path ModelPaths::output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const
 {
-    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
+    return output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}.tif", pol.code(), sector.name(), grid.name));
 }
 
 fs::path ModelPaths::output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const
 {
-    return output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}_spatpat.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
+    return output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}_{}_spatpat.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
 }
 
 fs::path ModelPaths::emissions_dir_path(date::year reportYear) const
 {
-    return _dataRoot / "01_data_emissions" / "inventory" / fs::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
+    return _dataRoot / "01_data_emissions" / "inventory" / file::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
 }
 
 fs::path ModelPaths::append_scenario_suffix_if_available(const fs::path& path) const
@@ -115,7 +118,7 @@ fs::path ModelPaths::append_scenario_suffix_if_available(const fs::path& path) c
     if (!_scenario.empty()) {
         auto scenarioPath = path;
         auto filename     = path.filename();
-        scenarioPath.replace_filename(fs::u8path(fmt::format("{}_{}{}", filename.stem(), _scenario, filename.extension())));
+        scenarioPath.replace_filename(file::u8path(fmt::format("{}_{}{}", filename.stem(), _scenario, filename.extension())));
         if (fs::is_regular_file(scenarioPath)) {
             return scenarioPath;
         }

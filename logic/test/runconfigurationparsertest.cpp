@@ -15,9 +15,9 @@ using namespace doctest;
 
 TEST_CASE("Parse run configuration")
 {
-    const auto scaleFactors = fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "historic" / "1990" / "scaling_diffuse.csv";
+    const auto scaleFactors = file::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "historic" / "1990" / "scaling_diffuse.csv";
 
-    const auto expectedDataRoot = fs::u8path(TEST_DATA_DIR) / "_input";
+    const auto expectedDataRoot = file::u8path(TEST_DATA_DIR) / "_input";
     const auto expectedOutput   = fs::absolute("/temp");
 
     SUBCASE("valid file")
@@ -40,7 +40,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR));
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
@@ -79,7 +79,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR));
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
@@ -114,7 +114,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR));
+        const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR));
 
         CHECK(config.scenario() == "scen");
         // Scenario specific input available
@@ -127,7 +127,7 @@ TEST_CASE("Parse run configuration")
 
     SUBCASE("invalid file: empty")
     {
-        CHECK_THROWS_AS(parse_run_configuration("", fs::u8path(TEST_DATA_DIR)), RuntimeError);
+        CHECK_THROWS_AS(parse_run_configuration("", file::u8path(TEST_DATA_DIR)), RuntimeError);
     }
 
     SUBCASE("invalid file: no path quotes")
@@ -146,7 +146,7 @@ TEST_CASE("Parse run configuration")
                 sector_level = "GNFR"
         )toml";
 
-        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), RuntimeError);
+        CHECK_THROWS_AS(parse_run_configuration(fmt::format(tomlConfig, file::generic_u8string(scaleFactors)), file::u8path(TEST_DATA_DIR)), RuntimeError);
     }
 
     SUBCASE("invalid file: year as string")
@@ -168,7 +168,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
     }
 
     SUBCASE("invalid file: scenario is integer")
@@ -191,7 +191,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), fs::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
     }
 }
 }

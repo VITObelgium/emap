@@ -132,12 +132,12 @@ void EmissionsCollector::flush_pollutant_to_disk(WriteMode mode)
     _outputBuilder->flush_pollutant(*_pollutant, convert_write_mode(mode));
 
     for (auto& [name, raster] : _collectedEmissions) {
-        const auto outputPath = _cfg.output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}.tif", _pollutant->code(), name, _grid->name));
+        const auto outputPath = _cfg.output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}.tif", _pollutant->code(), name, _grid->name));
         gdx::write_raster(std::move(raster), outputPath);
     }
 
     for (auto& [id, raster] : _collectedCountryEmissions) {
-        const auto outputPath = _cfg.output_dir_for_rasters() / fs::u8path(fmt::format("{}_{}_{}_{}.tif", _pollutant->code(), id.second, id.first, _grid->name));
+        const auto outputPath = _cfg.output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}_{}.tif", _pollutant->code(), id.second, id.first, _grid->name));
         gdx::write_raster(std::move(raster), outputPath);
     }
 

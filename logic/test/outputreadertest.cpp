@@ -15,7 +15,7 @@ using namespace doctest;
 
 TEST_CASE("Output readers")
 {
-    const auto brnPath = fs::u8path(TEST_DATA_DIR) / "CO_OPS_2020.brn";
+    const auto brnPath = file::u8path(TEST_DATA_DIR) / "CO_OPS_2020.brn";
     auto entries       = read_brn_output(brnPath);
 }
 }

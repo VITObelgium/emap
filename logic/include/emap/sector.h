@@ -223,22 +223,19 @@ private:
 
 }
 
-namespace fmt {
 template <>
-struct formatter<emap::EmissionSector>
+struct fmt::formatter<emap::EmissionSector>
 {
-    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    FMT_CONSTEXPR20 auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
-    auto format(const emap::EmissionSector& val, FormatContext& ctx) const -> decltype(ctx.out())
+    auto format(const emap::EmissionSector& val, format_context& ctx) const -> format_context::iterator
     {
-        return format_to(ctx.out(), "{}", val.name());
+        return fmt::format_to(ctx.out(), "{}", val.name());
     }
 };
-}
 
 namespace std {
 // we want to use it with the std::unordered_* containers

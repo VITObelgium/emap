@@ -30,7 +30,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
 
 TEST_CASE("Input parsers")
 {
-    const auto parametersPath     = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    const auto parametersPath     = file::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
     const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
     const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
     const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
@@ -42,10 +42,10 @@ TEST_CASE("Input parsers")
         SUBCASE("nfr sectors")
         {
             // year == 2016, no results
-            CHECK(parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes).empty());
+            CHECK(parse_emissions(EmissionSector::Type::Nfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes).empty());
             cfg.set_year(1990_y);
 
-            auto emissions = parse_emissions(EmissionSector::Type::Nfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
+            auto emissions = parse_emissions(EmissionSector::Type::Nfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
             REQUIRE(emissions.size() == 9);
 
             for (auto& em : emissions) {
@@ -74,7 +74,7 @@ TEST_CASE("Input parsers")
         {
             cfg.set_year(1990_y);
 
-            auto emissions = parse_emissions(EmissionSector::Type::Gnfr, fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
+            auto emissions = parse_emissions(EmissionSector::Type::Gnfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
             REQUIRE(emissions.size() == 4);
 
             for (auto& em : emissions) {
@@ -92,7 +92,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Brussels)")
         {
-            auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -108,7 +108,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Flanders)")
         {
-            auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -144,7 +144,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Flanders) no fuel used")
         {
-            auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", date::year(2022), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", date::year(2022), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -159,7 +159,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Wallonia)")
         {
-            auto emissions = parse_emissions_belgium(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -178,7 +178,7 @@ TEST_CASE("Input parsers")
     {
         SUBCASE("nfr sectors")
         {
-            const auto emissions = parse_point_sources(fs::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "pointsource_emissions_2021.csv", cfg);
+            const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "pointsource_emissions_2021.csv", cfg);
             REQUIRE(emissions.size() == 4);
 
             int lineNr = 1;
@@ -204,12 +204,12 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load scaling factors")
     {
-        const auto parametersPath     = fs::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+        const auto parametersPath     = file::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
         const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
         const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
         const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
 
-        const auto scalings = parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
+        const auto scalings = parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "scaling.xlsx", cfg);
         REQUIRE(scalings.size() == 10);
 
         {
@@ -275,15 +275,15 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Scalings year is integer")
     {
-        CHECK_NOTHROW(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_year_integer.xlsx", cfg));
+        CHECK_NOTHROW(parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "scaling_template_year_integer.xlsx", cfg));
     }
 
     SUBCASE("Gnfr sector mismatch")
     {
-        CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_invalid_gnfr.xlsx", cfg), RuntimeError);
-        CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_gnfr_mismatch.xlsx", cfg), RuntimeError);
-        CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_empty_nfr.xlsx", cfg), RuntimeError);
-        CHECK_THROWS_AS(parse_scaling_factors(fs::u8path(TEST_DATA_DIR) / "scaling_template_pmcoarse.xlsx", cfg), RuntimeError);
+        CHECK_THROWS_AS(parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "scaling_template_invalid_gnfr.xlsx", cfg), RuntimeError);
+        CHECK_THROWS_AS(parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "scaling_template_gnfr_mismatch.xlsx", cfg), RuntimeError);
+        CHECK_THROWS_AS(parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "scaling_template_empty_nfr.xlsx", cfg), RuntimeError);
+        CHECK_THROWS_AS(parse_scaling_factors(file::u8path(TEST_DATA_DIR) / "scaling_template_pmcoarse.xlsx", cfg), RuntimeError);
     }
 
     auto rasterForNfrSector = [](const std::vector<SpatialPatternData>& spd, const NfrSector& sector) -> const gdx::DenseRaster<double>& {
@@ -302,7 +302,7 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load spatial patterns with gnfr sector")
     {
-        const auto spatialPatterns = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg);
+        const auto spatialPatterns = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg);
         CHECK(spatialPatterns.size() == 2);
 
         // Flanders
@@ -314,7 +314,7 @@ TEST_CASE("Input parsers")
     SUBCASE("Load spatial pattern with gnfr sector fallback")
     {
         // Nfr3B1a is not present in the file, but K_AgriLiveStock is
-        const auto spatialPattern = parse_spatial_pattern_flanders(fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", EmissionSector(sectors::nfr::Nfr3B1a), cfg);
+        const auto spatialPattern = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", EmissionSector(sectors::nfr::Nfr3B1a), cfg);
         CHECK(gdx::sum(spatialPattern) == Approx(18.0750674).epsilon(1e-4));
     }
 }
