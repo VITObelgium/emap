@@ -54,6 +54,7 @@ public:
         date::year year,
         date::year reportYear,
         std::string_view scenario,
+        bool combineIdenticalPointSources,
         double rescaleThreshold,
         std::vector<Pollutant> includedPollutants,
         SectorInventory sectors,
@@ -95,6 +96,9 @@ public:
 
     std::string_view scenario() const noexcept;
 
+    bool combine_identical_point_sources() const noexcept;
+    void set_combine_identical_point_sources(bool enabled) noexcept;
+
     double point_source_rescale_threshold() const noexcept;
 
     void set_max_concurrency(std::optional<int32_t> concurrency) noexcept;
@@ -128,6 +132,7 @@ private:
     date::year _year;
     date::year _reportYear;
     std::string _scenario;
+    bool _combineIdenticalPointSources;
     double _pointRescaleThreshold;
     std::vector<Pollutant> _includedPollutants;
     SectorInventory _sectorInventory;

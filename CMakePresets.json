@@ -27,8 +27,18 @@
             "inherits": "vcpkg-base",
             "hidden": true,
             "cacheVariables": {
-                "VCPKG_OSX_DEPLOYMENT_TARGET": "11.3",
+                "VCPKG_OSX_DEPLOYMENT_TARGET": "14.0",
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake",
+                "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
+            }
+        },
+        {
+            "name": "osx-homebrew-base",
+            "inherits": "vcpkg-base",
+            "hidden": true,
+            "cacheVariables": {
+                "VCPKG_OSX_DEPLOYMENT_TARGET": "14.0",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-homebrew.cmake",
                 "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
             }
         },
@@ -69,14 +79,14 @@
         },
         {
             "name": "arm64-osx",
-            "inherits": "osx-base",
+            "inherits": "osx-homebrew-base",
             "displayName": "OSX arm64",
             "description": "Vcpkg build for arm64 on mac",
             "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "arm64-osx",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx-homebrew",
                 "CMAKE_OSX_ARCHITECTURES": "arm64",
                 "CMAKE_BUILD_TYPE": "Release",
-                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkgs-arm64-osx",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkgs-arm64-osx-homebrew",
                 "VCPKG_ALLOW_SYSTEM_LIBS": "ON"
             }
         },

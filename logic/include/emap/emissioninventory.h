@@ -56,7 +56,7 @@ public:
     {
         std::vector<EmissionEntry> result;
         result.reserve(_pointEmissionEntries.size());
-        std::transform(_pointEmissionEntries.begin(), _pointEmissionEntries.end(), std::back_inserter(result), [=](const EmissionEntry& entry) {
+        std::transform(_pointEmissionEntries.begin(), _pointEmissionEntries.end(), std::back_inserter(result), [this](const EmissionEntry& entry) {
             auto scaledEntry = entry;
             scaledEntry.set_value(entry.value() * _pointAutoScaling * _pointUserScaling);
             return scaledEntry;

@@ -25,7 +25,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")
@@ -176,6 +176,8 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load point source emissions")
     {
+        cfg.set_combine_identical_point_sources(false);
+
         SUBCASE("nfr sectors")
         {
             const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "pointsource_emissions_2021.csv", cfg);

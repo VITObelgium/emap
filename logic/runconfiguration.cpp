@@ -18,6 +18,7 @@ RunConfiguration::RunConfiguration(
     date::year year,
     date::year reportYear,
     std::string_view scenario,
+    bool combineIdenticalPointSources,
     double rescaleThreshold,
     std::vector<Pollutant> includedPollutants,
     SectorInventory sectors,
@@ -32,6 +33,7 @@ RunConfiguration::RunConfiguration(
 , _year(year)
 , _reportYear(reportYear)
 , _scenario(scenario)
+, _combineIdenticalPointSources(combineIdenticalPointSources)
 , _pointRescaleThreshold(rescaleThreshold)
 , _includedPollutants(std::move(includedPollutants))
 , _sectorInventory(std::move(sectors))
@@ -184,6 +186,16 @@ date::year RunConfiguration::reporting_year() const noexcept
 std::string_view RunConfiguration::scenario() const noexcept
 {
     return _scenario;
+}
+
+bool RunConfiguration::combine_identical_point_sources() const noexcept
+{
+    return _combineIdenticalPointSources;
+}
+
+void RunConfiguration::set_combine_identical_point_sources(bool enabled) noexcept
+{
+    _combineIdenticalPointSources = enabled;
 }
 
 double RunConfiguration::point_source_rescale_threshold() const noexcept

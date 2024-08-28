@@ -613,6 +613,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
 
         const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
         const auto scenario                     = read_string(model, "scenario", "");
+        const auto combinePointSources          = model.section["combine_identical_point_sources"].value<bool>().value_or(true);
         const double rescaleThreshold           = model.section["point_source_rescale_threshold"].value<double>().value_or(100.0);
         const auto year                         = read_year(model.section["year"]);
         const auto reportYear                   = read_year(model.section["report_year"]);
@@ -644,6 +645,7 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
                                 year,
                                 reportYear,
                                 scenario,
+                                combinePointSources,
                                 rescaleThreshold,
                                 std::move(includedPollutants),
                                 std::move(sectorInventory),

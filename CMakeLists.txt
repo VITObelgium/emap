@@ -14,21 +14,23 @@ include(GNUInstallDirs)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 11.3)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
 
 option(INFRA_INSOURCE "Use submodule version of infra" ON)
 option(GDX_INSOURCE "Use submodule version of geodynamix" ON)
 set(PACKAGE_VERSION_COMMITHASH "dev" CACHE STRING "git commit hash")
-if (PACKAGE_VERSION_COMMITHASH STREQUAL "dev")
-    set(EMAP_DEV_BUILD 1)
-else ()
-    set(EMAP_DEV_BUILD 0)
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        add_link_options($<$<CONFIG:RELEASE>:-s>) # strip dist binaries
-    endif ()
-endif ()
 
-if (WIN32)
+if(PACKAGE_VERSION_COMMITHASH STREQUAL "dev")
+    set(EMAP_DEV_BUILD 1)
+else()
+    set(EMAP_DEV_BUILD 0)
+
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        add_link_options($<$<CONFIG:RELEASE>:-s>) # strip dist binaries
+    endif()
+endif()
+
+if(WIN32)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     set(CMAKE_VS_JUST_MY_CODE_DEBUGGING ON)
 
@@ -54,24 +56,24 @@ if (WIN32)
         $<$<CXX_COMPILER_ID:MSVC>:/await>
     )
 
-    if (MSVC)
+    if(MSVC)
         # Fixes warning when linking against release c library in debug mode
         # Fixes warning when linking against release c library in debug mode
         add_link_options("$<$<CONFIG:Debug>:/NODEFAULTLIB:MSVCRT;/NODEFAULTLIB:LIBCMT>")
-    endif ()
-else ()
+    endif()
+else()
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wfatal-errors -Wno-unknown-pragmas
         $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>
         $<$<CXX_COMPILER_ID:GNU>:-fdiagnostics-color=always>
         $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics>
     )
-endif ()
+endif()
 
-set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-if (INFRA_INSOURCE)
+if(INFRA_INSOURCE)
     set(INFRA_LOGGING ON)
     set(INFRA_GDAL ON)
     set(INFRA_PROJDB_DIR "data")
@@ -84,34 +86,37 @@ if (INFRA_INSOURCE)
     set(INFRA_TESTUTIL_MAIN_PROJDB_PATH ${INFRA_PROJDB_DIR})
 
     add_subdirectory(deps/infra)
-else ()
+else()
     find_package(Infra CONFIG COMPONENTS testutil REQUIRED)
     set_target_properties(fmt::fmt PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
     set_target_properties(spdlog::spdlog PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
     set_target_properties(Infra::infra PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
-endif ()
+endif()
 
-if (GDX_INSOURCE)
+if(GDX_INSOURCE)
     set(GDX_PYTHON_BINDINGS OFF)
     set(GDX_ENABLE_TESTS OFF)
     set(GDX_ENABLE_TEST_UTILS ${BUILD_TESTING})
     set(GDX_ENABLE_TOOLS OFF)
     set(GDX_ENABLE_SIMD ON)
-    IF(NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm" AND NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64") 
+
+    IF(NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm" AND NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64")
         set(GDX_AVX2 ON)
-    endif ()
+    endif()
+
     add_subdirectory(deps/geodynamix)
-else ()
+else()
     find_package(Geodynamix CONFIG REQUIRED)
-endif ()
+endif()
 
 add_subdirectory(logic)
 add_subdirectory(cli)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/emapconfig.h)
-if (WIN32)
+
+if(WIN32)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
-endif ()
+endif()
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/README.md

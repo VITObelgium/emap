@@ -6,6 +6,7 @@
 #include "emap/runconfiguration.h"
 #include "emap/scalingfactors.h"
 #include "emap/sector.h"
+#include "infra/chrono.h"
 #include "infra/csvreader.h"
 #include "infra/enumutils.h"
 #include "infra/exception.h"
@@ -114,15 +115,101 @@ Range<date::year> parse_year_range(std::string_view yearRange)
     throw RuntimeError("Invalid year range specification: {}", yearRange);
 }
 
+struct PointSourceIdentifier
+{
+    std::string type;
+    std::string scenario;
+    chrono::year year;
+    Country country;
+    EmissionSector sector;
+    Pollutant pollutant;
+    std::string eilNumber;
+    std::string eilPoint;
+    std::string subType;
+    std::optional<Coordinate> coordinate;
+    std::optional<int32_t> dv;
+    double height         = 0.0;
+    double diameter       = 0.0;
+    double temperature    = 0.0;
+    double warmthContents = 0.0;
+    double flowRate       = 0.0;
+
+#ifdef HAVE_CPP20_CHRONO
+    auto operator<=>(const emap::PointSourceIdentifier& other) const = default;
+#else
+    bool operator==(const emap::PointSourceIdentifier& other) const = default;
+#endif
+
+    std::string source_id() const
+    {
+        return fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", height, diameter, temperature, warmthContents, flowRate, eilPoint, eilNumber, subType);
+    }
+
+    EmissionEntry to_emission_entry(double emissionValue) const
+    {
+        EmissionEntry entry(
+            EmissionIdentifier(country, sector, pollutant),
+            EmissionValue(emissionValue));
+
+        entry.set_height(height);
+        entry.set_diameter(diameter);
+        entry.set_temperature(temperature);
+        entry.set_warmth_contents(warmthContents);
+        entry.set_flow_rate(flowRate);
+
+        entry.set_source_id(source_id());
+        entry.set_dv(dv);
+        if (coordinate.has_value()) {
+            entry.set_coordinate(*coordinate);
+        }
+        return entry;
+    }
+};
+}
+
+namespace std {
+template <>
+struct hash<emap::PointSourceIdentifier>
+{
+    std::size_t operator()(const emap::PointSourceIdentifier& ps) const
+    {
+        std::size_t seed = 0;
+        inf::hash_combine(seed,
+                          ps.type,
+                          ps.scenario,
+                          ps.year,
+                          ps.country,
+                          ps.sector,
+                          ps.pollutant,
+                          ps.eilNumber,
+                          ps.eilPoint,
+                          ps.subType,
+                          ps.coordinate,
+                          ps.dv,
+                          ps.height,
+                          ps.diameter,
+                          ps.temperature,
+                          ps.warmthContents,
+                          ps.flowRate);
+        return seed;
+    }
+};
+}
+
+namespace emap {
+
 SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfiguration& cfg)
 {
     // pointsource csv columns: type;scenario;year;reporting_country;nfr-sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;Debiet_Nm3/u;Type emissie omschrijving;EIL-nummer;Exploitatie naam;NACE-code;EIL Emissiepunt Jaar Naam;Activiteit type;subtype
 
-    const auto& countryInv   = cfg.countries();
-    const auto& sectorInv    = cfg.sectors();
-    const auto& pollutantInv = cfg.pollutants();
+    const auto& countryInv      = cfg.countries();
+    const auto& sectorInv       = cfg.sectors();
+    const auto& pollutantInv    = cfg.pollutants();
+    const bool combineIdentical = cfg.combine_identical_point_sources();
 
     size_t lineNr = 2;
+
+    std::unordered_map<PointSourceIdentifier, double> pointSourceEmissions;
 
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
@@ -210,11 +297,8 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
             const auto pollutantName = line.get_string(colPollutant);
             const auto country       = countryInv.try_country_from_string(line.get_string(colCountry));
 
-            if (!country.has_value()) {
-                continue;
-            }
-
-            if (sectorName.empty() || sectorInv.is_ignored_sector(sectorType, sectorName, *country) ||
+            if (sectorName.empty() ||
+                sectorInv.is_ignored_sector(sectorType, sectorName, *country) ||
                 pollutantInv.is_ignored_pollutant(pollutantName, *country)) {
                 continue;
             }
@@ -223,39 +307,40 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
             auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
             auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
+
             if (sector.has_value() && pollutant.has_value()) {
-                EmissionEntry info(
-                    EmissionIdentifier(*country, *sector, *pollutant),
-                    EmissionValue(emissionValue));
-
-                info.set_height(line.get_double(colHeight).value_or(0.0));
-                info.set_diameter(line.get_double(colDiameter).value_or(0.0));
-                info.set_temperature(line.get_double(colTemperature).value_or(-9999.0));
-                info.set_warmth_contents(line.get_double(colWarmthContents).value_or(0.0));
-                info.set_flow_rate(line.get_double(colFlowRate).value_or(0.0));
-
-                std::string subType = "none";
-                if (colSubType.has_value()) {
-                    subType = line.get_string(*colSubType);
-                }
-
-                info.set_source_id(fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEilPoint), line.get_string(colEil), subType));
+                PointSourceIdentifier ps;
+                ps.sector         = *sector;
+                ps.country        = *country;
+                ps.pollutant      = *pollutant;
+                ps.height         = line.get_double(colHeight).value_or(0.0);
+                ps.diameter       = line.get_double(colDiameter).value_or(0.0);
+                ps.temperature    = line.get_double(colTemperature).value_or(0.0);
+                ps.warmthContents = line.get_double(colWarmthContents).value_or(0.0);
+                ps.flowRate       = line.get_double(colFlowRate).value_or(0.0);
+                ps.subType        = colSubType.has_value() ? line.get_string(*colSubType) : "none";
+                ps.eilNumber      = line.get_string(colEil);
+                ps.eilPoint       = line.get_string(colEilPoint);
 
                 if (colX.has_value() && colY.has_value()) {
                     auto x = line.get_double(*colX);
                     auto y = line.get_double(*colY);
                     if (x.has_value() && y.has_value()) {
-                        info.set_coordinate(Coordinate(*x, *y));
+                        ps.coordinate = Coordinate(*x, *y);
                     } else {
                         throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
                     }
                 }
 
                 if (colDv.has_value()) {
-                    info.set_dv(line.get_int32(*colDv));
+                    ps.dv = line.get_int32(*colDv);
                 }
 
-                result.add_emission(std::move(info));
+                if (combineIdentical) {
+                    pointSourceEmissions[ps] += emissionValue;
+                } else {
+                    result.add_emission(ps.to_emission_entry(emissionValue));
+                }
             } else {
                 if (!pollutant.has_value()) {
                     Log::warn("Unknown pollutant name: {}", pollutantName);
@@ -267,6 +352,12 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
             }
 
             ++lineNr;
+        }
+
+        if (combineIdentical) {
+            for (const auto& [ps, emission] : pointSourceEmissions) {
+                result.add_emission(ps.to_emission_entry(emission));
+            }
         }
 
         return result;

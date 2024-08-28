@@ -22,7 +22,7 @@
 #include <windows.h>
 #endif
 
-using inf::Log;
+using namespace inf;
 
 static inf::Log::Level log_level_from_value(int32_t value)
 {
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
                lyra::opt(options.debugGrids)["-d"]["--debug"]("Dumps internal grid usages") |
                lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
 
-    if (argc == 2 && fs::is_regular_file(fs::u8path(argv[1]))) {
+    if (argc == 2 && fs::is_regular_file(file::u8path(argv[1]))) {
         // simplified cli invocation, assume argument is config file
         options.config = argv[1];
     } else {
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
     try {
         inf::gdal::RegistrationConfig gdalCfg;
-        gdalCfg.projdbPath = fs::u8path(argv[0]).parent_path() / "data";
+        gdalCfg.projdbPath = file::u8path(argv[0]).parent_path() / "data";
         inf::gdal::Registration reg(gdalCfg);
         inf::gdal::set_log_handler(inf::Log::Level::Debug);
 
@@ -105,10 +105,10 @@ int main(int argc, char** argv)
         }
 
         if (options.debugGrids) {
-            return emap::debug_grids(fs::u8path(options.config), log_level_from_value(options.logLevel));
+            return emap::debug_grids(file::u8path(options.config), log_level_from_value(options.logLevel));
         } else {
             return emap::run_model(
-                fs::u8path(options.config), log_level_from_value(options.logLevel), options.concurrency, [&](const emap::ModelProgress::Status& info) {
+                file::u8path(options.config), log_level_from_value(options.logLevel), options.concurrency, [&](const emap::ModelProgress::Status& info) {
                     if (progressBar) {
                         progressBar->set_progress(info.progress());
                         progressBar->set_postfix_text(info.payload().to_string());

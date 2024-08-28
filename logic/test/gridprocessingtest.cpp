@@ -46,7 +46,7 @@ TEST_CASE("create_geometry_extent")
 TEST_CASE("create_country_coverages")
 {
     auto outputGrid    = grid_data(GridDefinition::Vlops60km).meta;
-    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
@@ -66,7 +66,7 @@ TEST_CASE("create_country_coverages")
 TEST_CASE("create_country_coverages flanders chimere")
 {
     auto outputGrid    = grid_data(GridDefinition::Chimere01deg).meta;
-    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Chimere01deg).meta);
@@ -79,7 +79,7 @@ TEST_CASE("create_country_coverages flanders chimere")
 
     CHECK(bef.outputSubgridExtent.rows == 9);
 
-    auto spatialPatternRaster = gdx::resample_raster(gdx::read_dense_raster<double>(fs::u8path(TEST_DATA_DIR) / "spatialpattern.tif"), bef.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
+    auto spatialPatternRaster = gdx::resample_raster(gdx::read_dense_raster<double>(file::u8path(TEST_DATA_DIR) / "spatialpattern.tif"), bef.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
     CHECK(spatialPatternRaster.metadata().rows == 9);
 
     const auto intersection = metadata_intersection(bef.outputSubgridExtent, outputGrid);
@@ -89,7 +89,7 @@ TEST_CASE("create_country_coverages flanders chimere")
 TEST_CASE("create_country_coverages edge country")
 {
     auto outputGrid    = grid_data(GridDefinition::Chimere01deg).meta;
-    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Chimere01deg).meta);
@@ -108,7 +108,7 @@ TEST_CASE("create_country_coverages edge country")
 TEST_CASE("Normalize raster")
 {
     auto outputGrid    = grid_data(GridDefinition::Vlops60km).meta;
-    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops60km).meta);
@@ -119,7 +119,7 @@ TEST_CASE("Normalize raster")
     CHECK(coverageInfo.size() == 1);
     auto& nl = coverageInfo.front();
 
-    auto grid = transform_grid(gdx::read_dense_raster<double>(fs::u8path(TEST_DATA_DIR) / "spatialpattern.tif"), GridDefinition::Vlops60km);
+    auto grid = transform_grid(gdx::read_dense_raster<double>(file::u8path(TEST_DATA_DIR) / "spatialpattern.tif"), GridDefinition::Vlops60km);
 
     auto nlRaster = extract_country_from_raster(sub_raster(grid, nl.outputSubgridExtent), nl);
     normalize_raster(nlRaster);
@@ -131,7 +131,7 @@ TEST_CASE("Resample nodata check")
     auto gridDef = GridDefinition::Chimere005degLarge;
 
     auto outputGrid    = grid_data(gridDef).meta;
-    auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
     CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
     auto vectorDs = gdal::warp_vector(countriesPath, grid_data(gridDef).meta);
@@ -142,7 +142,7 @@ TEST_CASE("Resample nodata check")
     CHECK(coverageInfo.size() == 1);
     auto& bef = coverageInfo.front();
 
-    auto inputPath = fs::u8path(TEST_DATA_DIR) / "1A3BI_NOX_2019.tif";
+    auto inputPath = file::u8path(TEST_DATA_DIR) / "1A3BI_NOX_2019.tif";
     auto result    = gdx::resample_raster(gdx::read_dense_raster<double>(inputPath), bef.outputSubgridExtent, gdal::ResampleAlgorithm::Average);
 
     size_t nodataCount = 0;
@@ -172,7 +172,7 @@ TEST_CASE("Add to raster")
         Log::info("Check grid: {}", grid_data(gridDef).name);
 
         auto outputGrid    = grid_data(gridDef).meta;
-        auto countriesPath = fs::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+        auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
 
         CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
         auto vectorDs = gdal::warp_vector(countriesPath, grid_data(gridDef).meta);
@@ -199,7 +199,7 @@ TEST_CASE("Add to raster")
 
 // TEST_CASE("res")
 //{
-//     auto spatialPattern = gdx::read_dense_raster<double>(fs::u8path(TEST_DATA_DIR) / "spatialpattern.tif");
+//     auto spatialPattern = gdx::read_dense_raster<double>(file::u8path(TEST_DATA_DIR) / "spatialpattern.tif");
 //     auto resultCalc     = transform_grid(spatialPattern, GridDefinition::VlopsCalc, gdal::ResampleAlgorithm::Average);
 //
 //     auto result60Km = transform_grid(resultCalc, GridDefinition::Vlops60km, gdal::ResampleAlgorithm::Average);
@@ -224,13 +224,13 @@ TEST_CASE("Add to raster")
 //{
 //     TempDir tmp("grid_country_extraction");
 //
-//     const auto inputPath     = fs::u8path(TEST_DATA_DIR) / "input" / "spatial_patterns" / "pm10_F_RoadTransport.tif";
-//     const auto countriesPath = fs::u8path(EMAP_DATA_DIR) / "boundaries.gpkg";
+//     const auto inputPath     = file::u8path(TEST_DATA_DIR) / "input" / "spatial_patterns" / "pm10_F_RoadTransport.tif";
+//     const auto countriesPath = file::u8path(EMAP_DATA_DIR) / "boundaries.gpkg";
 //     const auto outputPath    = tmp.path();
 //
 //     /*SUBCASE("transform grid")
 //     {
-//         const auto inputPath   = fs::u8path("C:/Users/vdboerd/OneDrive - VITO/Documents/E-map/E-MAP/input/spatial patterns/co_A_PublicPower.tif");
+//         const auto inputPath   = file::u8path("C:/Users/vdboerd/OneDrive - VITO/Documents/E-map/E-MAP/input/spatial patterns/co_A_PublicPower.tif");
 //         const auto inputRaster = gdx::read_dense_raster<double>(inputPath);
 //         auto result            = transform_grid(inputRaster, GridDefinition::Vlops1km);
 //         gdx::write_raster(result, "c:/temp/trans.tif");

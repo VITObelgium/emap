@@ -79,6 +79,7 @@ This section configures the model run
 - `included_pollutants` List of pollutants to include in the model run, this setting is optional, if it is not present all the configured pollutants will be included in the run.
 - `scenario` First search for emission input files with the `_scenario` suffix before using the default emission input files, allows easy creation of scenarios with modified input files. For point sources `emap_{scenario}_{pollutant}_{year}_*.csv` is checked before `emap_{pollutant}_{year}_*.csv`
 - `point_source_rescale_threshold` The threshold for allowing automatic rescaling of point sources when they exceed the reported total emissions [0 - 100]
+- `combine_identical_point_sources` combine the emission of the point sources with the same location and properties. The emissions will be summed and only one entry will be present in the output file. (default=true)
 
 ### Output section
 This section configures the output of the model

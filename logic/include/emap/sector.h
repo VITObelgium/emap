@@ -249,4 +249,19 @@ struct hash<emap::NfrId> : type_safe::hashable<emap::NfrId>
 {
 };
 
+template <>
+struct hash<emap::EmissionSector>
+{
+    std::size_t operator()(const emap::EmissionSector& sector) const
+    {
+        std::size_t seed = 0;
+        if (sector.type() == emap::EmissionSector::Type::Nfr) {
+            seed = std::hash<emap::NfrId>{}(sector.nfr_sector().id());
+        } else {
+            seed = std::hash<emap::GnfrId>{}(sector.gnfr_sector().id());
+        }
+
+        return seed;
+    }
+};
 }

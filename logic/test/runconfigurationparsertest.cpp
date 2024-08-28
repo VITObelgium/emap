@@ -31,6 +31,7 @@ TEST_CASE("Parse run configuration")
                 report_year = 2018
                 scenario = "scenarionaam"
                 scalefactors = "{}"
+                combine_identical_point_sources = true
             
             [output]
                 path = "/temp"
@@ -46,7 +47,8 @@ TEST_CASE("Parse run configuration")
         CHECK(config.data_root() == expectedDataRoot);
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year() == 2018_y);
-        // CHECK(config.scenario() == "scenarionaam");
+        CHECK(config.scenario() == "scenarionaam");
+        CHECK(config.combine_identical_point_sources() == true);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
         CHECK(config.output_path() == expectedOutput);
@@ -70,6 +72,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 included_pollutants = ["CO", "NOx", "NMVOC"]
+                combine_identical_point_sources = false
             
             [output]
                 path = "/temp"
@@ -86,6 +89,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config.year() == 2020_y);
         CHECK(config.reporting_year() == 2018_y);
         CHECK(config.scenario() == "scenarionaam");
+        CHECK(config.combine_identical_point_sources() == false);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
         CHECK(config.output_path() == expectedOutput);
@@ -117,6 +121,7 @@ TEST_CASE("Parse run configuration")
         const auto config = parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR));
 
         CHECK(config.scenario() == "scen");
+        CHECK(config.combine_identical_point_sources() == true);
         // Scenario specific input available
         CHECK(config.total_emissions_path_nfr_belgium(country::BEB) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021_scen.xlsx");
         CHECK(config.total_emissions_path_gnfr(config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021_scen.txt");
