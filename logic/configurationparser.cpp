@@ -550,22 +550,22 @@ static std::vector<Pollutant> read_pollutants(toml::node_view<const toml::node> 
     return result;
 }
 
-static std::string read_string(const NamedSection& ns, std::string_view name)
-{
-    assert(ns.section.is_table());
-    auto nodeValue = ns.section[name];
+// static std::string read_string(const NamedSection& ns, std::string_view name)
+// {
+//     assert(ns.section.is_table());
+//     auto nodeValue = ns.section[name];
 
-    if (!nodeValue) {
-        throw RuntimeError("'{}' key not present in {} section", name, ns.name);
-    }
+//     if (!nodeValue) {
+//         throw RuntimeError("'{}' key not present in {} section", name, ns.name);
+//     }
 
-    if (!nodeValue.is_string()) {
-        throw RuntimeError("'{0:}' key value in '{1:}' section should be a quoted string (e.g. {0:} = \"value\")", name, ns.name);
-    }
+//     if (!nodeValue.is_string()) {
+//         throw RuntimeError("'{0:}' key value in '{1:}' section should be a quoted string (e.g. {0:} = \"value\")", name, ns.name);
+//     }
 
-    assert(nodeValue.value<std::string>().has_value());
-    return nodeValue.value<std::string>().value();
-}
+//     assert(nodeValue.value<std::string>().has_value());
+//     return nodeValue.value<std::string>().value();
+// }
 
 static std::string read_string(const NamedSection& ns, std::string_view name, std::string_view defaultValue)
 {
