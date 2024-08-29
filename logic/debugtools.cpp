@@ -18,6 +18,7 @@ namespace emap {
 
 using namespace inf;
 using namespace std::string_literals;
+namespace gdal = inf::gdal;
 
 class VectorBuilder
 {

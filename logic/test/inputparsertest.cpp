@@ -5,7 +5,9 @@
 #include "gdx/algo/sum.h"
 #include "gdx/rasteriterator.h"
 #include "infra/algo.h"
+#include "infra/chrono.h"
 #include "infra/test/printsupport.h"
+#include "unitconversion.h"
 
 #include "testconfig.h"
 #include "testconstants.h"
@@ -75,6 +77,7 @@ TEST_CASE("Input parsers")
             cfg.set_year(1990_y);
 
             auto emissions = parse_emissions(EmissionSector::Type::Gnfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
+
             REQUIRE(emissions.size() == 4);
 
             for (auto& em : emissions) {
@@ -176,10 +179,10 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load point source emissions")
     {
-        cfg.set_combine_identical_point_sources(false);
-
         SUBCASE("nfr sectors")
         {
+            cfg.set_combine_identical_point_sources(false);
+
             const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "pointsource_emissions_2021.csv", cfg);
             REQUIRE(emissions.size() == 4);
 
@@ -190,18 +193,69 @@ TEST_CASE("Input parsers")
             }
 
             {
-                auto noxEmissions = emissions.emissions_with_id(EmissionIdentifier(country::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx));
-                REQUIRE(noxEmissions.size() == 2);
-                CHECK(noxEmissions[0].coordinate().value() == Coordinate(148450, 197211));
-                CHECK(noxEmissions[1].coordinate().value() == Coordinate(95820, 173080));
+                EmissionIdentifier emId(country::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx);
+                REQUIRE(emissions.emissions_with_id(emId).size() == 2);
+                REQUIRE(emissions.emissions_with_id_at_coordinate(emId, Coordinate(148450, 197211)).size() == 1);
+                REQUIRE(emissions.emissions_with_id_at_coordinate(emId, Coordinate(95820, 173080)).size() == 1);
             }
             {
-                auto nmvocEmissions = emissions.emissions_with_id(EmissionIdentifier(country::BEF, EmissionSector(sectors::nfr::Nfr1A2c), pollutants::NMVOC));
-                REQUIRE(nmvocEmissions.size() == 2);
-                CHECK(nmvocEmissions[0].coordinate().value() == Coordinate(130643, 159190));
-                CHECK(nmvocEmissions[1].coordinate().value() == Coordinate(205000, 209000));
+                EmissionIdentifier emId(country::BEF, EmissionSector(sectors::nfr::Nfr1A2c), pollutants::NMVOC);
+                REQUIRE(emissions.emissions_with_id(emId).size() == 2);
+                REQUIRE(emissions.emissions_with_id_at_coordinate(emId, Coordinate(130643, 159190)).size() == 1);
+                REQUIRE(emissions.emissions_with_id_at_coordinate(emId, Coordinate(205000, 209000)).size() == 1);
             }
         }
+
+        SUBCASE("combine point sources")
+        {
+            const EmissionIdentifier emissionId(countries::BEF, EmissionSector(sectors::nfr::Nfr3B1b), pollutants::NOx);
+
+            {
+                cfg.set_combine_identical_point_sources(true);
+                const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "point_sources.csv", cfg);
+                REQUIRE(emissions.size() == 2);
+
+                CHECK(emissions.emission_with_id_at_coordinate(emissionId, Coordinate(116332.9766, 166636.8709)).value().amount() == Approx(to_giga_gram(1.849281975, "kg/yr")));
+                CHECK(emissions.emission_with_id_at_coordinate(emissionId, Coordinate(95419.65, 196533.8)).value().amount() == Approx(to_giga_gram(121.820027319, "kg/yr")));
+            }
+
+            {
+                cfg.set_combine_identical_point_sources(false);
+                const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "point_sources.csv", cfg);
+                CHECK(emissions.size() == 11);
+
+                CHECK(emissions.emissions_with_id_at_coordinate(emissionId, Coordinate(116332.9766, 166636.8709)).size() == 2);
+                CHECK(emissions.emissions_with_id_at_coordinate(emissionId, Coordinate(95419.65, 196533.8)).size() == 9);
+            }
+        }
+
+        SUBCASE("point sources empty coordinate")
+        {
+            cfg.set_combine_identical_point_sources(true);
+            chrono::DurationRecorder duration;
+            CHECK_THROWS_AS(parse_point_sources(file::u8path(TEST_DATA_DIR) / "point_sources_empty_coord.csv", cfg), inf::RuntimeError);
+        }
+
+        /*SUBCASE("point sources perf")
+        {
+            {
+                cfg.set_combine_identical_point_sources(true);
+                chrono::DurationRecorder duration;
+                const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "emap_NOx_2021_2024_opslag.csv", cfg);
+                Log::info("CSV Point source parsing with combining took: {}", duration.elapsed_time_string());
+
+                REQUIRE(emissions.size() == 28124);
+            }
+
+            {
+                cfg.set_combine_identical_point_sources(false);
+                chrono::DurationRecorder duration;
+                const auto emissions = parse_point_sources(file::u8path(TEST_DATA_DIR) / "emap_NOx_2021_2024_opslag.csv", cfg);
+                Log::info("CSV Point source parsing without combining  took: {}", duration.elapsed_time_string());
+
+                REQUIRE(emissions.size() == 89358);
+            }
+        }*/
     }
 
     SUBCASE("Load scaling factors")

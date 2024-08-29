@@ -14,6 +14,7 @@ namespace emap {
 
 using namespace inf;
 using namespace std::string_view_literals;
+namespace gdal = inf::gdal;
 
 static EmissionDestination emission_destination_from_string(std::string_view str)
 {

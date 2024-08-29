@@ -20,6 +20,7 @@
 namespace emap {
 
 using namespace inf;
+namespace gdal = inf::gdal;
 
 static std::set<date::year> scan_available_years(const fs::path& spatialPatternPath)
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emap/emissions.h"
+#include "infra/math.h"
 
 namespace emap {
 
@@ -223,6 +224,26 @@ public:
         throw inf::RuntimeError("No emission found with id: {}", id);
     }
 
+    const TEmission& emission_with_id_at_coordinate(const EmissionIdentifier& id, Coordinate coord) const
+    {
+        auto iter = std::find_if(_emissions.begin(), _emissions.end(), [&id, &coord](const TEmission& em) {
+            if (em.id() == id) {
+                if (auto coordOpt = em.coordinate(); coordOpt.has_value()) {
+                    return inf::math::approx_equal(coord.x, coordOpt->x, 1e-4) &&
+                           inf::math::approx_equal(coord.y, coordOpt->y, 1e-4);
+                }
+            }
+
+            return false;
+        });
+
+        if (iter == _emissions.end()) {
+            throw inf::RuntimeError("No emission found with id: {} at coordinate {}", id, coord);
+        }
+
+        return *iter;
+    }
+
     std::optional<TEmission> try_emission_with_id(const EmissionIdentifier& id) const noexcept
     {
         auto emissionIter = find_sorted(id);
@@ -238,6 +259,23 @@ public:
         std::vector<TEmission> result;
         std::copy_if(_emissions.begin(), _emissions.end(), std::back_inserter(result), [&id](const TEmission& em) {
             return em.id() == id;
+        });
+
+        return result;
+    }
+
+    std::vector<TEmission> emissions_with_id_at_coordinate(const EmissionIdentifier& id, Coordinate coord) const
+    {
+        std::vector<TEmission> result;
+        std::copy_if(_emissions.begin(), _emissions.end(), std::back_inserter(result), [&id, &coord](const TEmission& em) {
+            if (em.id() == id) {
+                if (auto coordOpt = em.coordinate(); coordOpt.has_value()) {
+                    return inf::math::approx_equal(coord.x, coordOpt->x, 1e-4) &&
+                           inf::math::approx_equal(coord.y, coordOpt->y, 1e-4);
+                }
+            }
+
+            return false;
         });
 
         return result;

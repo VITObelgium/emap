@@ -25,6 +25,7 @@ namespace emap::test {
 using namespace inf;
 using namespace doctest;
 using namespace std::string_view_literals;
+namespace gdal = inf::gdal;
 
 TEST_CASE("create_geometry_extent")
 {
