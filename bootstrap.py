@@ -24,7 +24,7 @@ if __name__ == "__main__":
         elif not triplet:
             triplet = vcpkg.prompt_for_triplet()
 
-        install_root = f"vcpkgs-{triplet}"
+        install_root = f"vcpkgs"
         build_root = None
         if args.parent:
             del vcpkg

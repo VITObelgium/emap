@@ -49,6 +49,7 @@ const NfrSector Nfr2C7d("2C7d", NfrId(7070), gnfr::Industry, "Storage, handling 
 const NfrSector Nfr2D3d("2D3d", NfrId(7074), gnfr::Solvents, "Coating applications", EmissionDestination::Land);
 
 const NfrSector Nfr3B1a("3B1a", NfrId(7088), gnfr::AgriLiveStock, "Manure management - Dairy cattle", EmissionDestination::Land);
+const NfrSector Nfr3B1b("3B1b", NfrId(7089), gnfr::AgriLiveStock, "Manure management - Non-dairy cattle", EmissionDestination::Land);
 
 const NfrSector Nfr3Da1("3Da1", NfrId(7101), gnfr::AgriOther, "Inorganic N-fertilizers (includes also urea application)", EmissionDestination::Land);
 const NfrSector Nfr3Dc("3Dc", NfrId(7108), gnfr::AgriOther, "Farm-level agricultural operations including storage, handling and transport of agricultural products", EmissionDestination::Land);

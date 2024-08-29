@@ -34,14 +34,13 @@ if __name__ == "__main__":
         if sys_platform != "win-amd64":
             build_dir += "-" + args.build_config.lower()
         vcpkg_root = os.path.join(".", "deps", "vcpkg", "installed", triplet, "tools")
-
+        install_root = f"vcpkgs"
+        
         cmake_args = ["-DBUILD_TESTING=ON"]
 
         os.environ["VCPKG_OVERLAY_PORTS"] = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "deps", "overlay-ports")
         )
-
-        install_root = f"vcpkgs-{triplet}"
 
         if args.build_dist:
             vcpkg.build_project_release(
