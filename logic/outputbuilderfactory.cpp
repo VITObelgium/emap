@@ -13,6 +13,7 @@
 namespace emap {
 
 using namespace inf;
+namespace gdal = inf::gdal;
 
 static std::unordered_map<CountryId, int32_t> parse_chimere_country_mapping(const fs::path& mappingPath, const CountryInventory& countryInv)
 {

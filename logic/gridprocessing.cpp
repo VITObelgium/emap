@@ -32,6 +32,7 @@ namespace emap {
 
 using namespace inf;
 using namespace std::string_literals;
+namespace gdal = inf::gdal;
 
 gdal::VectorDataSet transform_vector(const fs::path& vectorPath, const GeoMetadata& destMeta)
 {

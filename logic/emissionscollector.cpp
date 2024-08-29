@@ -77,9 +77,7 @@ void EmissionsCollector::add_emissions(const CountryCellCoverage& countryInfo, c
     }
 
     for (auto& entry : pointEmissions) {
-        if (entry.value().amount() > 0.0) {
-            _outputBuilder->add_point_output_entry(entry);
-        }
+        _outputBuilder->add_point_output_entry(entry);
     }
 
     if (diffuseEmissions.empty() && !pointEmissions.empty()) {

@@ -15,6 +15,7 @@ namespace emap {
 
 using namespace inf;
 using namespace date::literals;
+namespace gdal = inf::gdal;
 
 static fs::path throw_if_not_exists(const fs::path& path)
 {

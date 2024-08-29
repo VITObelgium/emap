@@ -36,14 +36,10 @@ if __name__ == "__main__":
                     "c:/DEV/bld"  # avoid long path issues by using a short build path
                 )
 
-        overlay_ports = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "deps", "overlay-ports")
-        )
-
         if args.clean:
             vcpkg.clean(triplet=triplet)
         else:
-            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, build_root=build_root, install_root=install_root, overlay_ports=overlay_ports, clean_after_build=args.clean_after_build)
+            vcpkg.bootstrap(ports_dir=os.path.join(".", "deps"), triplet=triplet, build_root=build_root, install_root=install_root, clean_after_build=args.clean_after_build)
     except KeyboardInterrupt:
         print("\nInterrupted")
         sys.exit(-1)

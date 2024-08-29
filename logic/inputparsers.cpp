@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <cpl_port.h>
+#include <csv.h>
 #include <exception>
 #include <limits>
 #include <string>
@@ -25,18 +26,10 @@
 #include <utility>
 #include <vector>
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4267 4244)
-#endif
-#include <csv.h>
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
 namespace emap {
 
 using namespace inf;
+namespace gdal = inf::gdal;
 
 static int32_t required_csv_column(const inf::CsvReader& csv, const std::string& columnName)
 {
@@ -209,64 +202,131 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
     size_t lineNr = 2;
 
-    std::unordered_map<PointSourceIdentifier, double> pointSourceEmissions;
-
     try {
         Log::debug("Parse emissions: {}", emissionsCsv);
 
-        /*
+        std::vector<EmissionEntry> pointSources;
+        std::unordered_map<PointSourceIdentifier, double> pointSourceEmissions;
+
+#if 1
         using namespace io;
-        CSVReader<21, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow> in(str::from_u8(emissionsCsv.u8string()));
+        CSVReader<25, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow> in(file::u8string(emissionsCsv));
 
+        in.read_header(ignore_missing_column | ignore_extra_column,
+                       "type",
+                       "scenario",
+                       "year",
+                       "reporting_country",
+                       "nfr_sector",
+                       "gnfr_sector",
+                       "pollutant",
+                       "emission",
+                       "unit",
+                       "x",
+                       "y",
+                       "hoogte_m",
+                       "diameter_m",
+                       "temperatuur_C",
+                       "warmteinhoud_MW",
+                       "debiet_Nm3/u",
+                       "Debiet_Nm3/u",
+                       "dv",
+                       "type_emissie",
+                       "EIL_nummer",
+                       "exploitatie_naam",
+                       "EIL_Emissiepunt_Jaar_Naam",
+                       "Activiteit_type",
+                       "subtype",
+                       "pointsource_index");
 
-        int32_t year;
-        double value, height, diameter, temp, warmthContents, x, y, flowRate;
-        char *type, *scenario, *countryStr, *sectorName, *pollutantName, *unit, *excType, *eilNr, *explName, *naceCode, *eilYearName, *activityType, *subtype;
-        while (in.read_row(type, scenario, year, countryStr, sectorName, pollutant, value, x, y, unit, height, diameter, temp, warmthContents, flowRate, excType, eilNr, explName, naceCode, eilYearName, activityType, subtype)) {
-            if (sectorInv.is_ignored_sector(sectorType, sectorName) ||
-                pollutantInv.is_ignored_pollutant(pollutantName)) {
+        if (!in.has_column("nfr_sector") && !in.has_column("gnfr_sector")) {
+            throw RuntimeError("Missing nfr_sector or gnfr_sector column");
+        }
+
+        auto sectorType             = in.has_column("nfr_sector") ? EmissionSector::Type::Nfr : EmissionSector::Type::Gnfr;
+        bool hasSubTypeCol          = in.has_column("subtype");
+        bool hasDvCol               = in.has_column("dv");
+        bool hasPointSourceIndexCol = in.has_column("pointsource_index");
+        bool hasCoordinates         = in.has_column("x") && in.has_column("y");
+
+        int32_t year = 0, dv = 0;
+        double value, height, diameter, temp, warmthContents, flowRate;
+        char *type, *scenario, *countryStr, *nfrSectorName, *gnfrSectorName, *pollutantName, *unit, *emissionType, *eilNr, *explName, *eilYearName, *activityType;
+        char *subtype = nullptr, *psIndex = nullptr;
+        char *x = nullptr, *y = nullptr;
+        while (in.read_row(type, scenario, year, countryStr, nfrSectorName, gnfrSectorName, pollutantName, value, unit, x, y, height, diameter, temp, warmthContents, flowRate, flowRate, dv, emissionType, eilNr, explName, eilYearName, activityType, subtype, psIndex)) {
+            auto sectorName    = std::string_view(sectorType == EmissionSector::Type::Nfr ? nfrSectorName : gnfrSectorName);
+            const auto country = countryInv.try_country_from_string(countryStr);
+
+            if (sectorName.empty() ||
+                sectorInv.is_ignored_sector(sectorType, sectorName, *country) ||
+                pollutantInv.is_ignored_pollutant(pollutantName, *country)) {
                 continue;
             }
 
-            double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
+            double emissionValue = to_giga_gram(value, unit);
+            if (emissionValue == 0.0) {
+                continue;
+            }
 
             auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
-            auto country   = countryInv.try_country_from_string(line.get_string(colCountry));
             auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
-            if (sector.has_value() && country.has_value() && pollutant.has_value()) {
-                EmissionEntry info(
-                    EmissionIdentifier(*country, *sector, *pollutant),
-                    EmissionValue(emissionValue));
 
-                info.set_height(line.get_double(colHeight).value_or(0.0));
-                info.set_diameter(line.get_double(colDiameter).value_or(0.0));
-                info.set_temperature(line.get_double(colTemperature).value_or(-9999.0));
-                info.set_warmth_contents(line.get_double(colWarmthContents).value_or(0.0));
-                info.set_flow_rate(line.get_double(colFlowRate).value_or(0.0));
+            if (sector.has_value() && pollutant.has_value()) {
+                PointSourceIdentifier ps;
+                ps.sector         = *sector;
+                ps.country        = *country;
+                ps.pollutant      = *pollutant;
+                ps.height         = height;
+                ps.diameter       = diameter;
+                ps.temperature    = temp;
+                ps.warmthContents = warmthContents;
+                ps.flowRate       = flowRate;
 
-                std::string subType = "none";
-                if (colSubType.has_value()) {
-                    subType = line.get_string(*colSubType);
+                if (hasSubTypeCol) {
+                    ps.subType = subtype ? subtype : "none";
+                } else if (hasPointSourceIndexCol) {
+                    ps.subType = psIndex ? psIndex : "none";
+                } else {
+                    ps.subType = "none";
                 }
 
-                info.set_source_id(fmt::format("{}_{}_{}_{}_{}_{}_{}_{}", info.height(), info.diameter(), info.temperature(), info.warmth_contents(), info.flow_rate(), line.get_string(colEilPoint), line.get_string(colEil), subType));
+                ps.eilNumber = eilNr;
+                ps.eilPoint  = eilYearName;
 
-                if (colX.has_value() && colY.has_value()) {
-                    auto x = line.get_double(*colX);
-                    auto y = line.get_double(*colY);
-                    if (x.has_value() && y.has_value()) {
-                        info.set_coordinate(Coordinate(*x, *y));
+                if (hasCoordinates) {
+                    auto xVal = str::to_double(x);
+                    auto yVal = str::to_double(y);
+                    if (xVal.has_value() && yVal.has_value()) {
+                        ps.coordinate = Coordinate(*xVal, *yVal);
                     } else {
-                        throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
+                        throw RuntimeError("Invalid coordinate in point sources: x='{}' y='{}'", x, y);
                     }
                 }
 
-                result.add_emission(std::move(info));
-            }
-            ++lineNr;
-        }*/
+                if (hasDvCol) {
+                    ps.dv = dv;
+                }
 
-        SingleEmissions result(cfg.year());
+                if (combineIdentical) {
+                    pointSourceEmissions[ps] += emissionValue;
+                } else {
+                    pointSources.push_back(ps.to_emission_entry(emissionValue));
+                }
+            } else {
+                if (!pollutant.has_value()) {
+                    Log::warn("Unknown pollutant name: {}", pollutantName);
+                }
+
+                if (!sector.has_value()) {
+                    Log::warn("Unknown sector name: {}", sectorName);
+                }
+            }
+
+            ++lineNr;
+        }
+#else
+
         inf::CsvReader csv(emissionsCsv);
 
         auto colCountry   = required_csv_column(csv, "reporting_country");
@@ -304,6 +364,9 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
             }
 
             double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
+            if (emissionValue == 0.0) {
+                continue;
+            }
 
             auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
             auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
@@ -339,7 +402,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
                 if (combineIdentical) {
                     pointSourceEmissions[ps] += emissionValue;
                 } else {
-                    result.add_emission(ps.to_emission_entry(emissionValue));
+                    pointSources.push_back(ps.to_emission_entry(emissionValue));
                 }
             } else {
                 if (!pollutant.has_value()) {
@@ -354,12 +417,16 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
             ++lineNr;
         }
 
+#endif
+
         if (combineIdentical) {
             for (const auto& [ps, emission] : pointSourceEmissions) {
-                result.add_emission(ps.to_emission_entry(emission));
+                pointSources.push_back(ps.to_emission_entry(emission));
             }
         }
 
+        SingleEmissions result(cfg.year());
+        result.set_emissions(std::move(pointSources));
         return result;
     } catch (const std::exception& e) {
         throw RuntimeError("Error parsing {} line {} ({})", emissionsCsv, lineNr, e.what());

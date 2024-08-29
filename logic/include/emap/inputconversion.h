@@ -3,6 +3,7 @@
 #include "infra/exception.h"
 #include "infra/string.h"
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <utility>

@@ -32,6 +32,7 @@
 namespace emap {
 
 using namespace inf;
+namespace gdal = inf::gdal;
 
 struct SpatialPatternProcessInfo
 {
