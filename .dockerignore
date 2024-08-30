@@ -1,0 +1,9 @@
+/build/
+/docker/
+/deps/vcpkg/buildtrees
+/deps/vcpkg/packages
+/vcpkgs*
+/.git
+/.cache
+.DS_Store
+justfile

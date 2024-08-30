@@ -52,6 +52,7 @@ if __name__ == "__main__":
                 targets=["package"],
                 build_config=args.build_config,
                 run_tests_after_build=args.run_tests,
+                git_hash=args.git_hash,
             )
         else:
             vcpkg.build_project(
@@ -62,6 +63,7 @@ if __name__ == "__main__":
                 build_name=build_dir,
                 build_config=args.build_config,
                 run_tests_after_build=args.run_tests,
+                git_hash=args.git_hash,
             )
     except KeyboardInterrupt:
         print("\nInterrupted")
