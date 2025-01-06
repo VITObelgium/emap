@@ -24,24 +24,6 @@
 
 using namespace inf;
 
-static inf::Log::Level log_level_from_value(int32_t value)
-{
-    switch (value) {
-    case 1:
-        return Log::Level::Debug;
-    case 2:
-        return Log::Level::Info;
-    case 3:
-        return Log::Level::Warning;
-    case 4:
-        return Log::Level::Error;
-    case 5:
-        return Log::Level::Critical;
-    default:
-        throw inf::RuntimeError("Invalid log level specified '{}': value must be in range [1-5]", value);
-    }
-}
-
 int main(int argc, char** argv)
 {
 #ifdef WIN32
