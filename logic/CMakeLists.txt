@@ -1,5 +1,4 @@
 find_package(TBB CONFIG REQUIRED)
-find_package(oneDPL CONFIG REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
@@ -69,7 +68,6 @@ PUBLIC
     GEOS::geos
 PRIVATE
     TBB::tbb
-    oneDPL
     FastCppCsvParser::csv
     tomlplusplus::tomlplusplus
     XlsxWriter::XlsxWriter

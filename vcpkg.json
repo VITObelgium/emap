@@ -22,7 +22,6 @@
             ]
         },
         "indicators",
-        "onedpl",
         "spdlog",
         "tbb",
         "tomlplusplus",
