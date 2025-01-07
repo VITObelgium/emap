@@ -1,3 +1,6 @@
+bootstrap:
+    python bootstrap.py
+
 git_hash := `git rev-parse HEAD`
 
 cleangitcondition:
