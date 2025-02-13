@@ -77,7 +77,9 @@ This section configures the model run
 - `spatial_pattern_exceptions` path to an xlsx file in which exceptions for spatial patterns are configured. These exceptions overrule the standard rules for spatial patterns.
 - `emission_scaling_factors` path to an xslx file in which scaling factors are configured for the emissions
 - `included_pollutants` List of pollutants to include in the model run, this setting is optional, if it is not present all the configured pollutants will be included in the run.
-- `scenario` First search for emission input files with the `_scenario` suffix before using the default emission input files, allows easy creation of scenarios with modified input files. For point sources `emap_{scenario}_{pollutant}_{year}_*.csv` is checked before `emap_{pollutant}_{year}_*.csv`
+- `scenario` First search for emission input files with the `_scenario` suffix before using the default emission input files, allows easy creation of scenarios with modified input files. <br>
+For point sources `emap_{scenario}_{pollutant}_{year}_*.csv` is checked before `emap_{pollutant}_{year}_*.csv` <br>
+For totals `nfr_allyears_{reportYear}_extra_{scenario}.txt` is checked before `nfr_allyears_{reportYear}_extra.txt` and `nfr_{year}_{reportYear}_{scenario}.txt` is checked before `nfr_{year}_{reportYear}.txt`
 - `point_source_rescale_threshold` The threshold for allowing automatic rescaling of point sources when they exceed the reported total emissions [0 - 100]
 - `combine_identical_point_sources` combine the emission of the point sources with the same location and properties. The emissions will be summed and only one entry will be present in the output file. (default=true)
 

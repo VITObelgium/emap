@@ -659,6 +659,8 @@ static std::string_view strip_newline(std::string_view str)
 
 SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg)
 {
+    Log::debug("Parse emissions belgium: {}", emissionsData);
+
     const auto& sectorInv    = cfg.sectors();
     const auto& pollutantInv = cfg.pollutants();
 
