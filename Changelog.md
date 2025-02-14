@@ -1,3 +1,7 @@
+Release 3.3.x
+-------------
+- Bugfix: Also perform PMCoarse calculation on the input files with "_extra" suffix.
+
 Release 3.2.0
 -------------
 - Added `combine_identical_point_sources` option to enable/disable the combining of point sources with the same location and properties
