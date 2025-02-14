@@ -1,4 +1,4 @@
-#include "emap/emissioninventory.h"
+﻿#include "emap/emissioninventory.h"
 #include "emap/constants.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
@@ -391,10 +391,6 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
 
     result.set_emissions(std::move(entries));
 
-    if (cfg.pmcoarse_calculation_needed()) {
-        calculate_pmcoarse_emissions(cfg, result);
-    }
-
     if (extraEmissions.has_value()) {
         for (const auto& em : *extraEmissions) {
             if (em.sector().type() != EmissionSector::Type::Nfr) {
@@ -405,6 +401,10 @@ static EmissionInventory create_emission_inventory_impl(const SingleEmissions& t
                 result.update_or_add_emission(EmissionInventoryEntry(em.id(), *em.value().amount()));
             }
         }
+    }
+
+    if (cfg.pmcoarse_calculation_needed()) {
+        calculate_pmcoarse_emissions(cfg, result);
     }
 
     return result;
