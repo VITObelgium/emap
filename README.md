@@ -1,4 +1,4 @@
-[![Build](https://github.com/VITObelgium/emap/workflows/Vcpkg%20build/badge.svg?branch=develop)](https://github.com/VITObelgium/emap/actions?query=workflow%3AVcpkg%20build)
+[![Build](https://github.com/VITObelgium/emap/actions/workflows/vcpkg-build.yml/badge.svg)](https://github.com/VITObelgium/emap/actions/workflows/vcpkg-build.yml)
 
 The emission mapper (E-MAP) is an emission preprocessor for different Air Quality Models (OPS, BelEUROS, Chimere and AURORA). 
 
