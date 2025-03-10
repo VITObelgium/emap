@@ -1,3 +1,9 @@
+Release 3.2.0
+-------------
+- Added `combine_identical_point_sources` option to enable/disable the combining of point sources with the same location and properties
+- Update of the `Chimere rio1` grid
+- Improved performance of csv parsing
+
 Release 3.1.1
 -------------
 - Relaxed CAMS spatial patter filename regex

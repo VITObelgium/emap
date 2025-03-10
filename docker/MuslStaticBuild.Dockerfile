@@ -1,4 +1,4 @@
-FROM alpine:3.20.2 AS builder
+FROM alpine:3.21.3 AS builder
 
 ARG GIT_HASH=dev
 WORKDIR /project
