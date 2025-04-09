@@ -1,4 +1,4 @@
-#include "emap/modelpaths.h"
+﻿#include "emap/modelpaths.h"
 
 #include <fmt/format.h>
 
@@ -6,11 +6,24 @@ namespace emap {
 
 using namespace inf;
 
-ModelPaths::ModelPaths(std::string_view scenario, const fs::path& dataRoot, const fs::path& outputRoot)
+ModelPaths::ModelPaths(std::string_view scenario,
+                       const fs::path& dataRoot,
+                       const fs::path& outputRoot,
+                       const fs::path& spatialBoundariesFilename,
+                       const fs::path& spatialBoundariesEezFilename)
 : _scenario(scenario)
 , _dataRoot(dataRoot)
 , _outputRoot(outputRoot)
+, _spatialBoundariesFilename(spatialBoundariesFilename)
+, _spatialBoundariesEezFilename(spatialBoundariesEezFilename)
 {
+    if (_spatialBoundariesFilename.empty()) {
+        _spatialBoundariesFilename = "boundaries.gpkg";
+    }
+
+    if (_spatialBoundariesEezFilename.empty()) {
+        _spatialBoundariesEezFilename = "boundaries_incl_EEZ.gpkg";
+    }
 }
 
 fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, date::year reportYear) const
@@ -80,12 +93,12 @@ const fs::path& ModelPaths::output_path() const noexcept
 
 fs::path ModelPaths::boundaries_vector_path() const noexcept
 {
-    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / _spatialBoundariesFilename;
 }
 
 fs::path ModelPaths::eez_boundaries_vector_path() const noexcept
 {
-    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_incl_EEZ.gpkg";
+    return _dataRoot / "03_spatial_disaggregation" / "boundaries" / _spatialBoundariesEezFilename;
 }
 
 fs::path ModelPaths::output_dir_for_rasters() const

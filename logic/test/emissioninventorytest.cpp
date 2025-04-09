@@ -1,4 +1,4 @@
-#include "emap/emissioninventory.h"
+﻿#include "emap/emissioninventory.h"
 
 #include "emap/configurationparser.h"
 #include "emap/scalingfactors.h"
@@ -22,7 +22,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 static void create_empty_point_source_file(const fs::path& path)

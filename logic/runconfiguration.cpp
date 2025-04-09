@@ -1,4 +1,4 @@
-#include "emap/runconfiguration.h"
+﻿#include "emap/runconfiguration.h"
 
 #include "configurationutil.h"
 #include "emap/constants.h"
@@ -13,6 +13,8 @@ RunConfiguration::RunConfiguration(
     const fs::path& dataPath,
     const fs::path& spatialPatternExceptions,
     const fs::path& emissionScalings,
+    const fs::path& spatialBoundariesFilename,
+    const fs::path& spatialBoundariesEezFilename,
     ModelGrid grid,
     ValidationType validation,
     date::year year,
@@ -25,7 +27,7 @@ RunConfiguration::RunConfiguration(
     PollutantInventory pollutants,
     CountryInventory countries,
     Output outputConfig)
-: _paths(scenario, dataPath, outputConfig.path)
+: _paths(scenario, dataPath, outputConfig.path, spatialBoundariesFilename, spatialBoundariesEezFilename)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _emissionScalingsPath(emissionScalings)
 , _grid(grid)
@@ -310,6 +312,11 @@ fs::path RunConfiguration::output_path_for_grid_raster(const Pollutant& pol, con
 fs::path RunConfiguration::output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const
 {
     return _paths.output_path_for_spatial_pattern_raster(id, grid);
+}
+
+fs::path RunConfiguration::sector_parameters_config_path() const noexcept
+{
+    return _paths.sector_parameters_config_path();
 }
 
 }

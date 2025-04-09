@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
@@ -49,6 +49,8 @@ public:
         const fs::path& dataPath,
         const fs::path& spatialPatternExceptions,
         const fs::path& emissionScalings,
+        const fs::path& spatialBoundariesFilename,
+        const fs::path& spatialBoundariesEezFilename,
         ModelGrid grid,
         ValidationType validation,
         date::year year,
@@ -122,6 +124,8 @@ public:
     fs::path output_path_for_country_raster(const EmissionIdentifier& id, const GridData& grid) const;
     fs::path output_path_for_grid_raster(const Pollutant& pol, const EmissionSector& sector, const GridData& grid) const;
     fs::path output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const;
+
+    fs::path sector_parameters_config_path() const noexcept;
 
 private:
     ModelPaths _paths;

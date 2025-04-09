@@ -1,4 +1,4 @@
-#include "emissionvalidation.h"
+﻿#include "emissionvalidation.h"
 #include "brnanalyzer.h"
 #include "emap/configurationparser.h"
 #include "emap/modelpaths.h"
@@ -42,9 +42,8 @@ std::vector<EmissionValidation::SummaryEntry> EmissionValidation::create_summary
     std::vector<EmissionValidation::SummaryEntry> result;
     result.reserve(emissionInv.size());
 
-    auto includedPollutants         = _cfg.included_pollutants();
-    const auto sectorParametersPath = ModelPaths(_cfg.scenario(), _cfg.data_root(), _cfg.output_path()).sector_parameters_config_path();
-    const auto sectorParams         = parse_sector_parameters_config(sectorParametersPath, _cfg.output_sector_level(), _cfg.pollutants(), _cfg.output_sector_level_name());
+    auto includedPollutants = _cfg.included_pollutants();
+    const auto sectorParams = parse_sector_parameters_config(_cfg.sector_parameters_config_path(), _cfg.output_sector_level(), _cfg.pollutants(), _cfg.output_sector_level_name());
 
     std::unordered_map<Pollutant, std::unordered_map<CountrySector, double>> brnTotals;
 

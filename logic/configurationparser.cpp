@@ -1,4 +1,4 @@
-#include "emap/configurationparser.h"
+﻿#include "emap/configurationparser.h"
 
 #include "infra/cast.h"
 #include "infra/exception.h"
@@ -620,6 +620,8 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         const auto reportYear                   = read_year(model.section["report_year"]);
         const auto spatialPatternExceptionsPath = read_optional_path(model, "spatial_pattern_exceptions", basePath);
         const auto emissionScalingsPath         = read_optional_path(model, "emission_scaling_factors", basePath);
+        const auto boundariesPath               = file::u8path(read_string(model, "spatial_boundaries_filename", {}));
+        const auto boundariesEezPath            = file::u8path(read_string(model, "spatial_boundaries_eez_filename", {}));
         auto includedPollutants                 = read_pollutants(model.section["included_pollutants"], pollutantInventory);
 
         RunConfiguration::Output outputConfig;
@@ -641,6 +643,8 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         return RunConfiguration(dataPath,
                                 spatialPatternExceptionsPath,
                                 emissionScalingsPath,
+                                boundariesPath,
+                                boundariesEezPath,
                                 grid,
                                 validate ? ValidationType::SumValidation : ValidationType::NoValidation,
                                 year,

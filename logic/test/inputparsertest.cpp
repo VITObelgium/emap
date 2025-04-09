@@ -1,4 +1,4 @@
-#include "emap/configurationparser.h"
+﻿#include "emap/configurationparser.h"
 #include "emap/emissions.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
@@ -27,7 +27,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")

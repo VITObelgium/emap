@@ -1,4 +1,4 @@
-#include "emap/configurationparser.h"
+﻿#include "emap/configurationparser.h"
 #include "emap/runconfiguration.h"
 #include "infra/exception.h"
 #include "testconstants.h"
@@ -32,6 +32,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scenarionaam"
                 scalefactors = "{}"
                 combine_identical_point_sources = true
+                spatial_boundaries_filename = "spatial_bounds.geojson"
             
             [output]
                 path = "/temp"
@@ -50,6 +51,8 @@ TEST_CASE("Parse run configuration")
         CHECK(config.scenario() == "scenarionaam");
         CHECK(config.combine_identical_point_sources() == true);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
+        CHECK(config.boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "spatial_bounds.geojson");
+        CHECK(config.eez_boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_incl_EEZ.gpkg");
 
         CHECK(config.output_path() == expectedOutput);
         CHECK(config.validation_type() == ValidationType::SumValidation);
