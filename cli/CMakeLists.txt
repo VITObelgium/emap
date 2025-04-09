@@ -1,7 +1,8 @@
-find_package(PROJ CONFIG REQUIRED)
+﻿find_package(PROJ CONFIG REQUIRED)
 
 add_executable(emapcli
     main.cpp
+    ${PROJECT_SOURCE_DIR}/Changelog.md
     $<$<PLATFORM_ID:Windows>:${CMAKE_BINARY_DIR}/version.rc>
 )
 

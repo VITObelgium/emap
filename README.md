@@ -82,6 +82,8 @@ For point sources `emap_{scenario}_{pollutant}_{year}_*.csv` is checked before `
 For totals `nfr_allyears_{reportYear}_extra_{scenario}.txt` is checked before `nfr_allyears_{reportYear}_extra.txt` and `nfr_{year}_{reportYear}_{scenario}.txt` is checked before `nfr_{year}_{reportYear}.txt`
 - `point_source_rescale_threshold` The threshold for allowing automatic rescaling of point sources when they exceed the reported total emissions [0 - 100]
 - `combine_identical_point_sources` combine the emission of the point sources with the same location and properties. The emissions will be summed and only one entry will be present in the output file. (default=true)
+- `spatial_boundaries_filename` The filename of the spatial boundaries vector to use in the `03_spatial_disaggregation/boundaries` input directory (default = "boundaries.gpkg") 
+- `spatial_boundaries_eez_filename` The filename of the spatial boundaries vector including eez zones to use in the `03_spatial_disaggregation/boundaries` input directory (default = "boundaries_incl_EEZ.gpkg")
 
 ### Output section
 This section configures the output of the model

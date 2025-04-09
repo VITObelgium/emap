@@ -1,6 +1,7 @@
-Release 3.3.x
+﻿Release 3.2.1
 -------------
 - Bugfix: Also perform PMCoarse calculation on the input files with "_extra" suffix.
+- Added: Support configuration of the boundaries vector filenames with the `spatial_boundaries_filename` and `spatial_boundaries_eez_filename` configuration keys
 
 Release 3.2.0
 -------------
