@@ -1,129 +1,94 @@
 {
-    "version": 3,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 15,
-        "patch": 0
-    },
+    "$schema": "https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json",
+    "version": 8,
     "configurePresets": [
         {
-            "name": "vcpkg-base",
-            "hidden": true,
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/vcpkg",
-            "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_APPLOCAL_DEPS": "OFF",
-                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
-                "BUILD_TESTING": "ON",
-                "VCPKG_MANIFEST_MODE": "OFF"
-            },
+            "name": "vcpkg",
             "environment": {
-                "VCPKG_OVERLAY_PORTS": "${sourceDir}/deps/overlay-ports"
+                "VCPKG_ROOT": "${sourceDir}/../vcpkg"
+            },
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_MANIFEST_INSTALL": "OFF",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+                "BUILD_TESTING": "ON"
             }
         },
         {
-            "name": "osx-base",
-            "inherits": "vcpkg-base",
-            "hidden": true,
+            "name": "default",
+            "binaryDir": "${sourceDir}/build/cmake",
+            "inherits": "vcpkg",
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "mac-arm",
+            "inherits": "default",
             "cacheVariables": {
-                "VCPKG_OSX_DEPLOYMENT_TARGET": "14.0",
-                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-appleclang.cmake",
-                "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
             }
         },
         {
-            "name": "osx-homebrew-base",
-            "inherits": "vcpkg-base",
-            "hidden": true,
+            "name": "mac-intel",
+            "inherits": "default",
             "cacheVariables": {
-                "VCPKG_OSX_DEPLOYMENT_TARGET": "14.0",
-                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/triplets/toolchain-osx-homebrew.cmake",
-                "VCPKG_CXX_FLAGS": "-fvisibility=hidden -fvisibility-inlines-hidden"
+                "VCPKG_TARGET_TRIPLET": "x64-osx"
             }
         },
         {
             "name": "windows-base",
-            "inherits": "vcpkg-base",
-            "hidden": true,
+            "inherits": "default",
             "cacheVariables": {
-                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/vcpkg/scripts/toolchains/windows.cmake",
-                "VCPKG_TARGET_ARCHITECTURE": "x64",
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "VCPKG_CRT_LINKAGE": "static",
-                "VCPKG_LIBRARY_LINKAGE": "static",
-                "VCPKG_PLATFORM_TOOLSET": "v143",
-                "VCPKG_SET_CHARSET_FLAG": "ON"
+                "VCPKG_SET_CHARSET_FLAG": "ON",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/toolchains/windows.cmake"
             }
         },
         {
-            "name": "x64-windows-static-vs2022 debug",
+            "name": "windows-visual-studio",
             "inherits": "windows-base",
-            "displayName": "Windows x64 Debug",
-            "description": "Vcpkg debug build for x64 on windows",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
-                "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build/visualstudio"
         },
         {
-            "name": "x64-windows-static-vs2022 release",
+            "name": "windows",
             "inherits": "windows-base",
-            "displayName": "Windows x64 Release",
-            "description": "Vcpkg release build for x64 on windows",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-vs2022",
-                "VCPKG_DEFAULT_HOST_TRIPLET": "x64-windows-static-vs2022",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "arm64-osx",
-            "inherits": "osx-homebrew-base",
-            "displayName": "OSX arm64",
-            "description": "Vcpkg build for arm64 on mac",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "arm64-osx-homebrew",
-                "CMAKE_OSX_ARCHITECTURES": "arm64",
-                "CMAKE_BUILD_TYPE": "Release",
-                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkgs-arm64-osx-homebrew",
-                "VCPKG_ALLOW_SYSTEM_LIBS": "ON"
-            }
-        },
-        {
-            "name": "x64-osx",
-            "inherits": "osx-base",
-            "displayName": "OSX x64",
-            "description": "Vcpkg build for x64 on mac",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-osx",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "Ninja debug",
-            "displayName": "Debug",
-            "configurePreset": "x64-windows-static-vs2022 debug"
-        },
-        {
-            "name": "Ninja release",
-            "displayName": "Release",
-            "configurePreset": "x64-windows-static-vs2022 release"
-        }
-    ],
-    "testPresets": [
-        {
-            "name": "default",
-            "configurePreset": "x64-windows-static-vs2022 release",
-            "output": {
-                "outputOnFailure": true
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
             },
-            "execution": {
-                "noTestsAction": "error",
-                "stopOnFailure": true
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [
+                        "Windows"
+                    ]
+                }
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            }
+        },
+        {
+            "name": "windows-dist",
+            "inherits": "windows",
+            "binaryDir": "${sourceDir}/build/dist",
+            "cacheVariables": {
+                "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
+            }
+        },
+        {
+            "name": "linux",
+            "inherits": "default"
+        },
+        {
+            "name": "mac-arm-local",
+            "inherits": "mac-arm",
+            "environment": {
+                "VCPKG_ROOT": "${sourceDir}/../../vcpkg"
             }
         }
     ]

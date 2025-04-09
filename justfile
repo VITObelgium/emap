@@ -1,14 +1,47 @@
-bootstrap:
-    python bootstrap.py
+set export
 
-git_hash := `git rev-parse HEAD`
+import 'deps/infra/vcpkg.just'
 
-cleangitcondition:
-    git diff --exit-code
+export GIT_COMMIT_HASH := `git rev-parse HEAD`
+
+bootstrap $VCPKG_ROOT=vcpkg_root:
+    '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{VCPKG_DEFAULT_TRIPLET}}
+
+configure $VCPKG_ROOT=vcpkg_root: bootstrap
+    cmake --preset {{cmake_preset}}
+
+build_debug: configure
+    cmake --build ./build/cmake --config Debug
+
+build_release: configure
+    cmake --build ./build/cmake --config Release
+
+build: build_release
+
+[windows]
+configure_vs $VCPKG_ROOT=vcpkg_root: bootstrap
+    cmake --preset windows-visual-studio
+
+[windows]
+build_vs: configure_vs
+    cmake --build ./build/visualstudio --config Release
+
+build_dist: git_status_clean bootstrap
+    rm -rf ./build/dist
+    cmake --preset {{cmake_preset}}-dist
+    cmake --build ./build/dist --config Release --target package
+
+test_debug: build
+    ctest --test-dir ./build/cmake --output-on-failure -C Debug
+
+test_release: build
+    ctest --test-dir ./build/cmake --output-on-failure -C Release
+
+test: test_release
 
 buildmusl:
-    echo "Building static musl binary: {{git_hash}}"
-    docker build --build-arg="GIT_HASH={{git_hash}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
+    echo "Building static musl binary: {{GIT_COMMIT_HASH}}"
+    docker build --build-arg="GIT_HASH={{GIT_COMMIT_HASH}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
     docker create --name extract emapmuslbuild
     docker cp extract:/project/build/emap-release-x64-linux-static-Release-dist/packages ./build
     docker rm extract

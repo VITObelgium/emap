@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "name": "emap",
-    "version": "0.1.0",
+    "version": "3.2.1",
     "dependencies": [
         "cryptopp",
         "fast-cpp-csv-parser",
@@ -10,14 +10,15 @@
         "tiff",
         "date",
         "libxlsxwriter",
-        "lyra",
+        "bfgroup-lyra",
         "fmt",
         "gsl",
         {
             "name": "gdal",
+            "default-features": false,
             "features": [
                 "expat",
-                "sqlite",
+                "sqlite3",
                 "geos"
             ]
         },
@@ -27,5 +28,12 @@
         "tomlplusplus",
         "type-safe",
         "vc"
-   ]
+    ],
+    "vcpkg-configuration": {
+        "default-registry": {
+            "kind": "git",
+            "baseline": "b02e341c927f16d991edbd915d8ea43eac52096c",
+            "repository": "https://github.com/microsoft/vcpkg"
+        }
+    }
 }

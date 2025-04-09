@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+﻿cmake_minimum_required(VERSION 3.25)
 
 project(e-map
     VERSION 3.2.1
@@ -19,6 +19,8 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
 option(INFRA_INSOURCE "Use submodule version of infra" ON)
 option(GDX_INSOURCE "Use submodule version of geodynamix" ON)
 set(PACKAGE_VERSION_COMMITHASH "dev" CACHE STRING "git commit hash")
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(PACKAGE_VERSION_COMMITHASH STREQUAL "dev")
     set(EMAP_DEV_BUILD 1)

@@ -1,9 +1,9 @@
-find_package(TBB CONFIG REQUIRED)
+﻿find_package(TBB CONFIG REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
-find_package(tomlplusplus CONFIG REQUIRED)
-find_package(FastCppCsvParser REQUIRED)
 find_package(type_safe CONFIG REQUIRED)
+find_package(FastCppCsvParser REQUIRED)
 find_package(XlsxWriter REQUIRED)
+find_package(TomlPlusPlus REQUIRED)
 
 add_library(emaplogic
     include/emap/constants.h
@@ -52,27 +52,27 @@ add_library(emaplogic
 
 target_include_directories(emaplogic
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
 target_compile_definitions(emaplogic PUBLIC __TBB_NO_IMPLICIT_LINKAGE PRIVATE NOMINMAX USE_UNSTABLE_GEOS_CPP_API)
 
 target_link_libraries(emaplogic
-PUBLIC
+    PUBLIC
     Infra::infra
     geodynamix::gdxcore
     type_safe
     GEOS::geos
-PRIVATE
+    PRIVATE
     TBB::tbb
     FastCppCsvParser::csv
-    tomlplusplus::tomlplusplus
+    TomlPlusPlus::TomlPlusPlus
     XlsxWriter::XlsxWriter
 )
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(test)
-endif ()
+endif()
