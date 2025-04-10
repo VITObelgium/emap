@@ -29,6 +29,7 @@ jobs:
                   core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
                   core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
         - uses: seanmiddleditch/gha-setup-ninja@master
+        - uses: ilammy/msvc-dev-cmd@v1
         - name: Install vcpkg
           run: |
               git clone --depth 1 --branch ${{ env.VCPKG_TAG }} https://github.com/microsoft/vcpkg "${{ runner.TEMP }}/vcpkg"
