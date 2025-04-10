@@ -14,6 +14,10 @@
         "fmt",
         "gsl",
         {
+            "name": "proj",
+            "default-features": false
+        },
+        {
             "name": "gdal",
             "default-features": false,
             "features": [

@@ -1,4 +1,5 @@
 ﻿find_package(PROJ CONFIG REQUIRED)
+find_package(lyra CONFIG REQUIRED)
 
 add_executable(emapcli
     main.cpp
@@ -10,6 +11,7 @@ target_link_libraries(emapcli
 PRIVATE
     emaplogic
     Infra::infra
+    bfg::lyra
 )
 
 set(RESOURCE_FILES
