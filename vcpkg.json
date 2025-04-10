@@ -15,7 +15,10 @@
         "gsl",
         {
             "name": "proj",
-            "default-features": false
+            "default-features": false,
+            "features": [
+                "embed-data"
+            ]
         },
         {
             "name": "gdal",
@@ -38,6 +41,9 @@
             "kind": "git",
             "baseline": "b02e341c927f16d991edbd915d8ea43eac52096c",
             "repository": "https://github.com/microsoft/vcpkg"
-        }
+        },
+        "overlay-ports": [
+            "./deps/infra/vcpkg_overlay/ports"
+        ]
     }
 }

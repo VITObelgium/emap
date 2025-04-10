@@ -4,11 +4,11 @@ The emission mapper (E-MAP) is an emission preprocessor for different Air Qualit
 
 ## Building
 ### Linux
-Run these commands in the project root. Requires: a C++17 compliant compiler
+Run these commands in the project root. Requires: a C++20 compliant compiler
 Build all the required dependencies:<br/>
-`./bootstrap.py --triplet=x64-linux`<br/>
+`just bootstrap`<br/>
 Build emap:<br/>
-`./build.py --triplet=x64-linux --dist`
+`just build`
 
 The binary can now be found in `project_root/build/emap-release-x64-linux-dist/`
 
