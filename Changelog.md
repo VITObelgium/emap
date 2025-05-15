@@ -1,4 +1,8 @@
-﻿Release 3.2.1
+﻿Release 3.2.x
+-------------
+- Bugfix: Intersections of countries and subgrids sometimes took an additional row and column causing a small fraction of the emissions to end up outside of the grid
+
+Release 3.2.1
 -------------
 - Bugfix: Also perform PMCoarse calculation on the input files with "_extra" suffix.
 - Added: Support configuration of the boundaries vector filenames with the `spatial_boundaries_filename` and `spatial_boundaries_eez_filename` configuration keys
