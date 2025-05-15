@@ -72,9 +72,7 @@ int main(int argc, char** argv)
     }
 
     try {
-        inf::gdal::RegistrationConfig gdalCfg;
-        gdalCfg.projdbPath = file::u8path(argv[0]).parent_path() / "data";
-        inf::gdal::Registration reg(gdalCfg);
+        inf::gdal::Registration reg;
         inf::gdal::set_log_handler(inf::Log::Level::Debug);
 
         if (options.consoleLog || options.debugGrids) {

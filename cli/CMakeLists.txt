@@ -1,5 +1,4 @@
-﻿find_package(PROJ CONFIG REQUIRED)
-find_package(lyra CONFIG REQUIRED)
+﻿find_package(lyra CONFIG REQUIRED)
 
 add_executable(emapcli
     main.cpp
@@ -12,15 +11,6 @@ PRIVATE
     emaplogic
     Infra::infra
     bfg::lyra
-)
-
-set(RESOURCE_FILES
-    $<$<CONFIG:Debug>:$<TARGET_FILE_DIR:PROJ::proj>/../../share/proj/proj.db>
-    $<$<CONFIG:Release>:$<TARGET_FILE_DIR:PROJ::proj>/../share/proj/proj.db>
-)
-
-set_target_properties(emapcli PROPERTIES
-    RESOURCE "${RESOURCE_FILES}"
 )
 
 install(TARGETS emapcli
