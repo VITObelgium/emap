@@ -1,4 +1,4 @@
-#include "spatialpatterninventory.h"
+﻿#include "spatialpatterninventory.h"
 
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"

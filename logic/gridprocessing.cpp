@@ -1,4 +1,4 @@
-#include "emap/gridprocessing.h"
+﻿#include "emap/gridprocessing.h"
 #include "emap/emissions.h"
 
 #include "infra/algo.h"
@@ -415,8 +415,19 @@ GeoMetadata create_geometry_intersection_extent(const geos::geom::Geometry& geom
         return {};
     }
 
-    auto topLeftCell     = gridExtent.convert_point_to_cell(intersect.topLeft);
+    auto topLeftCell = gridExtent.convert_point_to_cell(intersect.topLeft);
+    // Take the topleft cell because the point is at the exact edge of the grid, otherwise an
+    // additional row and column is included
     auto bottomRightCell = gridExtent.convert_point_to_cell(intersect.bottomRight);
+    if (std::fmod(intersect.bottom_right().y, gridExtent.cell_size_y()) == 0) {
+        // If y is at the exaxct grid line take the cell above
+        bottomRightCell = top_cell(bottomRightCell);
+    }
+
+    if (std::fmod(intersect.bottom_right().x, gridExtent.cell_size_x()) == 0) {
+        // If x is at the exaxct grid line take the cell on the left
+        bottomRightCell = left_cell(bottomRightCell);
+    }
 
     auto lowerLeft = gridExtent.convert_cell_ll_to_xy(Cell(bottomRightCell.r, topLeftCell.c));
 

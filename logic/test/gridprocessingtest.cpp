@@ -1,4 +1,4 @@
-#include "emap/gridprocessing.h"
+﻿#include "emap/gridprocessing.h"
 #include "emap/configurationparser.h"
 #include "infra/geometry.h"
 #include "testconstants.h"
@@ -29,6 +29,15 @@ namespace gdal = inf::gdal;
 
 TEST_CASE("create_geometry_extent")
 {
+    /*
+       50, 150                        200, 150
+
+
+
+
+       50, -50                        200, -50
+    */
+
     auto geomFactory = geos::geom::GeometryFactory::create();
 
     const GeoMetadata gridMeta(4, 3, 50.0, -50.0, 50.0, {});
@@ -196,6 +205,26 @@ TEST_CASE("Add to raster")
         add_to_raster(grid2, flanders);
         CHECK_RASTER_EQ(grid1, grid2);
     }
+}
+
+TEST_CASE("create_country_coverages BEW 1km")
+{
+    // The cutout was one line too big causing emission loss
+
+    auto outputGrid    = grid_data(GridDefinition::Vlops1km).meta;
+    auto countriesPath = file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "boundaries" / "boundaries.gpkg";
+
+    CPLSetThreadLocalConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "YES");
+    auto vectorDs = gdal::warp_vector(countriesPath, grid_data(GridDefinition::Vlops1km).meta);
+
+    CountryInventory countries({country::BEW});
+    auto coverageInfo = create_country_coverages(outputGrid, vectorDs, "Code3", countries, CoverageMode::GridCellsOnly, nullptr);
+
+    CHECK(coverageInfo.size() == 1);
+    auto& bew = coverageInfo.front();
+
+    CHECK(bew.outputSubgridExtent.rows == 28);
+    CHECK(bew.outputSubgridExtent.bottom_left().y == 140000);
 }
 
 // TEST_CASE("res")
