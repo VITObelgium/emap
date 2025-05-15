@@ -44,6 +44,9 @@
         },
         "overlay-ports": [
             "./deps/infra/vcpkg_overlay/ports"
+        ],
+        "overlay-triplets": [
+            "./deps/infra/vcpkg_overlay/triplets"
         ]
     }
 }

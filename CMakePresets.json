@@ -21,14 +21,14 @@
             "name": "mac-arm",
             "inherits": "default",
             "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "arm64-osx"
+                "VCPKG_TARGET_TRIPLET": "arm64-osx-homebrew"
             }
         },
         {
             "name": "mac-intel",
             "inherits": "default",
             "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-osx"
+                "VCPKG_TARGET_TRIPLET": "x64-osx-homebrew"
             }
         },
         {

@@ -50,7 +50,7 @@ jobs:
         - name: Install osx dependencies
           if: ${{ runner.os == 'macOS' }}
           run: |
-              brew install nasm automake autoconf autoconf-archive libtool 
+              brew install nasm automake autoconf autoconf-archive libtool llvm
         - name: Bootstrap the ports
           id: bootstrap
           run: just bootstrap

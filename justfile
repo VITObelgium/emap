@@ -32,10 +32,10 @@ build_dist: git_status_clean bootstrap
     cmake --build ./build/dist --config Release --target package
 
 test_debug: build
-    ctest --test-dir ./build/cmake --output-on-failure -C Debug
+    ctest --verbose --test-dir ./build/cmake --output-on-failure -C Debug
 
 test_release: build
-    ctest --test-dir ./build/cmake --output-on-failure -C Release
+    ctest --verbose --test-dir ./build/cmake --output-on-failure -C Release
 
 test: test_release
 
