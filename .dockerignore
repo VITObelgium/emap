@@ -6,4 +6,3 @@
 /.git
 /.cache
 .DS_Store
-justfile

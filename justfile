@@ -2,8 +2,6 @@ set export
 
 import 'deps/infra/vcpkg.just'
 
-export GIT_COMMIT_HASH := `git rev-parse HEAD`
-
 bootstrap $VCPKG_ROOT=vcpkg_root:
     '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{VCPKG_DEFAULT_TRIPLET}}
 
@@ -40,8 +38,8 @@ test_release: build
 test: test_release
 
 buildmusl:
-    echo "Building static musl binary: {{GIT_COMMIT_HASH}}"
-    docker build --build-arg="GIT_HASH={{GIT_COMMIT_HASH}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
+    echo "Building static musl binary"
+    docker build --build-arg="GIT_HASH={{`git rev-parse HEAD`}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
     docker create --name extract emapmuslbuild
     docker cp extract:/project/build/emap-release-x64-linux-static-Release-dist/packages ./build
     docker rm extract
