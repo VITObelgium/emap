@@ -5,16 +5,17 @@ import 'deps/infra/vcpkg.just'
 bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root:
     '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{triplet}}
 
-configure $VCPKG_ROOT=vcpkg_root: bootstrap
+configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root: bootstrap
     cmake --preset {{cmake_preset}}
 
-build_debug: configure
+build_debug triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
     cmake --build ./build/cmake --config Debug
 
-build_release: configure
+build_release triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
     cmake --build ./build/cmake --config Release
 
-build: build_release
+build triplet=VCPKG_DEFAULT_TRIPLET: (build_release triplet)
+    cmake --build ./build/cmake --config Release
 
 [windows]
 configure_vs $VCPKG_ROOT=vcpkg_root: bootstrap

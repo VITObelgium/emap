@@ -18,21 +18,21 @@
             "generator": "Ninja Multi-Config"
         },
         {
-            "name": "mac-arm",
+            "name": "arm64-osx-homebrew",
             "inherits": "default",
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "arm64-osx-homebrew"
             }
         },
         {
-            "name": "mac-intel",
+            "name": "x64-osx-homebrew",
             "inherits": "default",
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-osx-homebrew"
             }
         },
         {
-            "name": "windows-base",
+            "name": "x64-windows-static",
             "inherits": "default",
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
@@ -43,13 +43,13 @@
         },
         {
             "name": "windows-visual-studio",
-            "inherits": "windows-base",
+            "inherits": "x64-windows-static",
             "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build/visualstudio"
         },
         {
             "name": "windows",
-            "inherits": "windows-base",
+            "inherits": "x64-windows-static",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
@@ -78,7 +78,7 @@
             }
         },
         {
-            "name": "linux",
+            "name": "x64-linux",
             "inherits": "default"
         },
         {
@@ -101,13 +101,6 @@
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/infra/vcpkg_overlay/triplets/toolchain-linux-cluster.cmake",
                 "LINKER_EXECUTABLE": "ld.gold",
                 "VCPKG_LINKER_FLAGS": "-static-libstdc++ -static-libgcc -fuse-ld=gold"
-            }
-        },
-        {
-            "name": "mac-arm-local",
-            "inherits": "mac-arm",
-            "environment": {
-                "VCPKG_ROOT": "${sourceDir}/../../vcpkg"
             }
         }
     ]
