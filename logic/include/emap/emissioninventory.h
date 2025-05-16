@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "emap/emissions.h"
 #include "infra/math.h"
@@ -63,6 +63,18 @@ public:
             return scaledEntry;
         });
         return result;
+    }
+
+    bool has_point_emission(const EmissionIdentifier& id, std::string_view sourceId) const noexcept
+    {
+        return std::any_of(_pointEmissionEntries.begin(), _pointEmissionEntries.end(), [&](const EmissionEntry& em) {
+            return em.id() == id && em.source_id() == sourceId;
+        });
+    }
+
+    void add_point_emission(EmissionEntry&& entry) noexcept
+    {
+        _pointEmissionEntries.push_back(std::move(entry));
     }
 
     double scaled_total_emissions_sum() const noexcept

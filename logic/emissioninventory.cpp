@@ -168,7 +168,7 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_correction_rati
     return result;
 }
 
-// Call the callback with the matchine emissions from both arrays
+// Call the callback with the matching emissions from both arrays
 template <typename Callback>
 static void zip_point_emissions(std::span<const EmissionEntry> pol1Points, std::span<const EmissionEntry> pol2Points, Callback&& callback)
 {
@@ -273,8 +273,27 @@ static void calculate_pmcoarse_emissions(const RunConfiguration& cfg, EmissionIn
                 auto pm10Entry = inv.try_emission_with_id(pm10Id);
                 auto pm25Entry = inv.try_emission_with_id(pm25Id);
 
-                if (pm25Entry.has_value() && pm10Entry.has_value()) {
+                if (pm10Entry.has_value()) {
                     EmissionIdentifier pmCoarseId(country, EmissionSector(sector), *pmCoarsePol);
+
+                    if (!pm25Entry.has_value()) {
+                        // No PM2.5 data available, create a new entry with 0.0 emissions
+                        // so PMCoarse can be calculated and have the same value as PM10
+                        pm25Entry = EmissionInventoryEntry(pm10Entry->id().with_pollutant(*pm25Pol), 0.0);
+                    }
+
+                    // Make sure to also add PM2.5 point emissions with value 0 for the PMCoarse calculation
+                    for (const auto& pointEmission : pm10Entry->point_emissions()) {
+                        auto pm25Id = pointEmission.id().with_pollutant(*pm25Pol);
+                        if (!pm25Entry->has_point_emission(pm25Id, pointEmission.source_id())) {
+                            EmissionEntry entry(pm25Id, EmissionValue(0));
+                            entry.set_source_id(pointEmission.source_id());
+                            if (pointEmission.coordinate().has_value()) {
+                                entry.set_coordinate(pointEmission.coordinate().value());
+                            }
+                            pm25Entry->add_point_emission(std::move(entry));
+                        }
+                    }
 
                     // Verify pm10 is larger then pm2.5
                     validate_pm10_pm25(*pm10Entry, *pm25Entry);
@@ -283,8 +302,9 @@ static void calculate_pmcoarse_emissions(const RunConfiguration& cfg, EmissionIn
 
                     // Calculate the PMCoarse point sources
                     auto pm10AutoScale = pm10Entry->point_auto_scaling_factor();
-                    auto pm25AutoScale = pm25Entry->point_auto_scaling_factor();
                     auto pm10UserScale = pm10Entry->point_user_scaling_factor();
+
+                    auto pm25AutoScale = pm25Entry->point_auto_scaling_factor();
                     auto pm25UserScale = pm25Entry->point_user_scaling_factor();
                     zip_point_emissions(pm10Entry->point_emissions(), pm25Entry->point_emissions(), [=, &pmCoarsePoints](const EmissionEntry& pm10, const EmissionEntry& pm25) {
                         try {

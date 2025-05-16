@@ -236,8 +236,8 @@ TEST_CASE("Emission inventory")
         scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector.nfr_sector(), emissionIdWithUserScaling.sector.gnfr_sector(), emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, 2019_y, 2.0));
 
         // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 160 = 93.75%
-        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(110.0), Coordinate(10, 10)));
-        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(50.0), Coordinate(10, 20)));
+        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(110.0), Coordinate(10, 10)).with_source_id("id1"));
+        pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(50.0), Coordinate(10, 20)).with_source_id("id2"));
         totalEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(150.0)));
 
         // This point emission has a user scaling of 2.0, this should not influence the auto scaling
@@ -278,8 +278,14 @@ TEST_CASE("Emission inventory")
         pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(100.0), Coordinate(10, 10)).with_source_id("id1"));
         pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(40.0), Coordinate(10, 20)).with_source_id("id2"));
 
+        // If only PM10 is present, PMCoarse should be calculated with the same value as PM10
+        pointEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(50.0), Coordinate(30, 30)).with_source_id("id3"));
+
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(300.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), EmissionValue(150.0)));
+
+        // If only PM10 is present, PMCoarse should be calculated with the same value as PM10
+        totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(200.0)));
 
         SingleEmissions gnfrTotals(date::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(300.0)));
@@ -289,6 +295,7 @@ TEST_CASE("Emission inventory")
         checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), 300.0 - 170.0 /* 130 */, 170.0);
         checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM2_5), 150.0 - 140.0 /* 10 */, 140.0);
         checkEmission(inv, EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 120.0, 30.0);
+        checkEmission(inv, EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 200.0 - 50.0 /* 150 */, 50.0);
     }
 }
 
