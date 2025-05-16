@@ -9,5 +9,5 @@ RUN cd vcpkg && ./bootstrap-vcpkg.sh
 ENV VCPKG_ROOT=/project/vcpkg
 
 COPY . .
-RUN just bootstrap
-RUN just dist
+RUN just bootstrap x64-linux-static
+RUN just dist x64-linux-static

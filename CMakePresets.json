@@ -82,6 +82,28 @@
             "inherits": "default"
         },
         {
+            "name": "x64-linux-static",
+            "inherits": "default",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-linux-static",
+                "VCPKG_CRT_LINKAGE": "static",
+                "VCPKG_SET_CHARSET_FLAG": "ON",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/toolchains/linux.cmake"
+            }
+        },
+        {
+            "name": "x64-linux-cluster",
+            "inherits": "default",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-linux-cluster",
+                "VCPKG_CRT_LINKAGE": "dynamic",
+                "VCPKG_SET_CHARSET_FLAG": "ON",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/infra/vcpkg_overlay/triplets/toolchain-linux-cluster.cmake",
+                "LINKER_EXECUTABLE": "ld.gold",
+                "VCPKG_LINKER_FLAGS": "-static-libstdc++ -static-libgcc -fuse-ld=gold"
+            }
+        },
+        {
             "name": "mac-arm-local",
             "inherits": "mac-arm",
             "environment": {

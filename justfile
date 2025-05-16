@@ -2,8 +2,8 @@ set export
 
 import 'deps/infra/vcpkg.just'
 
-bootstrap $VCPKG_ROOT=vcpkg_root:
-    '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{VCPKG_DEFAULT_TRIPLET}}
+bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root:
+    '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{triplet}}
 
 configure $VCPKG_ROOT=vcpkg_root: bootstrap
     cmake --preset {{cmake_preset}}
