@@ -1,4 +1,4 @@
-#include "emap/griddefinition.h"
+﻿#include "emap/griddefinition.h"
 
 #include "infra/cast.h"
 #include "infra/enumutils.h"
@@ -98,6 +98,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::ChimereRio1, "Chimere rio1", GeoMetadata(108, 252, 2.44872, 50.60386, {0.0141, -0.00895}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio4, "Chimere rio4", GeoMetadata(72, 80, 2.16672, 49.24346, {0.0564, -0.0358}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio32, "Chimere rio32", GeoMetadata(78, 73, -10.46688, 35.20986, {0.4512, -0.2864}, nan, s_epsg4326)},
+    {GridDefinition::SherpaEmep, "Sherpa EMEP", GeoMetadata(521, 415, -15.1, 71.5, {0.1, -0.1}, nan, s_epsg4326)},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
@@ -127,6 +128,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::ChimereRio4};
     case ModelGrid::ChimereRio32:
         return {GridDefinition::ChimereRio32};
+    case ModelGrid::SherpaEmep:
+        return {GridDefinition::SherpaEmep};
     default:
         break;
     }

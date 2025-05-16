@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "infra/geometadata.h"
 
@@ -20,6 +20,7 @@ enum class ModelGrid
     ChimereRio1,
     ChimereRio4,
     ChimereRio32,
+    SherpaEmep,
     EnumCount,
     Invalid,
 };
@@ -47,6 +48,7 @@ enum class GridDefinition
     ChimereRio1,
     ChimereRio4,
     ChimereRio32,
+    SherpaEmep,
     EnumCount,
     Invalid,
 };
