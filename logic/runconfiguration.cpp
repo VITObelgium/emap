@@ -157,9 +157,8 @@ ModelOuputFormat RunConfiguration::model_output_format() const
     case ModelGrid::ChimereRio1:
     case ModelGrid::ChimereRio4:
     case ModelGrid::ChimereRio32:
+    case ModelGrid::SherpaEmep:
         return ModelOuputFormat::Dat;
-    default:
-        break;
     }
 
     throw RuntimeError("Unexpected grid definition");
