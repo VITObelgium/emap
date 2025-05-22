@@ -31,15 +31,6 @@ namespace emap {
 using namespace inf;
 namespace gdal = inf::gdal;
 
-static int32_t required_csv_column(const inf::CsvReader& csv, const std::string& columnName)
-{
-    if (auto index = csv.column_index(columnName); index.has_value()) {
-        return *index;
-    }
-
-    throw RuntimeError("Missing column '{}'", columnName);
-}
-
 static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const inf::CsvReader& csv)
 {
     if (auto index = csv.column_index("nfr_sector"); index.has_value()) {
@@ -208,7 +199,6 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
         std::vector<EmissionEntry> pointSources;
         std::unordered_map<PointSourceIdentifier, double> pointSourceEmissions;
 
-#if 1
         using namespace io;
         CSVReader<25, trim_chars<' ', '\t'>, no_quote_escape<';'>, throw_on_overflow> in(file::u8string(emissionsCsv));
 
@@ -325,99 +315,6 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 
             ++lineNr;
         }
-#else
-
-        inf::CsvReader csv(emissionsCsv);
-
-        auto colCountry   = required_csv_column(csv, "reporting_country");
-        auto colPollutant = required_csv_column(csv, "pollutant");
-        auto colEmission  = required_csv_column(csv, "emission");
-        auto colUnit      = required_csv_column(csv, "unit");
-
-        auto colHeight         = required_csv_column(csv, "hoogte_m");
-        auto colDiameter       = required_csv_column(csv, "diameter_m");
-        auto colTemperature    = required_csv_column(csv, "temperatuur_C");
-        auto colWarmthContents = required_csv_column(csv, "warmteinhoud_MW");
-        auto colFlowRate       = required_csv_column(csv, "debiet_Nm3/u");
-        auto colEil            = required_csv_column(csv, "EIL_nummer");
-        auto colEilPoint       = required_csv_column(csv, "EIL_Emissiepunt_Jaar_Naam");
-
-        auto colSubType = csv.column_index("subtype");
-        if (!colSubType.has_value()) {
-            colSubType = csv.column_index("pointsource_index");
-        }
-
-        auto [colSector, sectorType] = determine_sector_column(csv);
-        auto colX                    = csv.column_index("x");
-        auto colY                    = csv.column_index("y");
-        auto colDv                   = csv.column_index("dv");
-
-        for (auto& line : csv) {
-            const auto sectorName    = line.get_string(colSector);
-            const auto pollutantName = line.get_string(colPollutant);
-            const auto country       = countryInv.try_country_from_string(line.get_string(colCountry));
-
-            if (sectorName.empty() ||
-                sectorInv.is_ignored_sector(sectorType, sectorName, *country) ||
-                pollutantInv.is_ignored_pollutant(pollutantName, *country)) {
-                continue;
-            }
-
-            double emissionValue = to_giga_gram(to_double(line.get_string(colEmission), lineNr), line.get_string(colUnit));
-            if (emissionValue == 0.0) {
-                continue;
-            }
-
-            auto sector    = sectorInv.try_sector_from_string(sectorType, sectorName);
-            auto pollutant = pollutantInv.try_pollutant_from_string(pollutantName);
-
-            if (sector.has_value() && pollutant.has_value()) {
-                PointSourceIdentifier ps;
-                ps.sector         = *sector;
-                ps.country        = *country;
-                ps.pollutant      = *pollutant;
-                ps.height         = line.get_double(colHeight).value_or(0.0);
-                ps.diameter       = line.get_double(colDiameter).value_or(0.0);
-                ps.temperature    = line.get_double(colTemperature).value_or(0.0);
-                ps.warmthContents = line.get_double(colWarmthContents).value_or(0.0);
-                ps.flowRate       = line.get_double(colFlowRate).value_or(0.0);
-                ps.subType        = colSubType.has_value() ? line.get_string(*colSubType) : "none";
-                ps.eilNumber      = line.get_string(colEil);
-                ps.eilPoint       = line.get_string(colEilPoint);
-
-                if (colX.has_value() && colY.has_value()) {
-                    auto x = line.get_double(*colX);
-                    auto y = line.get_double(*colY);
-                    if (x.has_value() && y.has_value()) {
-                        ps.coordinate = Coordinate(*x, *y);
-                    } else {
-                        throw RuntimeError("Invalid coordinate in point sources: {}", line.get_string(*colX), line.get_string(*colY));
-                    }
-                }
-
-                if (colDv.has_value()) {
-                    ps.dv = line.get_int32(*colDv);
-                }
-
-                if (combineIdentical) {
-                    pointSourceEmissions[ps] += emissionValue;
-                } else {
-                    pointSources.push_back(ps.to_emission_entry(emissionValue));
-                }
-            } else {
-                if (!pollutant.has_value()) {
-                    Log::warn("Unknown pollutant name: {}", pollutantName);
-                }
-
-                if (!sector.has_value()) {
-                    Log::warn("Unknown sector name: {}", sectorName);
-                }
-            }
-
-            ++lineNr;
-        }
-
-#endif
 
         if (combineIdentical) {
             for (const auto& [ps, emission] : pointSourceEmissions) {
