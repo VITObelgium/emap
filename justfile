@@ -1,7 +1,6 @@
 set export
 
 import 'deps/infra/vcpkg.just'
-export GIT_COMMIT_HASH := `git rev-parse HEAD`
 
 bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root:
     '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{triplet}}
@@ -26,7 +25,7 @@ configure_vs $VCPKG_ROOT=vcpkg_root: bootstrap
 build_vs: configure_vs
     cmake --build ./build/visualstudio --config Release
 
-build_dist triplet=VCPKG_DEFAULT_TRIPLET: git_status_clean (bootstrap triplet)
+build_dist triplet=VCPKG_DEFAULT_TRIPLET $GIT_COMMIT_HASH=`git rev-parse HEAD`: git_status_clean (bootstrap triplet)
     rm -rf ./build/{{triplet}}-dist
     cmake --preset {{triplet}}-dist
     cmake --build ./build/{{triplet}}-dist --config Release --target package
@@ -46,5 +45,5 @@ buildmusl:
     echo "Building static musl binary"
     docker build --build-arg="GIT_HASH={{`git rev-parse HEAD`}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
     docker create --name extract emapmuslbuild
-    docker cp extract:/project/build/x64-linux-dist/packages ./build
+    docker cp extract:/project/build/x64-linux-static-dist/packages ./build
     docker rm extract

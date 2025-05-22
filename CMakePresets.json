@@ -118,6 +118,14 @@
             "cacheVariables": {
                 "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
             }
+        },
+        {
+            "name": "x64-linux-static-dist",
+            "inherits": "x64-linux-static",
+            "binaryDir": "${sourceDir}/build/x64-linux-static-dist",
+            "cacheVariables": {
+                "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
+            }
         }
     ]
 }
