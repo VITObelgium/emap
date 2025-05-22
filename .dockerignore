@@ -3,6 +3,7 @@
 /deps/vcpkg/buildtrees
 /deps/vcpkg/packages
 /vcpkgs*
+/vcpkg_installed*
 /.git
 /.cache
 .DS_Store
