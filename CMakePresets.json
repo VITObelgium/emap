@@ -42,7 +42,7 @@
             }
         },
         {
-            "name": "windows-visual-studio",
+            "name": "x64-windows-static-vs",
             "inherits": "x64-windows-static",
             "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build/visualstudio"
@@ -70,7 +70,7 @@
             }
         },
         {
-            "name": "windows-dist",
+            "name": "x64-windows-static-dist",
             "inherits": "windows",
             "binaryDir": "${sourceDir}/build/dist",
             "cacheVariables": {
@@ -101,6 +101,22 @@
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/deps/infra/vcpkg_overlay/triplets/toolchain-linux-cluster.cmake",
                 "LINKER_EXECUTABLE": "ld.gold",
                 "VCPKG_LINKER_FLAGS": "-static-libstdc++ -static-libgcc -fuse-ld=gold"
+            }
+        },
+        {
+            "name": "x64-linux-cluster-dist",
+            "inherits": "x64-linux-cluster",
+            "binaryDir": "${sourceDir}/build/x64-linux-cluster-dist",
+            "cacheVariables": {
+                "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
+            }
+        },
+        {
+            "name": "x64-linux-dist",
+            "inherits": "x64-linux",
+            "binaryDir": "${sourceDir}/build/x64-linux-dist",
+            "cacheVariables": {
+                "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
             }
         }
     ]

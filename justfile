@@ -6,7 +6,7 @@ bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root:
     '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{triplet}}
 
 configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root: bootstrap
-    cmake --preset {{cmake_preset}}
+    cmake --preset {{triplet}}
 
 build_debug triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
     cmake --build ./build/cmake --config Debug
@@ -19,16 +19,16 @@ build triplet=VCPKG_DEFAULT_TRIPLET: (build_release triplet)
 
 [windows]
 configure_vs $VCPKG_ROOT=vcpkg_root: bootstrap
-    cmake --preset windows-visual-studio
+    cmake --preset x64-windows-static-vs
 
 [windows]
 build_vs: configure_vs
     cmake --build ./build/visualstudio --config Release
 
-build_dist: git_status_clean bootstrap
+build_dist triplet=VCPKG_DEFAULT_TRIPLET: git_status_clean (bootstrap triplet)
     rm -rf ./build/dist
-    cmake --preset {{cmake_preset}}-dist
-    cmake --build ./build/dist --config Release --target package
+    cmake --preset {{triplet}}-dist
+    cmake --build ./build/{{triplet}}-dist --config Release --target package
 
 test_debug: build
     ctest --verbose --test-dir ./build/cmake --output-on-failure -C Debug
