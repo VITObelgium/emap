@@ -72,7 +72,7 @@
         {
             "name": "x64-windows-static-dist",
             "inherits": "windows",
-            "binaryDir": "${sourceDir}/build/dist",
+            "binaryDir": "${sourceDir}/build/x64-windows-static-dist",
             "cacheVariables": {
                 "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
             }
