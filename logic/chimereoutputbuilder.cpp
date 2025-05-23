@@ -101,6 +101,7 @@ static std::string_view grid_resolution_string(ModelGrid grid)
     case ModelGrid::Chimere0025deg:
         return "0025deg";
     case ModelGrid::ChimereEmep:
+    case ModelGrid::SherpaEmep:
         return "emep_01deg";
     case ModelGrid::ChimereCams:
         return "cams_01-005deg";
@@ -110,7 +111,8 @@ static std::string_view grid_resolution_string(ModelGrid grid)
         return "chimere_rio4";
     case ModelGrid::ChimereRio32:
         return "chimere_rio32";
-    default:
+    case ModelGrid::EnumCount:
+    case ModelGrid::Invalid:
         break;
     }
 
