@@ -111,6 +111,10 @@ static std::string_view grid_resolution_string(ModelGrid grid)
         return "chimere_rio4";
     case ModelGrid::ChimereRio32:
         return "chimere_rio32";
+    case ModelGrid::Vlops1km:
+        return "1km";
+    case ModelGrid::Vlops250m:
+        return "250m";
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid:
         break;
