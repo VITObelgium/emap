@@ -99,6 +99,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::ChimereRio4, "Chimere rio4", GeoMetadata(72, 80, 2.16672, 49.24346, {0.0564, -0.0358}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio32, "Chimere rio32", GeoMetadata(78, 73, -10.46688, 35.20986, {0.4512, -0.2864}, nan, s_epsg4326)},
     {GridDefinition::SherpaEmep, "Sherpa EMEP", GeoMetadata(521, 415, -15.1, 30, {0.1, -0.1}, nan, s_epsg4326)},
+    {GridDefinition::SherpaChimere, "Sherpa Chimere", GeoMetadata(448, 384, -10.5, 34, {0.125, -0.0625}, nan, s_epsg4326)},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
@@ -130,6 +131,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::ChimereRio32};
     case ModelGrid::SherpaEmep:
         return {GridDefinition::SherpaEmep};
+    case ModelGrid::SherpaChimere:
+        return {GridDefinition::SherpaChimere};
     default:
         break;
     }

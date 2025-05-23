@@ -452,6 +452,10 @@ static ModelGrid model_grid_from_string(std::string_view grid)
         return ModelGrid::SherpaEmep;
     }
 
+    if (gridLowercase == "sherpa_chimere") {
+        return ModelGrid::SherpaChimere;
+    }
+
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 

@@ -21,6 +21,7 @@ enum class ModelGrid
     ChimereRio4,
     ChimereRio32,
     SherpaEmep,
+    SherpaChimere,
     EnumCount,
     Invalid,
 };
@@ -49,6 +50,7 @@ enum class GridDefinition
     ChimereRio4,
     ChimereRio32,
     SherpaEmep,
+    SherpaChimere,
     EnumCount,
     Invalid,
 };
