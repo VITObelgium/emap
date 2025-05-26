@@ -22,6 +22,7 @@ enum class ModelGrid
     ChimereRio32,
     SherpaEmep,
     SherpaChimere,
+    Quark1km,
     EnumCount,
     Invalid,
 };
@@ -51,6 +52,7 @@ enum class GridDefinition
     ChimereRio32,
     SherpaEmep,
     SherpaChimere,
+    Quark1km,
     EnumCount,
     Invalid,
 };

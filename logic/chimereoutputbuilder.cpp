@@ -105,6 +105,8 @@ static std::string_view grid_resolution_string(ModelGrid grid)
         return "emep_01deg";
     case ModelGrid::SherpaChimere:
         return "sherpa_emep";
+    case ModelGrid::Quark1km:
+        return "quark_1km";
     case ModelGrid::ChimereCams:
         return "cams_01-005deg";
     case ModelGrid::ChimereRio1:

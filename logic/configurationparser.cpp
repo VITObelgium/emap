@@ -456,6 +456,10 @@ static ModelGrid model_grid_from_string(std::string_view grid)
         return ModelGrid::SherpaChimere;
     }
 
+    if (gridLowercase == "quark_1km") {
+        return ModelGrid::Quark1km;
+    }
+
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 

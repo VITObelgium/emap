@@ -159,6 +159,7 @@ ModelOuputFormat RunConfiguration::model_output_format() const
     case ModelGrid::ChimereRio32:
     case ModelGrid::SherpaEmep:
     case ModelGrid::SherpaChimere:
+    case ModelGrid::Quark1km:
         return ModelOuputFormat::Dat;
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid:

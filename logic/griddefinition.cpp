@@ -71,6 +71,28 @@ static const char* s_belgianLambert72 = R"wkt(PROJCS["Belge 1972 / Belgian Lambe
     AUTHORITY["EPSG","31370"]]
 )wkt";
 
+static const char* s_epsg3035 = R"wkt(PROJCS["ETRS89-extended / LAEA Europe",
+    GEOGCS["ETRS89",
+        DATUM["European_Terrestrial_Reference_System_1989",
+            SPHEROID["GRS 1980",6378137,298.257222101,
+                AUTHORITY["EPSG","7019"]],
+            TOWGS84[0,0,0,0,0,0,0],
+            AUTHORITY["EPSG","6258"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4258"]],
+    PROJECTION["Lambert_Azimuthal_Equal_Area"],
+    PARAMETER["latitude_of_center",52],
+    PARAMETER["longitude_of_center",10],
+    PARAMETER["false_easting",4321000],
+    PARAMETER["false_northing",3210000],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AUTHORITY["EPSG","3035"]]
+)wkt";
+
 using namespace inf;
 
 constexpr double nan = std::numeric_limits<double>::quiet_NaN();
@@ -98,8 +120,9 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::ChimereRio1, "Chimere rio1", GeoMetadata(108, 252, 2.44872, 50.60386, {0.0141, -0.00895}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio4, "Chimere rio4", GeoMetadata(72, 80, 2.16672, 49.24346, {0.0564, -0.0358}, nan, s_epsg4326)},
     {GridDefinition::ChimereRio32, "Chimere rio32", GeoMetadata(78, 73, -10.46688, 35.20986, {0.4512, -0.2864}, nan, s_epsg4326)},
-    {GridDefinition::SherpaEmep, "Sherpa EMEP", GeoMetadata(415, 521, -15.1, 30, {0.1, 0.1}, nan, s_epsg4326)},
+    {GridDefinition::SherpaEmep, "Sherpa EMEP", GeoMetadata(415, 521, -15.1, 30, {0.1, -0.1}, nan, s_epsg4326)},
     {GridDefinition::SherpaChimere, "Sherpa Chimere", GeoMetadata(448, 384, -10.5, 34, {0.125, -0.0625}, nan, s_epsg4326)},
+    {GridDefinition::Quark1km, "Quark 1km", GeoMetadata(5420, 3921, 1082500, 1386500, {1000, -1000}, nan, s_epsg3035)},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
@@ -133,6 +156,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::SherpaEmep};
     case ModelGrid::SherpaChimere:
         return {GridDefinition::SherpaChimere};
+    case ModelGrid::Quark1km:
+        return {GridDefinition::Quark1km};
     default:
         break;
     }
