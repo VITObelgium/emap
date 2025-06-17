@@ -1,8 +1,10 @@
-﻿Release 3.2.x
+﻿Release 3.3.0
 -------------
 - Bugfix: Intersections of countries and subgrids sometimes took an additional row and column causing a small fraction of the emissions to end up outside of the grid
 - Calculated PMCoarse value will match the PM10 value if no PM2.5 data is available
-- Sherpa EMEP grid added
+- Added: Sherpa EMEP grid
+- Added: Sherpa Chimere grid
+- Added: Quark 1km grid
 
 Release 3.2.1
 -------------
