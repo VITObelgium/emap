@@ -5,8 +5,12 @@ find_path(TomlPlusPlus_INCLUDE_DIR
     HINTS ${TomlPlusPlus_ROOT_DIR}/include ${_VCPKG_INSTALLED_DIR}/include ${TomlPlusPlus_INCLUDEDIR}
 )
 
-find_library(TomlPlusPlus_LIBRARY NAMES tomlplusplus PATHS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH)
-find_library(TomlPlusPlus_LIBRARY_DEBUG NAMES tomlplusplus PATHS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH)
+if(DEFINED VCPKG_TARGET_TRIPLET)
+    find_library(TomlPlusPlus_LIBRARY NAMES tomlplusplus PATHS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH)
+    find_library(TomlPlusPlus_LIBRARY_DEBUG NAMES tomlplusplus PATHS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH)
+else ()
+    find_library(TomlPlusPlus_LIBRARY NAMES tomlplusplus)
+endif ()
 
 message(STATUS "TomlPlusPlus library: Rel ${TomlPlusPlus_LIBRARY} Dbg ${TomlPlusPlus_LIBRARY_DEBUG}")
 

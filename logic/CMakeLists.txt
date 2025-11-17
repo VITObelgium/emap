@@ -1,9 +1,11 @@
-﻿find_package(TBB CONFIG REQUIRED)
+find_package(TBB CONFIG REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
-find_package(type_safe CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
 find_package(XlsxWriter REQUIRED)
 find_package(TomlPlusPlus REQUIRED)
+if(DEFINED VCPKG_TARGET_TRIPLET)
+    find_package(type_safe CONFIG REQUIRED)
+endif()
 
 add_library(emaplogic
     include/emap/constants.h
@@ -64,7 +66,7 @@ target_link_libraries(emaplogic
     PUBLIC
     Infra::infra
     geodynamix::gdxcore
-    type_safe
+    $<TARGET_NAME_IF_EXISTS:type_safe>
     GEOS::geos
     PRIVATE
     TBB::tbb

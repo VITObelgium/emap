@@ -8,3 +8,4 @@ compile_commands.json
 vcpkg_installed
 vcpkgs-*
 vcpkgs
+.direnv

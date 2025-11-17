@@ -1,11 +1,18 @@
 set export
 
-import 'deps/infra/vcpkg.just'
+import 'deps/infra/vcpkg_overlay/vcpkg.just'
 
-bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root:
-    '{{vcpkg_root}}/vcpkg' install --allow-unsupported --triplet {{triplet}}
+local_vcpkg_root := join(justfile_directory(), "build/vcpkg")
+vcpkg_bin := if os_family() == "windows" {
+    join(local_vcpkg_root, "vcpkg.exe")
+} else {
+    join(local_vcpkg_root, "vcpkg")
+}
 
-configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=vcpkg_root: bootstrap
+bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=local_vcpkg_root: bootstrap_vcpkg
+    '{{vcpkg_bin}}' install --allow-unsupported --triplet {{triplet}}
+
+configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=local_vcpkg_root: bootstrap
     cmake --preset {{triplet}}
 
 build_debug triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
@@ -18,7 +25,7 @@ build triplet=VCPKG_DEFAULT_TRIPLET: (build_release triplet)
     cmake --build ./build/cmake --config Release
 
 [windows]
-configure_vs $VCPKG_ROOT=vcpkg_root: bootstrap
+configure_vs $VCPKG_ROOT=local_vcpkg_root: bootstrap
     cmake --preset x64-windows-static-vs
 
 [windows]
