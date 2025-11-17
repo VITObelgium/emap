@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.25)
 
 project(e-map
     VERSION 3.3.0
@@ -102,7 +102,7 @@ if(GDX_INSOURCE)
     set(GDX_ENABLE_TOOLS OFF)
     set(GDX_ENABLE_SIMD ON)
 
-    IF(NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm" AND NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64")
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
         set(GDX_AVX2 ON)
     endif()
 
