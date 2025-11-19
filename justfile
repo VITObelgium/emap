@@ -12,24 +12,30 @@ vcpkg_bin := if os_family() == "windows" {
 bootstrap triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=local_vcpkg_root: bootstrap_vcpkg
     '{{vcpkg_bin}}' install --allow-unsupported --triplet {{triplet}}
 
-configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=local_vcpkg_root: bootstrap
-    cmake --preset {{triplet}}
+# configure triplet=VCPKG_DEFAULT_TRIPLET $VCPKG_ROOT=local_vcpkg_root: bootstrap
+#     cmake --preset {{triplet}}
 
-build_debug triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
-    cmake --build ./build/cmake --config Debug
+# build_debug triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
+#     cmake --build ./build/cmake --config Debug
 
-build_release triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
-    cmake --build ./build/cmake --config Release
+# build_release triplet=VCPKG_DEFAULT_TRIPLET: (configure triplet)
+#     cmake --build ./build/cmake --config Release
 
-build triplet=VCPKG_DEFAULT_TRIPLET: (build_release triplet)
-    cmake --build ./build/cmake --config Release
+# build_vckg triplet=VCPKG_DEFAULT_TRIPLET: (build_release triplet)
+#     cmake --build ./build/cmake --config Release
+
+configure:
+    cmake  --preset nix
+
+build: configure
+    cmake --build ./build/nix --config Release
 
 [windows]
 configure_vs $VCPKG_ROOT=local_vcpkg_root: bootstrap
     cmake --preset x64-windows-static-vs
 
 [windows]
-build_vs: configure_vs
+build_vs $CMAKE_CONFIGURATION_TYPES="Debug;Release": configure_vs
     cmake --build ./build/visualstudio --config Release
 
 build_dist triplet=VCPKG_DEFAULT_TRIPLET $GIT_COMMIT_HASH=`git rev-parse HEAD`: git_status_clean (bootstrap triplet)

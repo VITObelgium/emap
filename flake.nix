@@ -2,11 +2,14 @@
   description = "ffmpegthumbnailer";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+
+    pkgs-mod.url = "github:VITO-RMA/nix-pkgs/main";
+    pkgs-mod.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    { self, ... }@inputs:
+    { self, nixpkgs, pkgs-mod, ... }@inputs:
 
     let
       supportedSystems = [
@@ -16,25 +19,42 @@
         "aarch64-darwin"
       ];
 
+      useStatic = true;
+
       forEachSupportedSystem =
         f:
         inputs.nixpkgs.lib.genAttrs supportedSystems (
           system:
           f {
-            pkgs = import inputs.nixpkgs {
+            # Regular build with static packages dynamically linked against glibc
+            pkgs = import nixpkgs {
               inherit system;
+              overlays = [
+                (pkgs-mod.overlayForStatic useStatic)
+              ];
             };
 
-            pkgsStatic = import inputs.nixpkgs {
+            # Fully static musl build
+            pkgsMusl = import nixpkgs {
               inherit system;
+              static = true;
+
+              overlays = [
+                (pkgs-mod.overlayForStatic useStatic)
+              ];
             };
 
             pkgsWindows = (
-              import inputs.nixpkgs {
+              import inputs.pkgsmod {
                 inherit system;
                 crossSystem = {
                   config = "x86_64-w64-mingw32";
                 };
+
+                static = true;
+                overlays = [
+                  (pkgs-mod.overlayForStatic useStatic)
+                ];
               }
             );
           }
@@ -44,7 +64,7 @@
       packages = forEachSupportedSystem (
         {
           pkgs,
-          pkgsStatic,
+          pkgsMusl,
           pkgsWindows,
         }:
         let
@@ -72,24 +92,6 @@
                 else
                   baseStdenv;
 
-              # zlib-ng in zlib-compatible mode
-              zlibNgCompat = pkgsForHost.zlib-ng.override {
-                withZlibCompat = true;
-              };
-
-              # Use zlib-ng and force it to be static-only (we mainly care on Windows)
-              zlibNgStatic = zlibNgCompat.overrideAttrs (old: {
-                dontDisableStatic = true;
-                cmakeFlags = (old.cmakeFlags or [ ]) ++ [
-                  "-DBUILD_SHARED_LIBS=OFF"
-                ];
-              });
-
-              # libpng that uses zlib-ng instead of plain zlib
-              libpngWithZlibNg = pkgsForHost.libpng.override {
-                zlib = zlibNgStatic;
-              };
-
               projectRoot = ./.;
 
               infra = projectRoot + "/libs/foo";
@@ -111,81 +113,32 @@
               buildInputs =
                 with pkgsForHost;
                 [
-                  (gdalMinimal.override {
-                  })
-
-                  cryptopp
+                  pkg-cryptopp
                   doctest
-                  eigen
-                  fast-cpp-csv-parser
-                  geos
-                  howard-hinnant-date
-                  libxlsxwriter
-                  (pkgsForHost.callPackage ./deps/nix/lyra/package.nix { })
-                  (pkgsForHost.callPackage ./deps/nix/indicators/package.nix { })
-                  (pkgsForHost.callPackage ./deps/nix/type_safe/package.nix { })
-                  fmt
-                  microsoft-gsl
-                  proj
-                  spdlog
-                  sqlite
-                  tbb_2022_0
-                  tomlplusplus
+                  eigen  # header-only
+                  fast-cpp-csv-parser # header-only
+                  pkg-gdal
+                  pkg-lerc
+                  pkg-libdeflate
+                  pkg-howard-hinnant-date
+                  pkg-libxlsxwriter
+                  pkg-lyra
+                  pkg-zlib-compat
+                  pkg-indicators
+                  pkg-libtiff
+                  pkg-libgeotiff
+                  pkg-zstd
+                  pkg-xz
+                  pkg-type_safe
+                  pkg-fmt
+                  microsoft-gsl # header-only
+                  pkg-openssl
+                  pkg-proj
+                  pkg-spdlog
+                  pkg-sqlite
+                  pkg-onetbb
+                  pkg-tomlplusplus
                   vc
-
-                  # proj
-
-                  # "type-safe",
-                  # "indicators",
-
-                  # # Use static versions of libpng and libjpeg for Windows
-                  # (
-                  #   if isWindows then
-                  #     libjpeg.override {
-                  #       enableStatic = true;
-                  #       enableShared = false;
-                  #     }
-                  #   else
-                  #     libjpeg
-                  # )
-                  # (
-                  #   if isWindows then
-                  #     libpngWithZlibNg.overrideAttrs (old: {
-                  #       dontDisableStatic = true;
-                  #       configureFlags = (old.configureFlags or [ ]) ++ [
-                  #         "--enable-static"
-                  #         "--disable-shared"
-                  #       ];
-                  #     })
-                  #   else
-                  #     libpng
-                  # )
-
-                ]
-                ++ pkgsForHost.lib.optionals isWindows [
-                  # ffmpeg transitive dependencies needed for linking on Windows
-                  zlibNgStatic
-                  (xz.overrideAttrs (old: {
-                    dontDisableStatic = true;
-                    configureFlags = (old.configureFlags or [ ]) ++ [
-                      "--enable-static"
-                      "--disable-shared"
-                    ];
-                  }))
-                  (bzip2.overrideAttrs (old: {
-                    dontDisableStatic = true;
-                    configureFlags = (old.configureFlags or [ ]) ++ [
-                      "--enable-static"
-                      "--disable-shared"
-                    ];
-                  }))
-                  (libiconv.overrideAttrs (old: {
-                    dontDisableStatic = true;
-                    configureFlags = (old.configureFlags or [ ]) ++ [
-                      "--enable-static"
-                      "--disable-shared"
-                    ];
-                  }))
                 ]
                 ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
                   glib
@@ -194,7 +147,6 @@
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
                 "-DENABLE_TESTS=ON"
-                "-DTYPESAFE_INSOURCE=ON"
               ];
 
               # Explicitly strip binaries completely (including static builds)
@@ -202,14 +154,14 @@
 
               meta = {
                 description = "Emission preprocessor for different Air Quality Models";
-                homepage = "https://github.com/dirkvdb/ffmpegthumbnailer";
+                homepage = "https://github.com/VITObelgium/emap";
                 platforms = pkgsForHost.lib.platforms.unix ++ pkgsForHost.lib.platforms.windows;
               };
             };
         in
         {
           default = mkPackage pkgs pkgs false false;
-          static = mkPackage pkgs pkgsStatic.pkgsStatic true false;
+          static = mkPackage pkgs pkgsMusl.pkgsStatic true false;
           windows = mkPackage pkgs pkgsWindows true true;
         }
       );

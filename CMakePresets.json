@@ -60,9 +60,7 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [
-                        "Windows"
-                    ]
+                    "hostOS": ["Windows"]
                 }
             },
             "cacheVariables": {
@@ -125,6 +123,14 @@
             "binaryDir": "${sourceDir}/build/x64-linux-static-dist",
             "cacheVariables": {
                 "PACKAGE_VERSION_COMMITHASH": "$env{GIT_COMMIT_HASH}"
+            }
+        },
+        {
+            "name": "nix",
+            "binaryDir": "${sourceDir}/build/nix",
+            "generator": "Ninja Multi-Config",
+            "environment": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
             }
         }
     ]
