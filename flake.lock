@@ -1,5 +1,39 @@
 {
   "nodes": {
+    "geodynamix-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763584511,
+        "narHash": "sha256-PsahZEOI1pgnkGi0bYDYzMt/hnjpVX9k6gegZQvgESw=",
+        "owner": "VITObelgium",
+        "repo": "geodynamix",
+        "rev": "98b72484f829a97d096420142bd63169de0b5a66",
+        "type": "github"
+      },
+      "original": {
+        "owner": "VITObelgium",
+        "ref": "develop",
+        "repo": "geodynamix",
+        "type": "github"
+      }
+    },
+    "infra-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763415725,
+        "narHash": "sha256-5+oI9HxQe6t5O36sH87m1aT1gwg/auJEHu/tfiUkw2g=",
+        "owner": "VITObelgium",
+        "repo": "cpp-infra",
+        "rev": "c505aba3363165305d198130f300433da87a417b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "VITObelgium",
+        "ref": "master",
+        "repo": "cpp-infra",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1763334038,
@@ -16,35 +50,18 @@
         "type": "github"
       }
     },
-    "nixpkgsunstable": {
-      "locked": {
-        "lastModified": 1763421233,
-        "narHash": "sha256-Stk9ZYRkGrnnpyJ4eqt9eQtdFWRRIvMxpNRf4sIegnw=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "89c2b2330e733d6cdb5eae7b899326930c2c0648",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "pkgs-mod": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "nixpkgsunstable": "nixpkgsunstable"
+        ]
       },
       "locked": {
-        "lastModified": 1763580388,
-        "narHash": "sha256-CoRcTTyXG6CRj6aPVplDfjkXCu51VsEHh8JkRbS+RKI=",
+        "lastModified": 1763593914,
+        "narHash": "sha256-X0iMPio23IS8DUCT2pLRxvzG/NWRzwUGe4+G3qpAYKE=",
         "owner": "VITO-RMA",
         "repo": "nix-pkgs",
-        "rev": "8d5b7551e09525cc6752667b3b6c9bd995709094",
+        "rev": "eacb2916296540f1637c70bbb63cf4d298c43d71",
         "type": "github"
       },
       "original": {
@@ -56,6 +73,8 @@
     },
     "root": {
       "inputs": {
+        "geodynamix-src": "geodynamix-src",
+        "infra-src": "infra-src",
         "nixpkgs": "nixpkgs",
         "pkgs-mod": "pkgs-mod"
       }

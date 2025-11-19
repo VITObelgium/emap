@@ -6,6 +6,16 @@
 
     pkgs-mod.url = "github:VITO-RMA/nix-pkgs/main";
     pkgs-mod.inputs.nixpkgs.follows = "nixpkgs";
+
+    infra-src = {
+      url = "github:VITObelgium/cpp-infra/master";
+      flake = false;
+    };
+
+    geodynamix-src = {
+      url = "github:VITObelgium/geodynamix/develop";
+      flake = false;
+    };
   };
 
   outputs =
@@ -19,7 +29,7 @@
         "aarch64-darwin"
       ];
 
-      useStatic = true;
+      useStatic = false;
 
       forEachSupportedSystem =
         f:
@@ -30,7 +40,7 @@
             pkgs = import nixpkgs {
               inherit system;
               overlays = [
-                (pkgs-mod.overlayForStatic useStatic)
+                (pkgs-mod.overlayForStatic true)
               ];
             };
 
@@ -40,12 +50,12 @@
               static = true;
 
               overlays = [
-                (pkgs-mod.overlayForStatic useStatic)
+                (pkgs-mod.overlayForStatic true)
               ];
             };
 
             pkgsWindows = (
-              import inputs.pkgsmod {
+              import nixpkgs {
                 inherit system;
                 crossSystem = {
                   config = "x86_64-w64-mingw32";
@@ -75,7 +85,7 @@
 
               # On Windows, use win32 threads to get a fully static binary
               stdenv' =
-                if isWindows && baseStdenv.cc.isGNU && baseStdenv.targetPlatform.isWindows then
+                if isWindows then
                   let
                     buildPkgs = pkgsForHost.buildPackages;
                     gccWin32 = buildPkgs.wrapCC (
@@ -94,15 +104,19 @@
 
               projectRoot = ./.;
 
-              infra = projectRoot + "/libs/foo";
-              geodynamix = projectRoot + "/libs/bar";
-
             in
             stdenv'.mkDerivation {
               pname = "emap";
               version = "dev";
 
-              src = self;
+              src = projectRoot;
+              # make sure deps/infra and deps/geodynamix exist in the build tree
+              postPatch = ''
+                rm -rf deps/infra deps/geodynamix
+                mkdir -p deps
+                ln -s ${inputs.infra-src} deps/infra
+                ln -s ${inputs.geodynamix-src} deps/geodynamix
+              '';
 
               nativeBuildInputs = with pkgsForBuild; [
                 cmake
@@ -114,7 +128,6 @@
                 with pkgsForHost;
                 [
                   pkg-cryptopp
-                  doctest
                   eigen  # header-only
                   fast-cpp-csv-parser # header-only
                   pkg-gdal
@@ -138,15 +151,17 @@
                   pkg-sqlite
                   pkg-onetbb
                   pkg-tomlplusplus
-                  vc
+                  pkg-vc
                 ]
                 ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
                   glib
                 ];
 
+              checkInputs = with pkgsForHost; [ doctest ];
+
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
-                "-DENABLE_TESTS=ON"
+                "-DENABLE_TESTS=OFF"
               ];
 
               # Explicitly strip binaries completely (including static builds)

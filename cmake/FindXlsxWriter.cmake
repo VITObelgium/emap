@@ -12,6 +12,8 @@ if(DEFINED VCPKG_TARGET_TRIPLET)
     find_dependency(MINIZIP NAMES unofficial-minizip CONFIG REQUIRED)
 else ()
     find_library(XlsxWriter_LIBRARY NAMES xlsxwriter)
+    find_library(Minizip_LIBRARY NAMES minizip)
+    find_dependency(OpenSSL)
 endif ()
 
 message(STATUS "XlsxWriter library: Rel ${XlsxWriter_LIBRARY} Dbg ${XlsxWriter_LIBRARY_DEBUG}")
@@ -39,6 +41,10 @@ if(XlsxWriter_FOUND AND NOT TARGET XlsxWriter::XlsxWriter)
     if(DEFINED VCPKG_TARGET_TRIPLET)
         set_target_properties(XlsxWriter::XlsxWriter PROPERTIES
             INTERFACE_LINK_LIBRARIES "unofficial::minizip::minizip"
+        )
+    else()
+        set_target_properties(XlsxWriter::XlsxWriter PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${Minizip_LIBRARY};$<TARGET_NAME_IF_EXISTS:OpenSSL::SSL>"
         )
     endif ()
 
