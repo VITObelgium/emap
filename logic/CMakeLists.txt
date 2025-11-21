@@ -2,7 +2,7 @@ find_package(TBB CONFIG REQUIRED)
 find_package(GEOS CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
 find_package(XlsxWriter REQUIRED)
-find_package(TomlPlusPlus REQUIRED)
+find_package(tomlplusplus REQUIRED)
 if(DEFINED VCPKG_TARGET_TRIPLET)
     find_package(type_safe CONFIG REQUIRED)
 endif()
@@ -71,7 +71,7 @@ target_link_libraries(emaplogic
     PRIVATE
     TBB::tbb
     FastCppCsvParser::csv
-    TomlPlusPlus::TomlPlusPlus
+    tomlplusplus::tomlplusplus
     XlsxWriter::XlsxWriter
 )
 

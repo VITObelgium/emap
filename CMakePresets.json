@@ -129,6 +129,9 @@
             "name": "nix",
             "binaryDir": "${sourceDir}/build/nix",
             "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=gold -static-libstdc++ -static-libgcc"
+            },
             "environment": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
             }

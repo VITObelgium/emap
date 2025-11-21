@@ -1,5 +1,5 @@
 {
-  description = "ffmpegthumbnailer";
+  description = "emap";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -131,24 +131,14 @@
                   eigen  # header-only
                   fast-cpp-csv-parser # header-only
                   pkg-gdal
-                  pkg-lerc
-                  pkg-libdeflate
                   pkg-howard-hinnant-date
                   pkg-libxlsxwriter
                   pkg-lyra
-                  pkg-zlib-compat
                   pkg-indicators
-                  pkg-libtiff
-                  pkg-libgeotiff
-                  pkg-zstd
-                  pkg-xz
                   pkg-type_safe
                   pkg-fmt
                   microsoft-gsl # header-only
-                  pkg-openssl
-                  pkg-proj
                   pkg-spdlog
-                  pkg-sqlite
                   pkg-onetbb
                   pkg-tomlplusplus
                   pkg-vc
