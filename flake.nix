@@ -178,16 +178,13 @@
           pkgs = buildEnv.pkgsStatic;
           emap = self.packages.${pkgs.system}.default;
         in
-        {
+        rec {
           emapcli = {
             type = "app";
             program = "${emap}/emapcli";
           };
 
-          default = {
-            type = "app";
-            program = "${emap}/emapcli";
-          };
+          default = emapcli;
         }
       );
     };

@@ -23,4 +23,4 @@ jobs:
         uses: JRMurr/direnv-nix-action@v4.2.0
 
       - name: Build and check the packages
-        run: nix flake check -L
+        run: nix flake check
