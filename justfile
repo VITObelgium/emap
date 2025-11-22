@@ -30,6 +30,9 @@ configure:
 build: configure
     cmake --build ./build/nix --config Release
 
+rebuild:
+    cmake --build ./build/nix --clean-first --config Release
+
 [windows]
 configure_vs $VCPKG_ROOT=local_vcpkg_root: bootstrap
     cmake --preset x64-windows-static-vs

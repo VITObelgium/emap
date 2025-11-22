@@ -29,83 +29,28 @@
         "aarch64-darwin"
       ];
 
-      useStatic = false;
-
       forEachSupportedSystem =
         f:
         inputs.nixpkgs.lib.genAttrs supportedSystems (
           system:
           f {
-            # Regular build with static packages dynamically linked against glibc
-            pkgs = import nixpkgs {
-              inherit system;
-              overlays = [
-                (pkgs-mod.overlayForStatic true)
-              ];
-            };
-
-            # Fully static musl build
-            pkgsMusl = import nixpkgs {
-              inherit system;
-              static = true;
-
-              overlays = [
-                (pkgs-mod.overlayForStatic true)
-              ];
-            };
-
-            pkgsWindows = (
-              import nixpkgs {
-                inherit system;
-                crossSystem = {
-                  config = "x86_64-w64-mingw32";
-                };
-
-                static = true;
-                overlays = [
-                  (pkgs-mod.overlayForStatic useStatic)
-                ];
-              }
-            );
+            buildEnv = pkgs-mod.lib.mkBuildEnv system;
+            buildEnvMingwCross = pkgs-mod.lib.mkBuildEnvMingwCross system;
           }
         );
     in
     {
       packages = forEachSupportedSystem (
         {
-          pkgs,
-          pkgsMusl,
-          pkgsWindows,
+          buildEnv, buildEnvMingwCross,
         }:
         let
           mkPackage =
-            pkgsForBuild: pkgsForHost: isStatic: isWindows:
+            pkgsForBuild: pkgsForHost: isStatic:
             let
-              baseStdenv = pkgsForHost.stdenv;
-
-              # On Windows, use win32 threads to get a fully static binary
-              stdenv' =
-                if isWindows then
-                  let
-                    buildPkgs = pkgsForHost.buildPackages;
-                    gccWin32 = buildPkgs.wrapCC (
-                      buildPkgs.gcc-unwrapped.override {
-                        # use winthreads for fully static linking
-                        threadsCross = {
-                          model = "win32";
-                          package = null;
-                        };
-                      }
-                    );
-                  in
-                  pkgsForHost.overrideCC baseStdenv gccWin32
-                else
-                  baseStdenv;
-
               projectRoot = ./.;
-
             in
-            stdenv'.mkDerivation {
+            pkgsForHost.stdenv.mkDerivation {
               pname = "emap";
               version = "dev";
 
@@ -151,7 +96,7 @@
 
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
-                "-DENABLE_TESTS=OFF"
+                "-DBUILD_TESTING=OFF"
               ];
 
               # Explicitly strip binaries completely (including static builds)
@@ -165,34 +110,32 @@
             };
         in
         {
-          default = mkPackage pkgs pkgs false false;
-          static = mkPackage pkgs pkgsMusl.pkgsStatic true false;
-          windows = mkPackage pkgs pkgsWindows true true;
+          default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false;
+          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl.pkgsStatic true;
+          windows = mkPackage buildEnvMingwCross.pkgsDefault buildEnvMingwCross.pkgsMingw true;
         }
       );
 
       checks = forEachSupportedSystem (
-        { pkgs, ... }:
+        { buildEnv, ... }:
         {
-          default = self.packages.${pkgs.system}.default;
-          static = self.packages.${pkgs.system}.static;
+          #default = self.packages.${pkgs.pkgsStaticGlibc.system}.default;
+          #musl = self.packages.${pkgs.pkgsStpkgsStaticMusl.system}.musl;
+
+          default = self.packages.${buildEnv.pkgsDefault.system}.default;
+          musl = self.packages.${buildEnv.pkgsDefault.system}.musl;
         }
       );
 
       devShells = forEachSupportedSystem (
-        { pkgs, ... }:
-        let
-          pkg = self.packages.${pkgs.system}.default;
+        { buildEnv, ... }:
+        let pkgs = buildEnv.pkgsDefault;
         in
         {
           default =
-            pkgs.mkShell.override
+            buildEnv.pkgsDefault.mkShell
               {
-                # Override stdenv in order to change compiler:
-                # stdenv = pkgs.clangStdenv;
-              }
-              {
-                inputsFrom = [ pkg ];
+                inputsFrom = [ self.packages.${buildEnv.pkgsDefault.system}.default ];
                 name = "dev";
                 packages =
                   with pkgs;
@@ -205,7 +148,7 @@
                     just
                     python3
                   ]
-                  ++ (if pkgs.system == "aarch64-darwin" then [ ] else [ gdb ]);
+                  ++ (if buildEnv.pkgsDefault.system == "aarch64-darwin" then [ ] else [ gdb ]);
               };
         }
       );

@@ -2,13 +2,10 @@
 #include "emap/constants.h"
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
-#include "emap/inputconversion.h"
 #include "emap/runconfiguration.h"
 #include "emap/scalingfactors.h"
 #include "emap/sector.h"
 #include "infra/chrono.h"
-#include "infra/csvreader.h"
-#include "infra/enumutils.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
 #include "infra/hash.h"
@@ -30,19 +27,6 @@ namespace emap {
 
 using namespace inf;
 namespace gdal = inf::gdal;
-
-static std::pair<int32_t, EmissionSector::Type> determine_sector_column(const inf::CsvReader& csv)
-{
-    if (auto index = csv.column_index("nfr_sector"); index.has_value()) {
-        return std::make_pair(*index, EmissionSector::Type::Nfr);
-    }
-
-    if (auto index = csv.column_index("gnfr_sector"); index.has_value()) {
-        return std::make_pair(*index, EmissionSector::Type::Gnfr);
-    }
-
-    throw RuntimeError("Missing nfr_sector or gnfr_sector column");
-}
 
 static double to_double(std::string_view valueString, size_t lineNr)
 {

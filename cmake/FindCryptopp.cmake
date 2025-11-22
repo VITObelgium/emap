@@ -29,7 +29,7 @@ mark_as_advanced(
 )
 
 if(Cryptopp_FOUND AND NOT TARGET cryptopp::cryptopp)
-    add_library(cryptopp::cryptopp SHARED IMPORTED)
+    add_library(cryptopp::cryptopp UNKNOWN IMPORTED)
     set_target_properties(cryptopp::cryptopp PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         INTERFACE_INCLUDE_DIRECTORIES "${Cryptopp_INCLUDE_DIR}"
