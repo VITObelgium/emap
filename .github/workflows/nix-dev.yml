@@ -1,0 +1,29 @@
+name: Vcpkg build
+
+on: [push]
+
+jobs:
+  build:
+    name: ${{ matrix.cfg.os }}
+    runs-on: ${{ matrix.cfg.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-latest, id: linux }
+          - { os: macos-latest, id: mac }
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: "Setup env"
+        uses: JRMurr/direnv-nix-action@v4.2.0
+
+      - name: Build the code
+        run: just build
+
+      - name: Run the unit tests
+        run: just test

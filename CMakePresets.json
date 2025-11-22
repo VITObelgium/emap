@@ -130,10 +130,45 @@
             "binaryDir": "${sourceDir}/build/nix",
             "generator": "Ninja Multi-Config",
             "cacheVariables": {
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=gold -static-libstdc++ -static-libgcc"
+                "BUILD_TESTING": "ON",
+                "CMAKE_EXE_LINKER_FLAGcdS": "-fuse-ld=gold -static-libstdc++ -static-libgcc"
             },
             "environment": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "nix-debug",
+            "configurePreset": "nix",
+            "displayName": "Debug Nix Build",
+            "configuration": "Debug"
+        },
+        {
+            "name": "nix-release",
+            "configurePreset": "nix",
+            "displayName": "Release Nix Build",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "nix-debug",
+            "description": "Unit tests",
+            "configurePreset": "nix",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "nix-release",
+            "description": "Unit tests",
+            "configurePreset": "nix",
+            "configuration": "Release",
+            "output": {
+                "outputOnFailure": true
             }
         }
     ]

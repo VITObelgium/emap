@@ -19,7 +19,12 @@
   };
 
   outputs =
-    { self, nixpkgs, pkgs-mod, ... }@inputs:
+    {
+      self,
+      nixpkgs,
+      pkgs-mod,
+      ...
+    }@inputs:
 
     let
       supportedSystems = [
@@ -42,19 +47,17 @@
     {
       packages = forEachSupportedSystem (
         {
-          buildEnv, buildEnvMingwCross,
+          buildEnv,
+          buildEnvMingwCross,
         }:
         let
           mkPackage =
             pkgsForBuild: pkgsForHost: isStatic:
-            let
-              projectRoot = ./.;
-            in
             pkgsForHost.stdenv.mkDerivation {
               pname = "emap";
               version = "dev";
 
-              src = projectRoot;
+              src = ./.;
               # make sure deps/infra and deps/geodynamix exist in the build tree
               postPatch = ''
                 rm -rf deps/infra deps/geodynamix
@@ -73,7 +76,7 @@
                 with pkgsForHost;
                 [
                   pkg-cryptopp
-                  eigen  # header-only
+                  eigen # header-only
                   fast-cpp-csv-parser # header-only
                   pkg-gdal
                   pkg-howard-hinnant-date
@@ -129,27 +132,32 @@
 
       devShells = forEachSupportedSystem (
         { buildEnv, ... }:
-        let pkgs = buildEnv.pkgsDefault;
+        let
+          pkgs = buildEnv.pkgsDefault;
+          emap = self.packages.${pkgs.system}.default;
         in
         {
-          default =
-            buildEnv.pkgsDefault.mkShell
-              {
-                inputsFrom = [ self.packages.${buildEnv.pkgsDefault.system}.default ];
-                name = "dev";
-                packages =
-                  with pkgs;
-                  [
-                    # development tools
-                    clang-tools
-                    cmake
-                    cmakeCurses
-                    ninja
-                    just
-                    python3
-                  ]
-                  ++ (if buildEnv.pkgsDefault.system == "aarch64-darwin" then [ ] else [ gdb ]);
-              };
+          default = pkgs.mkShell {
+            inputsFrom = [ emap ];
+            name = "dev";
+            packages =
+              with pkgs;
+              [
+                # languages servers/formatters
+                nil
+                nixfmt-rfc-style
+                clang-tools
+                neocmakelsp
+                # development tools
+                cmake
+                cmakeCurses
+                ninja
+                just
+                # test frameworks
+                doctest
+              ]
+              ++ (if pkgs.system == "aarch64-darwin" then [ ] else [ pkgs.gdb ]);
+          };
         }
       );
     };
