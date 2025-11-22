@@ -171,5 +171,24 @@
           };
         }
       );
+
+      apps = forEachSupportedSystem (
+        { buildEnv, ... }:
+        let
+          pkgs = buildEnv.pkgsStatic;
+          emap = self.packages.${pkgs.system}.default;
+        in
+        {
+          emapcli = {
+            type = "app";
+            program = "${emap}/emapcli";
+          };
+
+          default = {
+            type = "app";
+            program = "${emap}/emapcli";
+          };
+        }
+      );
     };
 }
