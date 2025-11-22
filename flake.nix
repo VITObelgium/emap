@@ -121,6 +121,7 @@
       checks = forEachSupportedSystem (
         { buildEnv, ... }:
         let
+          pkgs = buildEnv.pkgsDefault;
           mkTest =
             pkg:
             pkg.overrideAttrs (old: {
@@ -136,8 +137,11 @@
             });
         in
         {
-          default = mkTest self.packages.${buildEnv.pkgsDefault.system}.default;
-          musl = mkTest self.packages.${buildEnv.pkgsDefault.system}.musl;
+          default = mkTest self.packages.${pkgs.system}.default;
+
+        }
+        // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          musl = mkTest self.packages.${pkgs.system}.musl;
         }
       );
 
