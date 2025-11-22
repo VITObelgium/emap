@@ -76,7 +76,7 @@
                 with pkgsForHost;
                 [
                   pkg-cryptopp
-                  eigen # header-only
+                  pkg-eigen
                   fast-cpp-csv-parser # header-only
                   pkg-gdal
                   pkg-howard-hinnant-date
@@ -95,11 +95,10 @@
                   glib
                 ];
 
-              checkInputs = with pkgsForHost; [ doctest ];
+              checkInputs = with pkgsForHost; [ pkg-doctest ];
 
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
-                "-DBUILD_TESTING=OFF"
               ];
 
               # Explicitly strip binaries completely (including static builds)
@@ -114,19 +113,31 @@
         in
         {
           default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false;
-          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl.pkgsStatic true;
+          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl true;
           windows = mkPackage buildEnvMingwCross.pkgsDefault buildEnvMingwCross.pkgsMingw true;
         }
       );
 
       checks = forEachSupportedSystem (
         { buildEnv, ... }:
-        {
-          #default = self.packages.${pkgs.pkgsStaticGlibc.system}.default;
-          #musl = self.packages.${pkgs.pkgsStpkgsStaticMusl.system}.musl;
+        let
+          mkTest =
+            pkg:
+            pkg.overrideAttrs (old: {
+              cmakeFlags = old.cmakeFlags or [ ] ++ [
+                "-DBUILD_TESTING=ON"
+              ];
 
-          default = self.packages.${buildEnv.pkgsDefault.system}.default;
-          musl = self.packages.${buildEnv.pkgsDefault.system}.musl;
+              doCheck = true;
+
+              checkPhase = ''
+                ctest --output-on-failure
+              '';
+            });
+        in
+        {
+          default = mkTest self.packages.${buildEnv.pkgsDefault.system}.default;
+          musl = mkTest self.packages.${buildEnv.pkgsDefault.system}.musl;
         }
       );
 
@@ -154,7 +165,7 @@
                 ninja
                 just
                 # test frameworks
-                doctest
+                pkg-doctest
               ]
               ++ (if pkgs.system == "aarch64-darwin" then [ ] else [ pkgs.gdb ]);
           };

@@ -22,8 +22,5 @@ jobs:
       - name: "Setup env"
         uses: JRMurr/direnv-nix-action@v4.2.0
 
-      - name: Build the code
-        run: just build
-
-      - name: Run the unit tests
-        run: just test
+      - name: Build and check the packages
+        run: nix flake check -L

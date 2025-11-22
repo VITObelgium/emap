@@ -1,7 +1,7 @@
 set export
 
 configure:
-    cmake  --preset nix
+    cmake --preset nix
 
 build_debug: configure
     cmake --build --preset nix-debug
