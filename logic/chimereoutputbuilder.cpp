@@ -1,7 +1,6 @@
 #include "chimereoutputbuilder.h"
 
 #include "emap/emissions.h"
-#include "infra/cast.h"
 #include "infra/conversion.h"
 #include "outputwriters.h"
 

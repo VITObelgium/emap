@@ -75,27 +75,27 @@
               buildInputs =
                 with pkgsForHost;
                 [
-                  pkg-cryptopp
-                  pkg-eigen
+                  pkg-mod-cryptopp
+                  pkg-mod-eigen
+                  pkg-mod-gdal
+                  pkg-mod-howard-hinnant-date
+                  pkg-mod-libxlsxwriter
+                  pkg-mod-lyra
+                  pkg-mod-indicators
+                  pkg-mod-type_safe
+                  pkg-mod-fmt
+                  pkg-mod-spdlog
+                  pkg-mod-onetbb
+                  pkg-mod-tomlplusplus
+                  pkg-mod-vc
                   fast-cpp-csv-parser # header-only
-                  pkg-gdal
-                  pkg-howard-hinnant-date
-                  pkg-libxlsxwriter
-                  pkg-lyra
-                  pkg-indicators
-                  pkg-type_safe
-                  pkg-fmt
                   microsoft-gsl # header-only
-                  pkg-spdlog
-                  pkg-onetbb
-                  pkg-tomlplusplus
-                  pkg-vc
                 ]
                 ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
                   glib
                 ];
 
-              checkInputs = with pkgsForHost; [ pkg-doctest ];
+              checkInputs = with pkgsForHost; [ pkg-mod-doctest ];
 
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
@@ -169,7 +169,7 @@
                 ninja
                 just
                 # test frameworks
-                pkg-doctest
+                pkg-mod-doctest
               ]
               ++ (if pkgs.system == "aarch64-darwin" then [ ] else [ pkgs.gdb ]);
           };
