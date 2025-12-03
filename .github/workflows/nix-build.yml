@@ -1,4 +1,4 @@
-name: Nix build in dev shell
+name: Nix package build
 
 on: [push]
 
