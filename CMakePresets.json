@@ -131,7 +131,7 @@
             "generator": "Ninja Multi-Config",
             "cacheVariables": {
                 "BUILD_TESTING": "ON",
-                "CMAKE_EXE_LINKER_FLAGcdS": "-fuse-ld=gold -static-libstdc++ -static-libgcc"
+                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=gold -static-libstdc++ -static-libgcc"
             },
             "environment": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release"

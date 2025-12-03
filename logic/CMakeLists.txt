@@ -3,9 +3,7 @@ find_package(GEOS CONFIG REQUIRED)
 find_package(FastCppCsvParser REQUIRED)
 find_package(XlsxWriter REQUIRED)
 find_package(tomlplusplus REQUIRED)
-if(DEFINED VCPKG_TARGET_TRIPLET)
-    find_package(type_safe CONFIG REQUIRED)
-endif()
+find_package(type_safe CONFIG REQUIRED)
 
 add_library(emaplogic
     include/emap/constants.h

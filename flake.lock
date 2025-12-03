@@ -57,11 +57,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1764507442,
-        "narHash": "sha256-JoClq2b/dc8uH13TX+DVQxbcwDBBXSMxXWFOdIIbhRI=",
+        "lastModified": 1764765463,
+        "narHash": "sha256-vwsmzDcLqiP0UvQ5znyUYr+m+HHeqz6kp59Rfd3jL/c=",
         "owner": "VITO-RMA",
         "repo": "nix-pkgs",
-        "rev": "b5baa679cb4580925bd8a65697028594252c2ede",
+        "rev": "6021425cfb9a2b320406a6f7fa91c5de2aec7d25",
         "type": "github"
       },
       "original": {
