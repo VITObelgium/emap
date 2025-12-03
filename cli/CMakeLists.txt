@@ -1,4 +1,4 @@
-﻿find_package(lyra CONFIG REQUIRED)
+find_package(lyra CONFIG REQUIRED)
 
 add_executable(emapcli
     main.cpp
@@ -11,6 +11,10 @@ PRIVATE
     emaplogic
     Infra::infra
     bfg::lyra
+)
+
+target_link_options(emapcli PRIVATE
+    $<$<CXX_COMPILER_ID:GNU>:-fuse-ld=gold -static-libstdc++ -static-libgcc>
 )
 
 install(TARGETS emapcli

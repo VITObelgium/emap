@@ -130,8 +130,7 @@
             "binaryDir": "${sourceDir}/build/nix",
             "generator": "Ninja Multi-Config",
             "cacheVariables": {
-                "BUILD_TESTING": "ON",
-                "CMAKE_EXE_LINKER_FLAGS": "$<$<CXX_COMPILER_ID:GNU>:\"-fuse-ld=gold -static-libstdc++ -static-libgcc\">"
+                "BUILD_TESTING": "ON"
             },
             "environment": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
