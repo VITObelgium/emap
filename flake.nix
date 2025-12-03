@@ -39,14 +39,20 @@
         inputs.nixpkgs.lib.genAttrs supportedSystems (
           system:
           f {
+            inherit system;
             buildEnv = pkgs-mod.lib.mkBuildEnv system;
-            buildEnvMingwCross = pkgs-mod.lib.mkBuildEnvMingwCross system;
+            buildEnvMingwCross =
+              if (nixpkgs.lib.strings.hasInfix "linux" system) then
+                pkgs-mod.lib.mkBuildEnvMingwCross system { llvm = false; }
+              else
+                null;
           }
         );
     in
     {
       packages = forEachSupportedSystem (
         {
+          system,
           buildEnv,
           buildEnvMingwCross,
         }:
@@ -113,6 +119,8 @@
         in
         {
           default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false;
+        }
+        // inputs.nixpkgs.lib.optionalAttrs (nixpkgs.lib.strings.hasInfix "linux" system) {
           musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl true;
           windows = mkPackage buildEnvMingwCross.pkgsDefault buildEnvMingwCross.pkgsMingw true;
         }
