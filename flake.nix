@@ -126,64 +126,6 @@
         }
       );
 
-      checks = forEachSupportedSystem (
-        { buildEnv, ... }:
-        let
-          pkgs = buildEnv.pkgsDefault;
-          mkTest =
-            pkg:
-            pkg.overrideAttrs (old: {
-              cmakeFlags = old.cmakeFlags or [ ] ++ [
-                "-DBUILD_TESTING=ON"
-              ];
-
-              doCheck = true;
-
-              checkPhase = ''
-                ctest --output-on-failure
-              '';
-            });
-        in
-        {
-          default = mkTest self.packages.${pkgs.system}.default;
-
-        }
-        // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
-          musl = mkTest self.packages.${pkgs.system}.musl;
-        }
-      );
-
-      devShells = forEachSupportedSystem (
-        { buildEnv, ... }:
-        let
-          pkgs = buildEnv.pkgsDefault;
-          emap = self.packages.${pkgs.system}.default;
-        in
-        {
-          default = pkgs.mkShell {
-            inputsFrom = [ emap ];
-            name = "dev";
-            packages =
-              with pkgs;
-              [
-                # languages servers/formatters
-                nil
-                nixfmt-rfc-style
-                clang-tools
-                neocmakelsp
-                # development tools
-                cmake
-                cmakeCurses
-                ninja
-                just
-                # test frameworks
-                pkg-mod-doctest
-              ]
-              ++ (if pkgs.system == "aarch64-darwin" then [ ] else [ pkgs.gdb ]);
-          };
-        }
-      );
-
       apps = forEachSupportedSystem (
         { buildEnv, ... }:
         let

@@ -53,10 +53,32 @@
         "type": "github"
       }
     },
+    "pkgs-mod": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1774012533,
+        "narHash": "sha256-SFzA77kEq4++rmxPaqSbE1dOMe2leZcuo7HErM+J5fk=",
+        "owner": "VITO-RMA",
+        "repo": "nix-pkgs",
+        "rev": "e5f1907b8cd2efed9d4a8cb4392da356ee7e79ca",
+        "type": "github"
+      },
+      "original": {
+        "owner": "VITO-RMA",
+        "ref": "main",
+        "repo": "nix-pkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "devenv": "devenv",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "pkgs-mod": "pkgs-mod"
       }
     }
   },

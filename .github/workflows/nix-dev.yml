@@ -19,11 +19,16 @@ jobs:
         with:
           submodules: true
 
-      - name: "Setup env"
-        uses: JRMurr/direnv-nix-action@v4.2.0
+      - uses: cachix/install-nix-action@v31
 
-      - name: Build the code
-        run: just build
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+          extraPullNames: geo-overlay
 
-      - name: Run the unit tests
-        run: just test
+      - name: Install devenv
+        shell: bash
+        run: nix profile add nixpkgs#devenv
+
+      - name: Run tests
+        run: devenv test
