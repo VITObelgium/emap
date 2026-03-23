@@ -2,6 +2,7 @@
 
 #include "configurationutil.h"
 #include "emap/constants.h"
+#include "emap/griddefinition.h"
 #include "infra/exception.h"
 #include "infra/string.h"
 
@@ -160,6 +161,9 @@ ModelOuputFormat RunConfiguration::model_output_format() const
     case ModelGrid::SherpaEmep:
     case ModelGrid::SherpaChimere:
     case ModelGrid::Quark1km:
+    case ModelGrid::Emap1:
+    case ModelGrid::Emap3tf:
+    case ModelGrid::Emap5tf:
         return ModelOuputFormat::Dat;
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid:

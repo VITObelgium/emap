@@ -123,6 +123,10 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::SherpaEmep, "Sherpa EMEP", GeoMetadata(415, 521, -15.1, 30, {0.1, -0.1}, nan, s_epsg4326)},
     {GridDefinition::SherpaChimere, "Sherpa Chimere", GeoMetadata(448, 384, -10.5, 34, {0.125, -0.0625}, nan, s_epsg4326)},
     {GridDefinition::Quark1km, "Quark 1km", GeoMetadata(5420, 3921, 1082500, 1386500, {1000, -1000}, nan, s_epsg3035)},
+
+    {GridDefinition::Emap1, "EMAP 1", GeoMetadata(47, 68, -11, 46.25, {0.5, -0.5}, nan, s_epsg4326)},
+    {GridDefinition::Emap3tf, "EMAP 3TF", GeoMetadata(63, 112, -1.1, 47.30, {0.1, -0.1}, nan, s_epsg4326)},
+    {GridDefinition::Emap5tf, "EMAP 5TF", GeoMetadata(109, 208, 1.3375, 48.8125, {0.025, -0.025}, nan, s_epsg4326)},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)

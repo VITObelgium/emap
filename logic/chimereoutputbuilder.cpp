@@ -90,14 +90,17 @@ static std::string_view grid_resolution_string(ModelGrid grid)
 {
     switch (grid) {
     case ModelGrid::Chimere05deg:
+    case ModelGrid::Emap1:
         return "05deg";
     case ModelGrid::Chimere01deg:
+    case ModelGrid::Emap3tf:
         return "01deg";
     case ModelGrid::Chimere005degLarge:
         return "005deg_large";
     case ModelGrid::Chimere005degSmall:
         return "005deg_small";
     case ModelGrid::Chimere0025deg:
+    case ModelGrid::Emap5tf:
         return "0025deg";
     case ModelGrid::ChimereEmep:
     case ModelGrid::SherpaEmep:

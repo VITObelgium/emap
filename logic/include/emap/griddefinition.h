@@ -23,6 +23,9 @@ enum class ModelGrid
     SherpaEmep,
     SherpaChimere,
     Quark1km,
+    Emap1,
+    Emap3tf,
+    Emap5tf,
     EnumCount,
     Invalid,
 };
@@ -53,6 +56,9 @@ enum class GridDefinition
     SherpaEmep,
     SherpaChimere,
     Quark1km,
+    Emap1,
+    Emap3tf,
+    Emap5tf,
     EnumCount,
     Invalid,
 };

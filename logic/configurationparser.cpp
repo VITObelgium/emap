@@ -460,6 +460,18 @@ static ModelGrid model_grid_from_string(std::string_view grid)
         return ModelGrid::Quark1km;
     }
 
+    if (gridLowercase == "emap_1") {
+        return ModelGrid::Emap1;
+    }
+
+    if (gridLowercase == "emap_3tf") {
+        return ModelGrid::Emap3tf;
+    }
+
+    if (gridLowercase == "emap_5tf") {
+        return ModelGrid::Emap5tf;
+    }
+
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 
