@@ -2,7 +2,7 @@
   description = "emap";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     pkgs-mod.url = "github:VITO-RMA/nix-pkgs/main";
     pkgs-mod.inputs.nixpkgs.follows = "nixpkgs";

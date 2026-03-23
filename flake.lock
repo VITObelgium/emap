@@ -3,11 +3,11 @@
     "geodynamix-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1763584511,
-        "narHash": "sha256-PsahZEOI1pgnkGi0bYDYzMt/hnjpVX9k6gegZQvgESw=",
+        "lastModified": 1769699708,
+        "narHash": "sha256-421fCjmzOf/27MXUYlZvGOepeQLdQMd+puM/QSWI+h4=",
         "owner": "VITObelgium",
         "repo": "geodynamix",
-        "rev": "98b72484f829a97d096420142bd63169de0b5a66",
+        "rev": "c9d00d6644a10364f75d10af99d6cc45b2e95f8f",
         "type": "github"
       },
       "original": {
@@ -20,11 +20,11 @@
     "infra-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1764976182,
-        "narHash": "sha256-zYFuB7GmY5hS85DIE8EWX49LLRv498J30EXJ3HmywYA=",
+        "lastModified": 1770721609,
+        "narHash": "sha256-2z6s7aKgkByhXBjL4jJjOIbi7xCotUDx5+KL8TkE3LE=",
         "owner": "VITObelgium",
         "repo": "cpp-infra",
-        "rev": "bdb9a95aacc2aadb3498f44a6196acdd48190004",
+        "rev": "d8523cd01d0bc23b2692a83e3f0e1d3c55994638",
         "type": "github"
       },
       "original": {
@@ -36,16 +36,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1767313136,
-        "narHash": "sha256-16KkgfdYqjaeRGBaYsNrhPRRENs0qzkQVUooNHtoy2w=",
+        "lastModified": 1774244481,
+        "narHash": "sha256-4XfMXU0DjN83o6HWZoKG9PegCvKvIhNUnRUI19vzTcQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ac62194c3917d5f474c1a844b6fd6da2db95077d",
+        "rev": "4590696c8693fea477850fe379a01544293ca4e2",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.05",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -57,11 +57,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1768950584,
-        "narHash": "sha256-RKqYS1xkRWasdS3RrPNH6f8eyrx0dznejFAv8jrrEa8=",
+        "lastModified": 1774012533,
+        "narHash": "sha256-SFzA77kEq4++rmxPaqSbE1dOMe2leZcuo7HErM+J5fk=",
         "owner": "VITO-RMA",
         "repo": "nix-pkgs",
-        "rev": "17c87f62169a7896e27cb4dff728efef3d6c0170",
+        "rev": "e5f1907b8cd2efed9d4a8cb4392da356ee7e79ca",
         "type": "github"
       },
       "original": {
