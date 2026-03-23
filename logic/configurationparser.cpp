@@ -509,10 +509,6 @@ static fs::path read_optional_path(const NamedSection& ns, std::string_view name
             result = fs::absolute(basePath / result);
         }
 
-        if (!fs::is_regular_file(result)){
-            throw RuntimeError("The configured path '{}' for '{}' key in section '{}' does not exist", result, name, ns.name);
-        }
-
         return result;
     } else {
         throw RuntimeError("Invalid path value for '{0:}' key in '{1:}' section (e.g. {0:} = \"/some/path\")", name, ns.name);
