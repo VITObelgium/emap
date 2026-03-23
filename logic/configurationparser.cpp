@@ -1,5 +1,6 @@
 ﻿#include "emap/configurationparser.h"
 
+#include "gdx/exception.h"
 #include "infra/cast.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
@@ -506,6 +507,10 @@ static fs::path read_optional_path(const NamedSection& ns, std::string_view name
         auto result = file::u8path(*pathValue);
         if ((!result.empty()) && result.is_relative()) {
             result = fs::absolute(basePath / result);
+        }
+
+        if (!fs::is_regular_file(result)){
+            throw RuntimeError("The configured path '{}' for '{}' key in section '{}' does not exist", result, name, ns.name);
         }
 
         return result;
