@@ -9,3 +9,4 @@ vcpkg_installed
 vcpkgs-*
 vcpkgs
 .direnv
+.devenv
