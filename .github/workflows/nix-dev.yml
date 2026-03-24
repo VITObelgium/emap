@@ -11,7 +11,7 @@ jobs:
       matrix:
         cfg:
           - { os: ubuntu-latest, id: linux }
-          - { os: macos-latest, id: mac }
+          - { os: macos-26, id: mac }
 
     steps:
       - name: Clone repository
