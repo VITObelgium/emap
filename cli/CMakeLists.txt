@@ -14,7 +14,8 @@ PRIVATE
 )
 
 target_link_options(emapcli PRIVATE
-    $<$<CXX_COMPILER_ID:GNU>:-fuse-ld=gold -static-libstdc++ -static-libgcc>
+    $<$<CXX_COMPILER_ID:GNU>:-static-libstdc++ -static-libgcc>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<NOT:$<PLATFORM_ID:Windows>>>:-fuse-ld=gold>
 )
 
 install(TARGETS emapcli
