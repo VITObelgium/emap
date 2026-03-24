@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(e-map
-    VERSION 3.3.0
+    VERSION 3.4.0
     LANGUAGES CXX
 )
 

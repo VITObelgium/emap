@@ -1,4 +1,10 @@
-﻿Release 3.3.0
+﻿Release 3.x.x
+-------------
+- Bugfix: Give an error when the scaling factor file is not found instead of silently ignoring it and not applying any scaling
+- New grid definitions: emap_1 emap_3tf emap_5tf
+- Added: --list-grids cli option to list the available grid definitions
+
+Release 3.3.0
 -------------
 - Bugfix: Intersections of countries and subgrids sometimes took an additional row and column causing a small fraction of the emissions to end up outside of the grid
 - Calculated PMCoarse value will match the PM10 value if no PM2.5 data is available
