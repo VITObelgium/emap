@@ -652,8 +652,14 @@ static ScalingFactors read_scaling_factors(const fs::path& p, const RunConfigura
 {
     ScalingFactors scalings;
 
-    if (!p.empty() && fs::is_regular_file(p)) {
-        scalings = parse_scaling_factors(p, cfg);
+    if (!p.empty() ) {
+        if (fs::is_regular_file(p)) {
+            scalings = parse_scaling_factors(p, cfg);
+        } else if (fs::exists(p)) {
+            throw RuntimeError("Scaling factors path is not a file: {}", p);
+        } else {
+            throw RuntimeError("No scaling factors file found at {}", p);
+        }
     }
 
     return scalings;
