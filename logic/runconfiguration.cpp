@@ -1,10 +1,10 @@
 ﻿#include "emap/runconfiguration.h"
 
-#include "configurationutil.h"
 #include "emap/constants.h"
 #include "emap/griddefinition.h"
 #include "infra/exception.h"
 #include "infra/string.h"
+#include "infra/algo.h"
 
 namespace emap {
 

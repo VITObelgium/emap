@@ -9,6 +9,7 @@
 #include "runsummary.h"
 
 #include <cassert>
+#include <filesystem>
 #include <numeric>
 
 namespace emap {

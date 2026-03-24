@@ -1,7 +1,8 @@
 ﻿#include "emap/configurationparser.h"
 #include "emap/outputbuilderfactory.h"
 
-#include "infra/test/tempdir.h"
+#include "infra/tempdir.h"
+#include "infra/algo.h"
 #include "testconfig.h"
 #include "testconstants.h"
 

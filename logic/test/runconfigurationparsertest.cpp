@@ -1,6 +1,6 @@
 ﻿#include "emap/configurationparser.h"
 #include "emap/runconfiguration.h"
-#include "infra/exception.h"
+#include "infra/algo.h"
 #include "testconstants.h"
 
 #include "testconfig.h"
@@ -33,7 +33,7 @@ TEST_CASE("Parse run configuration")
                 scalefactors = "{}"
                 combine_identical_point_sources = true
                 spatial_boundaries_filename = "spatial_bounds.geojson"
-            
+
             [output]
                 path = "/temp"
                 sector_level = "GNFR"
@@ -76,7 +76,7 @@ TEST_CASE("Parse run configuration")
                 scalefactors = "{}"
                 included_pollutants = ["CO", "NOx", "NMVOC"]
                 combine_identical_point_sources = false
-            
+
             [output]
                 path = "/temp"
                 sector_level = "GNFR"
@@ -112,7 +112,7 @@ TEST_CASE("Parse run configuration")
                 scenario = "scen"
                 scalefactors = "{}"
                 included_pollutants = ["CO", "NOx", "NMVOC"]
-            
+
             [output]
                 path = "/temp"
                 sector_level = "GNFR"

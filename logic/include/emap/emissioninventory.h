@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "infra/math.h"
+#include "infra/algo.h"
 
 namespace emap {
 

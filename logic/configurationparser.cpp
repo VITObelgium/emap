@@ -1,10 +1,10 @@
 ﻿#include "emap/configurationparser.h"
 
-#include "gdx/exception.h"
 #include "infra/cast.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
 #include "infra/log.h"
+#include "infra/algo.h"
 #include "infra/string.h"
 
 #include <cassert>

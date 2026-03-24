@@ -3,7 +3,7 @@
 #include "emap/constants.h"
 #include "emap/emissions.h"
 #include "infra/cast.h"
-#include "infra/log.h"
+#include "infra/algo.h"
 #include "outputwriters.h"
 
 namespace emap {

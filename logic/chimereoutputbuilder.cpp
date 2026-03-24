@@ -2,6 +2,7 @@
 
 #include "emap/emissions.h"
 #include "infra/conversion.h"
+#include "infra/algo.h"
 #include "outputwriters.h"
 
 namespace emap {

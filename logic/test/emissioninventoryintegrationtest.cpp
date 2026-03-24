@@ -1,14 +1,12 @@
 #include "emap/emissioninventory.h"
 
 #include "emap/configurationparser.h"
-#include "emap/constants.h"
 #include "emap/modelrun.h"
-#include "emap/scalingfactors.h"
 
 #include "gdx/denserasterio.h"
 
 #include "brnanalyzer.h"
-#include "infra/test/tempdir.h"
+#include "infra/tempdir.h"
 #include "outputreaders.h"
 #include "runsummary.h"
 #include "testconfig.h"

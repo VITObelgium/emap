@@ -3,19 +3,15 @@
 #include "emap/country.h"
 #include "emap/pollutant.h"
 #include "emap/sector.h"
-#include "infra/algo.h"
-#include "infra/exception.h"
 #include "infra/hash.h"
 #include "infra/point.h"
 #include "infra/span.h"
 
 #include <date/date.h>
 #include <fmt/core.h>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace emap {
 

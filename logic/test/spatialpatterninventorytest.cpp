@@ -5,6 +5,7 @@
 #include "testconfig.h"
 #include "testconstants.h"
 #include "testprinters.h"
+#include "infra/algo.h"
 
 #include <doctest/doctest.h>
 
