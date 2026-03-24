@@ -5,6 +5,7 @@
 #include "infra/exception.h"
 
 #include <cassert>
+#include <fmt/core.h>
 #include <type_traits>
 
 namespace emap {
@@ -173,6 +174,96 @@ const GridData& grid_data(GridDefinition grid) noexcept
 {
     assert(enum_value(grid) < truncate<std::underlying_type_t<GridDefinition>>(s_gridData.size()));
     return s_gridData[enum_value(grid)];
+}
+
+std::string model_grid_config_name(ModelGrid grid)
+{
+    switch (grid) {
+    case ModelGrid::Vlops1km: return "vlops1km";
+    case ModelGrid::Vlops250m: return "vlops250m";
+    case ModelGrid::Chimere05deg: return "chimere_05deg";
+    case ModelGrid::Chimere01deg: return "chimere_01deg";
+    case ModelGrid::Chimere005degLarge: return "chimere_005deg_large";
+    case ModelGrid::Chimere005degSmall: return "chimere_005deg_small";
+    case ModelGrid::Chimere0025deg: return "chimere_0025deg";
+    case ModelGrid::ChimereEmep: return "chimere_emep_01deg";
+    case ModelGrid::ChimereCams: return "chimere_cams_01-005deg";
+    case ModelGrid::ChimereRio1: return "chimere_rio1";
+    case ModelGrid::ChimereRio4: return "chimere_rio4";
+    case ModelGrid::ChimereRio32: return "chimere_rio32";
+    case ModelGrid::SherpaEmep: return "sherpa_emep";
+    case ModelGrid::SherpaChimere: return "sherpa_chimere";
+    case ModelGrid::Quark1km: return "quark_1km";
+    case ModelGrid::Emap1: return "emap_1";
+    case ModelGrid::Emap3tf: return "emap_3tf";
+    case ModelGrid::Emap5tf: return "emap_5tf";
+    case ModelGrid::EnumCount:
+    case ModelGrid::Invalid: break;
+    }
+
+    throw RuntimeError("Invalid model grid provided");
+}
+
+static GridDefinition output_grid_for_model_grid(ModelGrid grid)
+{
+    switch (grid) {
+    case ModelGrid::Vlops1km: return GridDefinition::Vlops1km;
+    case ModelGrid::Vlops250m: return GridDefinition::Vlops250m;
+    case ModelGrid::Chimere05deg: return GridDefinition::Chimere05deg;
+    case ModelGrid::Chimere01deg: return GridDefinition::Chimere01deg;
+    case ModelGrid::Chimere005degLarge: return GridDefinition::Chimere005degLarge;
+    case ModelGrid::Chimere005degSmall: return GridDefinition::Chimere005degSmall;
+    case ModelGrid::Chimere0025deg: return GridDefinition::Chimere0025deg;
+    case ModelGrid::ChimereEmep: return GridDefinition::ChimereEmep;
+    case ModelGrid::ChimereCams: return GridDefinition::ChimereCams;
+    case ModelGrid::ChimereRio1: return GridDefinition::ChimereRio1;
+    case ModelGrid::ChimereRio4: return GridDefinition::ChimereRio4;
+    case ModelGrid::ChimereRio32: return GridDefinition::ChimereRio32;
+    case ModelGrid::SherpaEmep: return GridDefinition::SherpaEmep;
+    case ModelGrid::SherpaChimere: return GridDefinition::SherpaChimere;
+    case ModelGrid::Quark1km: return GridDefinition::Quark1km;
+    case ModelGrid::Emap1: return GridDefinition::Emap1;
+    case ModelGrid::Emap3tf: return GridDefinition::Emap3tf;
+    case ModelGrid::Emap5tf: return GridDefinition::Emap5tf;
+    case ModelGrid::EnumCount:
+    case ModelGrid::Invalid: break;
+    }
+
+    return GridDefinition::Invalid;
+}
+
+void list_known_grids()
+{
+    fmt::print("{:<28s} {:<28s} {:<14s} {:<14s} {:>6s} {:>6s}\n",
+               "Name", "Config Name", "Projection", "Resolution", "Rows", "Cols");
+    fmt::print("{:-<28s} {:-<28s} {:-<14s} {:-<14s} {:-<6s} {:-<6s}\n",
+               "", "", "", "", "", "");
+
+    for (auto modelGrid : enum_entries<ModelGrid>()) {
+        auto gridDef = output_grid_for_model_grid(modelGrid);
+        if (gridDef == GridDefinition::Invalid) {
+            continue;
+        }
+
+        auto configName  = model_grid_config_name(modelGrid);
+        const auto& data = grid_data(gridDef);
+        const auto& meta = data.meta;
+
+        auto projName = meta.projection_frienly_name();
+        if (projName.empty()) {
+            projName = "N/A";
+        }
+
+        std::string resolution;
+        if (meta.cellSize.x == std::abs(meta.cellSize.y)) {
+            resolution = fmt::format("{}", meta.cellSize.x);
+        } else {
+            resolution = fmt::format("{}x{}", meta.cellSize.x, std::abs(meta.cellSize.y));
+        }
+
+        fmt::print("{:<28s} {:<28s} {:<14s} {:<14s} {:>6d} {:>6d}\n",
+                   data.name, configName, projName, resolution, meta.rows, meta.cols);
+    }
 }
 
 }

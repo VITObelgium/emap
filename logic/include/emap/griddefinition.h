@@ -2,6 +2,7 @@
 
 #include "infra/geometadata.h"
 
+#include <string>
 #include <vector>
 
 namespace emap {
@@ -73,5 +74,8 @@ struct GridData
 };
 
 const GridData& grid_data(GridDefinition grid) noexcept;
+
+std::string model_grid_config_name(ModelGrid grid);
+void list_known_grids();
 
 }

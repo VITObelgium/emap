@@ -1,6 +1,7 @@
 ﻿#include "emap/configurationparser.h"
 
 #include "infra/cast.h"
+#include "infra/enumutils.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
 #include "infra/log.h"
@@ -401,76 +402,10 @@ static ModelGrid model_grid_from_string(std::string_view grid)
 {
     auto gridLowercase = str::lowercase(grid);
 
-    if (gridLowercase == "vlops1km") {
-        return ModelGrid::Vlops1km;
-    }
-
-    if (gridLowercase == "vlops250m") {
-        return ModelGrid::Vlops250m;
-    }
-
-    if (gridLowercase == "chimere_05deg") {
-        return ModelGrid::Chimere05deg;
-    }
-
-    if (gridLowercase == "chimere_01deg") {
-        return ModelGrid::Chimere01deg;
-    }
-
-    if (gridLowercase == "chimere_005deg_large") {
-        return ModelGrid::Chimere005degLarge;
-    }
-
-    if (gridLowercase == "chimere_005deg_small") {
-        return ModelGrid::Chimere005degSmall;
-    }
-
-    if (gridLowercase == "chimere_0025deg") {
-        return ModelGrid::Chimere0025deg;
-    }
-
-    if (gridLowercase == "chimere_emep_01deg") {
-        return ModelGrid::ChimereEmep;
-    }
-
-    if (gridLowercase == "chimere_cams_01-005deg") {
-        return ModelGrid::ChimereCams;
-    }
-
-    if (gridLowercase == "chimere_rio1") {
-        return ModelGrid::ChimereRio1;
-    }
-
-    if (gridLowercase == "chimere_rio4") {
-        return ModelGrid::ChimereRio4;
-    }
-
-    if (gridLowercase == "chimere_rio32") {
-        return ModelGrid::ChimereRio32;
-    }
-
-    if (gridLowercase == "sherpa_emep") {
-        return ModelGrid::SherpaEmep;
-    }
-
-    if (gridLowercase == "sherpa_chimere") {
-        return ModelGrid::SherpaChimere;
-    }
-
-    if (gridLowercase == "quark_1km") {
-        return ModelGrid::Quark1km;
-    }
-
-    if (gridLowercase == "emap_1") {
-        return ModelGrid::Emap1;
-    }
-
-    if (gridLowercase == "emap_3tf") {
-        return ModelGrid::Emap3tf;
-    }
-
-    if (gridLowercase == "emap_5tf") {
-        return ModelGrid::Emap5tf;
+    for (auto modelGrid : inf::enum_entries<ModelGrid>()) {
+        if (gridLowercase == model_grid_config_name(modelGrid)) {
+            return modelGrid;
+        }
     }
 
     throw RuntimeError("Invalid model grid type: '{}'", grid);

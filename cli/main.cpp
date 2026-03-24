@@ -6,6 +6,7 @@
 #include "infra/progressinfo.h"
 
 #include "emap/debugtools.h"
+#include "emap/griddefinition.h"
 #include "emap/gridprocessing.h"
 #include "emap/modelrun.h"
 #include "emapconfig.h"
@@ -39,6 +40,7 @@ int main(int argc, char** argv)
     {
         bool showHelp    = false;
         bool showVersion = false;
+        bool listGrids   = false;
         bool noProgress  = false;
         bool consoleLog  = false;
         bool debugGrids  = false;
@@ -50,12 +52,13 @@ int main(int argc, char** argv)
 
     auto cli = lyra::help(options.showHelp) |
                lyra::opt(options.showVersion)["-v"]["--version"]("Show version information") |
+               lyra::opt(options.listGrids)["--list-grids"]("List all known grids with their details") |
                lyra::opt(options.consoleLog)["-l"]["--log"]("Print logging on the console") |
                lyra::opt(options.logLevel, "number")["--log-level"]("Log level when logging is enabled [1 (debug) - 5 (critical)] (default=2)") |
                lyra::opt(options.noProgress)["--no-progress"]("Suppress progress info on the console") |
                lyra::opt(options.concurrency, "number")["--concurrency"]("Number of cores to use (default=all)") |
                lyra::opt(options.debugGrids)["-d"]["--debug"]("Dumps internal grid usages") |
-               lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration").required();
+               lyra::opt(options.config, "path")["-c"]["--config"]("The e-map run configuration");
 
     if (argc == 2 && fs::is_regular_file(file::u8path(argv[1]))) {
         // simplified cli invocation, assume argument is config file
@@ -68,6 +71,14 @@ int main(int argc, char** argv)
         } else if (options.showVersion) {
             fmt::print("E-MAP {} ({})\n", EMAP_VERSION, EMAP_COMMIT_HASH);
             return EXIT_SUCCESS;
+        } else if (options.listGrids) {
+            emap::list_known_grids();
+            return EXIT_SUCCESS;
+        }
+
+        if (options.config.empty()) {
+            fmt::print(fmt::fg(fmt::color::red), "No configuration file specified. Use -c/--config to provide one.\n");
+            return EXIT_FAILURE;
         }
     }
 
