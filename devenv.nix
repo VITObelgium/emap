@@ -71,7 +71,7 @@ in
 
   enterTest = ''
     just build
-    ctest --verbose --preset nix-release --no-compress-output
+    ctest --output-on-failure --preset nix-release --no-compress-output
   '';
 
   packages = buildEnvPackages ++ (pkgModDeps pkgs);
