@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -30,12 +30,5 @@ jobs:
         shell: bash
         run: nix profile add nixpkgs#devenv
 
-      - name: Increase file descriptor limit
-        run: |
-          echo "Before: $(ulimit -n)"
-          ulimit -n 4096 || true
-          echo "After:  $(ulimit -n)"
-          devenv test
-
-      # - name: Run tests
-      #   run: devenv test
+      - name: Run tests
+        run: devenv test
