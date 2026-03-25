@@ -69,10 +69,19 @@ in
     enable = true;
   };
 
-  enterTest = ''
-    just build
-    ctest --output-on-failure --preset nix-release --no-compress-output
-  '';
+  tasks = {
+    "emap:build" = {
+      exec = "just build";
+      before = [ "devenv:enterTest" ];
+      showOutput = true;
+    };
+    "emap:test" = {
+      exec = "ctest --preset nix-release --verbose --output-on-failure --no-compress-output";
+      before = [ "devenv:enterTest" ];
+      after = [ "emap:build" ];
+      showOutput = true;
+    };
+  };
 
   packages = buildEnvPackages ++ (pkgModDeps pkgs);
 }

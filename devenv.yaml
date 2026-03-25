@@ -1,5 +1,5 @@
 inputs:
   nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
+    follows: pkgs-mod/nixpkgs
   pkgs-mod:
     url: github:VITO-RMA/nix-pkgs/main
