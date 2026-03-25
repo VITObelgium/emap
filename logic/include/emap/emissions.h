@@ -5,7 +5,6 @@
 #include "emap/sector.h"
 #include "infra/hash.h"
 #include "infra/point.h"
-#include "infra/span.h"
 
 #include <date/date.h>
 #include <fmt/core.h>
