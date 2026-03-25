@@ -1,7 +1,5 @@
 #include "emap/scalingfactors.h"
 
-#include "infra/exception.h"
-
 namespace emap {
 
 using namespace inf;
