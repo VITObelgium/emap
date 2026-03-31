@@ -51,7 +51,7 @@ void VlopsOutputBuilder::add_point_output_entry(const EmissionEntry& emission)
     entry.q_gs  = emission.value().amount().value() * constants::toGramPerYearRatio;
     entry.hc_MW = emission.warmth_contents();
     entry.h_m   = emission.height();
-    entry.d_m   = 0;
+    entry.d_m   = emission.diameter();
     entry.s_m   = 0;
     entry.dv    = emission.dv().value_or(1);
     entry.cat   = sectorParams.id;
