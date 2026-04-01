@@ -3,27 +3,20 @@
 #include "emapconfig.h"
 
 #include "emap/configurationparser.h"
-#include "emap/constants.h"
 #include "emap/countryborders.h"
 #include "emap/emissioninventory.h"
 #include "emap/gridprocessing.h"
 #include "emap/inputparsers.h"
-#include "emap/scalingfactors.h"
 #include "emissionscollector.h"
 #include "emissionvalidation.h"
-#include "gridrasterbuilder.h"
-#include "outputwriters.h"
 #include "runsummary.h"
 #include "spatialpatterninventory.h"
 
 #include "infra/chrono.h"
 #include "infra/exception.h"
-#include "infra/math.h"
 
-#include "gdx/algo/sum.h"
 #include "gdx/denserasterio.h"
 
-#include <numeric>
 #include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "datoutputentry.h"
+#include "emap/runconfiguration.h"
 #include "emap/outputbuilderinterface.h"
+#include "emap/sectorparameterconfig.h"
 #include "infra/cell.h"
 #include "infra/point.h"
 

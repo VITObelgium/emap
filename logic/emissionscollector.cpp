@@ -3,7 +3,6 @@
 #include "emap/outputbuilderfactory.h"
 
 #include "gdx/denserasterio.h"
-#include "gdx/rasterarea.h"
 #include "infra/cast.h"
 #include "infra/log.h"
 

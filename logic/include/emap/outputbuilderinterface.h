@@ -1,10 +1,9 @@
 #pragma once
 
-#include "emap/runconfiguration.h"
-#include "emap/sectorparameterconfig.h"
+#include "infra/point.h"
+#include "emap/pollutant.h"
 
-#include <cinttypes>
-#include <unordered_map>
+#include <cstdint>
 
 namespace emap {
 

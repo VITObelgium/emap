@@ -1,4 +1,4 @@
-set export
+set export := true
 
 configure:
     cmake --preset nix
@@ -31,9 +31,5 @@ update:
 updatedeps:
     nix flake update --update-input pkgs-mod
 
-# buildmusl:
-#     echo "Building static musl binary"
-#     docker build --build-arg="GIT_HASH={{`git rev-parse HEAD`}}" -f ./docker/MuslStaticBuild.Dockerfile -t emapmuslbuild .
-#     docker create --name extract emapmuslbuild
-#     docker cp extract:/project/build/x64-linux-static-dist/packages ./build
-#     docker rm extract
+buildmusl:
+    nix build .#packages.x86_64-linux.musl

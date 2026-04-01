@@ -2,6 +2,8 @@
 
 #include "brnoutputentry.h"
 #include "emap/outputbuilderinterface.h"
+#include "emap/runconfiguration.h"
+#include "emap/sectorparameterconfig.h"
 
 #include <cstdint>
 #include <mutex>
