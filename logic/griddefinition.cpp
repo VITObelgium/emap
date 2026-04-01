@@ -163,6 +163,12 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::SherpaChimere};
     case ModelGrid::Quark1km:
         return {GridDefinition::Quark1km};
+    case emap::ModelGrid::Emap1:
+        return {GridDefinition::Emap1};
+    case emap::ModelGrid::Emap3tf:
+        return {GridDefinition::Emap3tf};
+    case emap::ModelGrid::Emap5tf:
+        return {GridDefinition::Emap5tf};
     default:
         break;
     }
