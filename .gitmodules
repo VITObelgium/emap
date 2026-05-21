@@ -1,9 +1,6 @@
 [submodule "deps/infra"]
 	path = deps/infra
 	url = https://github.com/VITObelgium/cpp-infra.git
-[submodule "deps/vcpkg"]
-	path = deps/vcpkg
-	url = git@github.com:VITObelgium/vcpkg-ports.git
 [submodule "deps/geodynamix"]
 	path = deps/geodynamix
 	url = https://github.com/VITObelgium/geodynamix.git

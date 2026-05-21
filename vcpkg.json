@@ -16,18 +16,12 @@
         {
             "name": "proj",
             "default-features": false,
-            "features": [
-                "embed-data"
-            ]
+            "features": ["embed-data"]
         },
         {
             "name": "gdal",
             "default-features": false,
-            "features": [
-                "expat",
-                "sqlite3",
-                "geos"
-            ]
+            "features": ["expat", "sqlite3", "geos"]
         },
         "indicators",
         "spdlog",
@@ -39,14 +33,10 @@
     "vcpkg-configuration": {
         "default-registry": {
             "kind": "git",
-            "baseline": "b02e341c927f16d991edbd915d8ea43eac52096c",
+            "baseline": "66c0373dc7fca549e5803087b9487edfe3aca0a1",
             "repository": "https://github.com/microsoft/vcpkg"
         },
-        "overlay-ports": [
-            "./deps/infra/vcpkg_overlay/ports"
-        ],
-        "overlay-triplets": [
-            "./deps/infra/vcpkg_overlay/triplets"
-        ]
+        "overlay-ports": ["./deps/infra/vcpkg_overlay/ports"],
+        "overlay-triplets": ["./deps/infra/vcpkg_overlay/triplets"]
     }
 }
