@@ -1,7 +1,14 @@
 {
   "languages": {
     "JSON": {
-      "tab_size": 4
-    }
-  }
+      "tab_size": 4,
+    },
+  },
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "arguments": ["--compile-commands-dir=build/nix"],
+      },
+    },
+  },
 }
