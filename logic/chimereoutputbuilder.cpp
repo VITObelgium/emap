@@ -138,7 +138,7 @@ static fs::path create_chimere_output_name(const RunConfiguration& cfg, const Po
     return file::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(cfg), pol.code(), static_cast<int32_t>(cfg.year()), cfg.output_filename_suffix()));
 }
 
-static fs::path create_chimere_point_source_output_name(date::year year, std::string_view suffix)
+static fs::path create_chimere_point_source_output_name(chrono::year year, std::string_view suffix)
 {
     // output_Chimere_pointsources_zichtjaar_suffix_ps
     return file::u8path(fmt::format("output_Chimere_pointsources_{}{}_ps.dat", static_cast<int32_t>(year), suffix));

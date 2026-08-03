@@ -637,7 +637,7 @@ GridData parse_grid_definition_file(const fs::path& path)
     }
 }
 
-static date::year parse_year(toml::node_view<const toml::node> nodeValue)
+static chrono::year parse_year(toml::node_view<const toml::node> nodeValue)
 {
     assert(nodeValue);
 
@@ -654,7 +654,7 @@ static date::year parse_year(toml::node_view<const toml::node> nodeValue)
         throw RuntimeError("Invalid year present in 'input' section ({})", nodeValue.value_or<std::string_view>(""sv));
     }
 
-    date::year result(truncate<int32_t>(*yearInt));
+    chrono::year result(truncate<int32_t>(*yearInt));
     if (!fits_in_type<int32_t>(*yearInt) || !result.ok()) {
         throw RuntimeError("Invalid year value present in 'input' section ({})", *yearInt);
     }
@@ -662,7 +662,7 @@ static date::year parse_year(toml::node_view<const toml::node> nodeValue)
     return result;
 }
 
-static date::year read_year(toml::node_view<const toml::node> nodeValue)
+static chrono::year read_year(toml::node_view<const toml::node> nodeValue)
 {
     if (!nodeValue) {
         throw RuntimeError("No year present in 'input' section (e.g. year = 2020)");

@@ -5,8 +5,8 @@
 #include "emap/modelpaths.h"
 #include "emap/sectorinventory.h"
 #include "infra/filesystem.h"
+#include "infra/chrono.h"
 
-#include <date/date.h>
 #include <fmt/core.h>
 #include <optional>
 
@@ -47,8 +47,8 @@ public:
         const fs::path& spatialBoundariesEezFilename,
         ModelGrid grid,
         ValidationType validation,
-        date::year year,
-        date::year reportYear,
+        inf::chrono::year year,
+        inf::chrono::year reportYear,
         std::string_view scenario,
         bool combineIdenticalPointSources,
         double rescaleThreshold,
@@ -60,14 +60,14 @@ public:
         std::optional<GridData> configuredGrid = std::nullopt);
 
     fs::path point_source_emissions_dir_path(const Country& country) const;
-    fs::path total_emissions_path_nfr(date::year year, date::year reportYear) const;
+    fs::path total_emissions_path_nfr(inf::chrono::year year, inf::chrono::year reportYear) const;
     fs::path total_extra_emissions_path_nfr() const;
-    fs::path total_emissions_path_gnfr(date::year reportYear) const;
+    fs::path total_emissions_path_gnfr(inf::chrono::year reportYear) const;
     fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian) const;
     fs::path spatial_pattern_path() const;
 
-    fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
-    fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
+    fs::path emission_output_raster_path(inf::chrono::year year, const EmissionIdentifier& emissionId) const;
+    fs::path emission_brn_output_path(inf::chrono::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
     bool pmcoarse_calculation_needed() const noexcept;
 
@@ -87,10 +87,10 @@ public:
     ModelOuputFormat model_output_format() const;
     ValidationType validation_type() const noexcept;
 
-    date::year year() const noexcept;
-    void set_year(date::year year) noexcept;
+    inf::chrono::year year() const noexcept;
+    void set_year(inf::chrono::year year) noexcept;
 
-    date::year reporting_year() const noexcept;
+    inf::chrono::year reporting_year() const noexcept;
 
     std::string_view scenario() const noexcept;
 
@@ -130,8 +130,8 @@ private:
     ModelGrid _grid;
     std::optional<GridData> _configuredGrid;
     ValidationType _validation;
-    date::year _year;
-    date::year _reportYear;
+    inf::chrono::year _year;
+    inf::chrono::year _reportYear;
     std::string _scenario;
     bool _combineIdenticalPointSources;
     double _pointRescaleThreshold;

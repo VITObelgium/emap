@@ -3,6 +3,7 @@
 #include "emap/emissions.h"
 #include "infra/math.h"
 #include "infra/algo.h"
+#include "infra/chrono.h"
 
 namespace emap {
 
@@ -154,18 +155,18 @@ public:
     using iterator       = typename std::vector<TEmission>::iterator;
     using const_iterator = typename std::vector<TEmission>::const_iterator;
 
-    EmissionCollection(date::year year)
+    EmissionCollection(inf::chrono::year year)
     : _year(year)
     {
     }
 
-    EmissionCollection(date::year year, std::vector<TEmission> emissions)
+    EmissionCollection(inf::chrono::year year, std::vector<TEmission> emissions)
     : _year(year)
     {
         set_emissions(std::move(emissions));
     }
 
-    date::year year() const noexcept
+    inf::chrono::year year() const noexcept
     {
         return _year;
     }
@@ -351,7 +352,7 @@ private:
         });
     }
 
-    date::year _year;
+    inf::chrono::year _year;
     std::vector<TEmission> _emissions;
 };
 
@@ -397,7 +398,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
                                             const RunConfiguration& cfg,
                                             RunSummary& runSummary);
 
-SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary);
+SingleEmissions read_nfr_emissions(inf::chrono::year year, const RunConfiguration& cfg, RunSummary& runSummary);
 SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Country& country, RunSummary& runSummary);
 
 EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummary& summary);

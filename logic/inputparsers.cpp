@@ -61,9 +61,8 @@ static void update_entry(std::vector<EmissionEntry>& entries, const EmissionEntr
     *entryIter = newEntry;
 }
 
-Range<date::year> parse_year_range(std::string_view yearRange)
+Range<chrono::year> parse_year_range(std::string_view yearRange)
 {
-    using namespace date;
 
     auto trimmedYear = inf::str::trimmed_view(yearRange);
     if (trimmedYear == "*") {
@@ -72,11 +71,11 @@ Range<date::year> parse_year_range(std::string_view yearRange)
 
     auto splitted = inf::str::split_view(trimmedYear, '-');
     if (splitted.size() == 1) {
-        const auto year = date::year(str::to_uint32_value(yearRange));
+        const auto year = chrono::year(str::to_uint32_value(yearRange));
         return Range(year, year);
     } else if (splitted.size() == 2) {
-        auto year1 = date::year(str::to_uint32_value(splitted[0]));
-        auto year2 = date::year(str::to_uint32_value(splitted[1]));
+        auto year1 = chrono::year(str::to_uint32_value(splitted[0]));
+        auto year2 = chrono::year(str::to_uint32_value(splitted[1]));
         return Range(year1, year2);
     }
 
@@ -314,7 +313,7 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
     }
 }
 
-SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, date::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores)
+SingleEmissions parse_emissions(EmissionSector::Type sectorType, const fs::path& emissionsCsv, chrono::year requestYear, const RunConfiguration& cfg, RespectIgnoreList respectIgnores)
 {
     // First lines are comments
     // Format: ISO2;YEAR;SECTOR;POLLUTANT;UNIT;NUMBER/FLAG
@@ -538,7 +537,7 @@ static std::string_view strip_newline(std::string_view str)
     return str;
 }
 
-SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, date::year year, const RunConfiguration& cfg)
+SingleEmissions parse_emissions_belgium(const fs::path& emissionsData, chrono::year year, const RunConfiguration& cfg)
 {
     Log::debug("Parse emissions belgium: {}", emissionsData);
 
@@ -704,7 +703,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
     auto ds    = gdal::VectorDataSet::open(spatialPatternPath);
     auto layer = ds.layer(0);
-    std::optional<date::year> year;
+    std::optional<chrono::year> year;
 
     const auto gridData = grid_data(GridDefinition::Flanders1km);
 
@@ -730,7 +729,7 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
         if (auto sector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, id.country, sectorInv); sector.has_value()) {
             id.sector    = *sector;
             id.pollutant = pollutantInv.pollutant_from_string(feature.field_as<std::string_view>(colPollutant));
-            year         = date::year(feature.field_as<int>(colYear));
+            year         = chrono::year(feature.field_as<int>(colYear));
 
             if (currentSector != id.sector) {
                 if (currentSector.has_value()) {

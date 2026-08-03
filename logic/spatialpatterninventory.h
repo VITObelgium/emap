@@ -2,10 +2,9 @@
 
 #include "emap/emissions.h"
 #include "emap/spatialpatterndata.h"
+#include "infra/chrono.h"
 #include "infra/filesystem.h"
 #include "infra/range.h"
-
-#include <date/date.h>
 #include <optional>
 #include <regex>
 #include <unordered_map>
@@ -38,7 +37,7 @@ class SpatialPatternInventory
 public:
     SpatialPatternInventory(const RunConfiguration& cfg);
 
-    void scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath);
+    void scan_dir(inf::chrono::year reportingYear, inf::chrono::year startYear, const fs::path& spatialPatternPath);
 
     /* Obtain the spatial pattern for the given identifier, checks if the country cells contain actual data */
     SpatialPattern get_spatial_pattern_checked(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage) const;
@@ -65,7 +64,7 @@ private:
 
     struct SpatialPatterns
     {
-        date::year year;
+        inf::chrono::year year;
         std::vector<SpatialPatternFile> spatialPatterns;
     };
 
@@ -79,7 +78,7 @@ private:
             Cams,
         };
 
-        inf::Range<date::year> yearRange;
+        inf::Range<inf::chrono::year> yearRange;
         EmissionIdentifier emissionId;
         fs::path spatialPattern;
         Type type;
@@ -92,14 +91,14 @@ private:
                                                                            const Pollutant& polToReport,
                                                                            const EmissionSector& sector,
                                                                            const EmissionSector& sectorToReport,
-                                                                           date::year year,
+                                                                           inf::chrono::year year,
                                                                            const std::vector<SpatialPatternFile>& patterns) const;
 
     std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_flanders(const fs::path& path) const;
-    std::vector<SpatialPatterns> scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const;
-    std::vector<SpatialPatterns> scan_dir_flanders(date::year startYear, const fs::path& spatialPatternPath) const;
+    std::vector<SpatialPatterns> scan_dir_rest(inf::chrono::year startYear, const fs::path& spatialPatternPath) const;
+    std::vector<SpatialPatterns> scan_dir_flanders(inf::chrono::year startYear, const fs::path& spatialPatternPath) const;
 
     std::optional<SpatialPattern> find_spatial_pattern_exception(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents, bool& patternAvailableButWithoutData) const;
     std::optional<SpatialPattern> find_spatial_pattern(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage, const std::vector<SpatialPatterns>& patterns, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, bool checkContents, bool& patternAvailableButWithoutData) const;
@@ -108,7 +107,7 @@ private:
 
     std::optional<SpatialPatternException> find_pollutant_exception(const EmissionIdentifier& emissionId) const noexcept;
     std::optional<SpatialPatternException> find_sector_exception(const EmissionIdentifier& emissionId) const noexcept;
-    static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& emissionSectorToReport, date::year year);
+    static SpatialPatternSource source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& emissionSectorToReport, inf::chrono::year year);
     static SpatialPatternException::Type exception_type_from_string(std::string_view str);
 
     gdx::DenseRaster<double> get_pattern_raster(const SpatialPatternSource& src, const CountryCellCoverage& countryCoverage, bool checkContents) const;

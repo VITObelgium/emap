@@ -33,7 +33,7 @@ public:
                   std::optional<GnfrSector> gnfrSector,
                   std::optional<Pollutant> pollutant,
                   EmissionSourceType type,
-                  date::year year, double factor)
+                  inf::chrono::year year, double factor)
     : ScalingFactor(country, nfrSector, gnfrSector, pollutant, type, {year, year}, factor)
     {
     }
@@ -43,7 +43,7 @@ public:
                   std::optional<GnfrSector> gnfrSector,
                   std::optional<Pollutant> pollutant,
                   EmissionSourceType type,
-                  inf::Range<date::year> yearRange,
+                  inf::Range<inf::chrono::year> yearRange,
                   double factor)
     : _country(country)
     , _nfrSector(nfrSector)
@@ -114,7 +114,7 @@ public:
         return _type == type ? MatchResult::Exact : MatchResult::NoMatch;
     }
 
-    MatchResult year_match(date::year year) const noexcept
+    MatchResult year_match(inf::chrono::year year) const noexcept
     {
         if (!_yearRange.contains(year)) {
             return MatchResult::NoMatch;
@@ -127,7 +127,7 @@ public:
         return _yearRange == AllYears ? MatchResult::WildCard : MatchResult::Range;
     }
 
-    MatchResult match(const EmissionIdentifier& id, EmissionSourceType type, date::year year) const noexcept
+    MatchResult match(const EmissionIdentifier& id, EmissionSourceType type, inf::chrono::year year) const noexcept
     {
         const auto idMatch   = id_match(id);
         const auto typeMatch = type_match(type);
@@ -150,7 +150,7 @@ private:
     std::optional<GnfrSector> _gnfrSector;
     std::optional<Pollutant> _pollutant;
     EmissionSourceType _type = EmissionSourceType::Diffuse;
-    inf::Range<date::year> _yearRange;
+    inf::Range<inf::chrono::year> _yearRange;
     double _factor = 1.0;
 };
 
@@ -170,18 +170,18 @@ public:
         return _scalingFactors.end();
     }
 
-    std::optional<double> point_scaling_for_id(const EmissionIdentifier& id, date::year year) const
+    std::optional<double> point_scaling_for_id(const EmissionIdentifier& id, inf::chrono::year year) const
     {
         return scaling_for_id(id, EmissionSourceType::Point, year);
     }
 
-    std::optional<double> diffuse_scaling_for_id(const EmissionIdentifier& id, date::year year) const
+    std::optional<double> diffuse_scaling_for_id(const EmissionIdentifier& id, inf::chrono::year year) const
     {
         return scaling_for_id(id, EmissionSourceType::Diffuse, year);
     }
 
 private:
-    std::optional<double> scaling_for_id(const EmissionIdentifier& id, EmissionSourceType type, date::year year) const;
+    std::optional<double> scaling_for_id(const EmissionIdentifier& id, EmissionSourceType type, inf::chrono::year year) const;
 
     std::vector<ScalingFactor> _scalingFactors;
 };

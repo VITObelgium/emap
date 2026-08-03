@@ -14,7 +14,6 @@ namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
-using namespace date::literals;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
 {
@@ -22,7 +21,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, 2016_y, 2021_y, "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 static void create_empty_point_source_file(const fs::path& path)
@@ -56,7 +55,7 @@ TEST_CASE("Emission inventory")
 
     SUBCASE("Subtract point sources in Belgium")
     {
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::ES, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(222.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(100.0)));
@@ -64,7 +63,7 @@ TEST_CASE("Emission inventory")
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEB, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), EmissionValue(500.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr2C7d), pollutants::CO), EmissionValue(300.0)));
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), EmissionValue(111.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::ES, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), EmissionValue(200.0)));
 
@@ -85,8 +84,8 @@ TEST_CASE("Emission inventory")
         // no point emissions for Industry CO
 
         ScalingFactors scalings;
-        scalings.add_scaling_factor(ScalingFactor(countries::FR, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::NOx, EmissionSourceType::Diffuse, 2019_y, 0.5));
-        scalings.add_scaling_factor(ScalingFactor(countries::BEB, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::PMcoarse, EmissionSourceType::Point, 2019_y, 2.0));
+        scalings.add_scaling_factor(ScalingFactor(countries::FR, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::NOx, EmissionSourceType::Diffuse, chrono::year(2019), 0.5));
+        scalings.add_scaling_factor(ScalingFactor(countries::BEB, sectors::nfr::Nfr1A3bi, sectors::gnfr::RoadTransport, pollutants::PMcoarse, EmissionSourceType::Point, chrono::year(2019), 2.0));
 
         const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
 
@@ -102,10 +101,10 @@ TEST_CASE("Emission inventory")
     SUBCASE("Spread GNFR emissions when no NFR data is available")
     {
         // empty NFR emissions
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         ScalingFactors scalings;
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::FR, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::ATL, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(100.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::NL, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PM10), EmissionValue(70.0)));
@@ -137,7 +136,7 @@ TEST_CASE("Emission inventory")
     {
         ScalingFactors scalings;
 
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         // all aviation sectors have a value
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::NOx), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::NOx), EmissionValue(222.0)));
@@ -153,7 +152,7 @@ TEST_CASE("Emission inventory")
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::As), EmissionValue(222.0)));
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Aviation), pollutants::NOx), EmissionValue(70.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::Offroad), pollutants::NOx), EmissionValue(80.0)));
 
@@ -211,7 +210,7 @@ TEST_CASE("Emission inventory")
     SUBCASE("Auto scale point sources, below threshold")
     {
         // empty NFR emissions
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         ScalingFactors scalings;
 
         // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 170 = 88%
@@ -220,7 +219,7 @@ TEST_CASE("Emission inventory")
 
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(150.0)));
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(150.0)));
 
         CHECK_THROWS_AS(create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary), RuntimeError);
@@ -232,9 +231,9 @@ TEST_CASE("Emission inventory")
         EmissionIdentifier emissionIdWithUserScaling(countries::BEF, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::PM10);
 
         // empty NFR emissions
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         ScalingFactors scalings;
-        scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector.nfr_sector(), emissionIdWithUserScaling.sector.gnfr_sector(), emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, 2019_y, 2.0));
+        scalings.add_scaling_factor(ScalingFactor(emissionIdWithUserScaling.country, emissionIdWithUserScaling.sector.nfr_sector(), emissionIdWithUserScaling.sector.gnfr_sector(), emissionIdWithUserScaling.pollutant, EmissionSourceType::Point, chrono::year(2019), 2.0));
 
         // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 160 = 93.75%
         pointEmissions.add_emission(EmissionEntry(emissionId, EmissionValue(110.0), Coordinate(10, 10)).with_source_id("id1"));
@@ -245,7 +244,7 @@ TEST_CASE("Emission inventory")
         pointEmissions.add_emission(EmissionEntry(emissionIdWithUserScaling, EmissionValue(50.0), Coordinate(10, 20)));
         totalEmissions.add_emission(EmissionEntry(emissionIdWithUserScaling, EmissionValue(70.0)));
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::RoadTransport), pollutants::PM10), EmissionValue(150.0)));
 
         const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
@@ -269,7 +268,7 @@ TEST_CASE("Emission inventory")
     SUBCASE("PMCoarse calculation")
     {
         // empty NFR emissions
-        SingleEmissions totalEmissions(date::year(2019)), pointEmissions(date::year(2019));
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
         ScalingFactors scalings;
 
         // Two point emissions of which the sum is larger then the total reported emission (threshold = 90% -> 150 / 170 = 88%
@@ -288,7 +287,7 @@ TEST_CASE("Emission inventory")
         // If only PM10 is present, PMCoarse should be calculated with the same value as PM10
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PM10), EmissionValue(200.0)));
 
-        SingleEmissions gnfrTotals(date::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM10), EmissionValue(300.0)));
         gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::BEF, EmissionSector(sectors::gnfr::Shipping), pollutants::PM2_5), EmissionValue(100.0)));
 

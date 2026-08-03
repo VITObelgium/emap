@@ -13,7 +13,6 @@ namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
-using namespace date;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, const fs::path& exceptionsPath)
 {
@@ -21,7 +20,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "NFR";
 
-    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, fs::path(), fs::path(), fs::path(), ModelGrid::Vlops1km, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, fs::path(), fs::path(), fs::path(), ModelGrid::Vlops1km, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Spatial pattern selection test")
@@ -51,7 +50,7 @@ TEST_CASE("Spatial pattern selection test")
     const auto coverage1km  = borders1km.create_country_coverages(grid1km.meta, CoverageMode::AllCountryCells, nullptr);
 
     SpatialPatternInventory inv(cfg);
-    inv.scan_dir(2021_y, 2016_y, file::u8path(TEST_DATA_DIR) / "spatialinventory");
+    inv.scan_dir(chrono::year(2021), chrono::year(2016), file::u8path(TEST_DATA_DIR) / "spatialinventory");
 
     const auto& nlCoverage  = inf::find_in_container_required(coverage60km, [](auto& cov) { return cov.country == countries::NL; });
     const auto& befCoverage = inf::find_in_container_required(coverage1km, [](auto& cov) { return cov.country == countries::BEF; });
@@ -63,7 +62,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::CO);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Industry));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -74,7 +73,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::PMcoarse);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2b));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Industry));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -85,7 +84,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::PMcoarse);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C1bv));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Waste));
-        CHECK(sp.source.year == 2015_y);
+        CHECK(sp.source.year == chrono::year(2015));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -96,7 +95,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::SOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::PublicPower));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -107,7 +106,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::CO);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::PublicPower));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -118,7 +117,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::PM2_5);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr5C2));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr5C2));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -129,7 +128,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr3Da1));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::AgriOther));
-        CHECK(sp.source.year == 2015_y);
+        CHECK(sp.source.year == chrono::year(2015));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -140,7 +139,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr2D3d));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Solvents));
-        CHECK(sp.source.year == 2017_y);
+        CHECK(sp.source.year == chrono::year(2017));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -151,7 +150,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1B2b));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Fugitive));
-        CHECK(sp.source.year == 2018_y);
+        CHECK(sp.source.year == chrono::year(2018));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -162,7 +161,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A4bi));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::Offroad));
-        CHECK(sp.source.year == 2010_y);
+        CHECK(sp.source.year == chrono::year(2010));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
     }
 
@@ -182,7 +181,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::BaP);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::gnfr::PublicPower));
-        CHECK(sp.source.year == 2016_y);
+        CHECK(sp.source.year == chrono::year(2016));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternCEIP);
     }
 
@@ -193,7 +192,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
-        CHECK(sp.source.year == 2015_y);
+        CHECK(sp.source.year == chrono::year(2015));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
         CHECK(sp.source.isException == false);
     }
@@ -205,7 +204,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::NOx);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A1a));
-        CHECK(sp.source.year == 2019_y);
+        CHECK(sp.source.year == chrono::year(2019));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
         CHECK(sp.source.isException == false);
         CHECK(sp.source.patternAvailableButWithoutData == false); // should only be true when we fallback to uniform spread
@@ -230,7 +229,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::PM2_5);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
-        CHECK(sp.source.year == 2019_y);
+        CHECK(sp.source.year == chrono::year(2019));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
         CHECK(sp.source.isException == false);
     }
@@ -242,7 +241,7 @@ TEST_CASE("Spatial pattern selection test")
         CHECK(sp.source.emissionId.pollutant == pollutants::As);
         CHECK(sp.source.emissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
         CHECK(sp.source.usedEmissionId.sector == EmissionSector(sectors::nfr::Nfr1A2a));
-        CHECK(sp.source.year == 2019_y);
+        CHECK(sp.source.year == chrono::year(2019));
         CHECK(sp.source.type == SpatialPatternSource::Type::SpatialPatternFlanders);
         CHECK(sp.source.isException == false);
     }

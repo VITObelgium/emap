@@ -26,27 +26,27 @@ ModelPaths::ModelPaths(std::string_view scenario,
     }
 }
 
-fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, date::year reportYear) const
+fs::path ModelPaths::point_source_emissions_dir_path(const Country& country, chrono::year reportYear) const
 {
     return emissions_dir_path(reportYear) / "pointsources" / country.iso_code();
 }
 
-fs::path ModelPaths::total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const
+fs::path ModelPaths::total_emissions_path_nfr(chrono::year year, chrono::year reportYear, chrono::year lookupReportYear) const
 {
     return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_{}_{}.txt", static_cast<int>(year), static_cast<int>(lookupReportYear)));
 }
 
-fs::path ModelPaths::total_extra_emissions_path_nfr(date::year reportYear) const
+fs::path ModelPaths::total_extra_emissions_path_nfr(chrono::year reportYear) const
 {
     return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("nfr_allyears_{}_extra.txt", static_cast<int>(reportYear)));
 }
 
-fs::path ModelPaths::total_emissions_path_gnfr(date::year reportYear, date::year lookupReportYear) const
+fs::path ModelPaths::total_emissions_path_gnfr(chrono::year reportYear, chrono::year lookupReportYear) const
 {
     return append_scenario_suffix_if_available(emissions_dir_path(reportYear) / "totals" / fmt::format("gnfr_allyears_{}.txt", static_cast<int>(lookupReportYear)));
 }
 
-fs::path ModelPaths::total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const
+fs::path ModelPaths::total_emissions_path_nfr_belgium(const Country& belgianRegian, chrono::year reportYear) const
 {
     if (!belgianRegian.is_belgium()) {
         throw std::logic_error("Internal error: a belgian region is required");
@@ -65,12 +65,12 @@ fs::path ModelPaths::sector_parameters_config_path() const
     return _dataRoot / "05_model_parameters" / "sector_parameters.xlsx";
 }
 
-fs::path ModelPaths::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
+fs::path ModelPaths::emission_output_raster_path(chrono::year year, const EmissionIdentifier& emissionId) const
 {
     return output_path() / std::to_string(static_cast<int>(year)) / file::u8path(fmt::format("{}_{}_{}.tif", emissionId.pollutant.code(), emissionId.sector.name(), emissionId.country.iso_code()));
 }
 
-fs::path ModelPaths::emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const
+fs::path ModelPaths::emission_brn_output_path(chrono::year year, const Pollutant& pol, const EmissionSector& sector) const
 {
     const int yearInt = static_cast<int>(year);
     return output_path() / std::to_string(yearInt) / file::u8path(fmt::format("{}_{}_{}.brn", pol.code(), sector, yearInt));
@@ -121,7 +121,7 @@ fs::path ModelPaths::output_path_for_spatial_pattern_raster(const EmissionIdenti
     return output_dir_for_rasters() / file::u8path(fmt::format("{}_{}_{}_{}_spatpat.tif", id.country.iso_code(), id.pollutant.code(), id.sector.name(), grid.name));
 }
 
-fs::path ModelPaths::emissions_dir_path(date::year reportYear) const
+fs::path ModelPaths::emissions_dir_path(chrono::year reportYear) const
 {
     return _dataRoot / "01_data_emissions" / "inventory" / file::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
 }

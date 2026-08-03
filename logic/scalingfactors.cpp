@@ -14,7 +14,7 @@ size_t ScalingFactors::size() const noexcept
     return _scalingFactors.size();
 }
 
-std::optional<double> ScalingFactors::scaling_for_id(const EmissionIdentifier& id, EmissionSourceType type, date::year year) const
+std::optional<double> ScalingFactors::scaling_for_id(const EmissionIdentifier& id, EmissionSourceType type, chrono::year year) const
 {
     // Go through the scaling factors list from top to bottom as defined in the excel file
     // The first match is taken

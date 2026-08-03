@@ -18,8 +18,8 @@ RunConfiguration::RunConfiguration(
     const fs::path& spatialBoundariesEezFilename,
     ModelGrid grid,
     ValidationType validation,
-    date::year year,
-    date::year reportYear,
+    chrono::year year,
+    chrono::year reportYear,
     std::string_view scenario,
     bool combineIdenticalPointSources,
     double rescaleThreshold,
@@ -64,7 +64,7 @@ fs::path RunConfiguration::point_source_emissions_dir_path(const Country& countr
     return _paths.point_source_emissions_dir_path(country, _reportYear);
 }
 
-fs::path RunConfiguration::total_emissions_path_nfr(date::year year, date::year reportYear) const
+fs::path RunConfiguration::total_emissions_path_nfr(chrono::year year, chrono::year reportYear) const
 {
     return _paths.total_emissions_path_nfr(year, _reportYear, reportYear);
 }
@@ -74,7 +74,7 @@ fs::path RunConfiguration::total_extra_emissions_path_nfr() const
     return _paths.total_extra_emissions_path_nfr(_reportYear);
 }
 
-fs::path RunConfiguration::total_emissions_path_gnfr(date::year reportYear) const
+fs::path RunConfiguration::total_emissions_path_gnfr(chrono::year reportYear) const
 {
     return _paths.total_emissions_path_gnfr(_reportYear, reportYear);
 }
@@ -89,12 +89,12 @@ fs::path RunConfiguration::spatial_pattern_path() const
     return _paths.spatial_pattern_path();
 }
 
-fs::path RunConfiguration::emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const
+fs::path RunConfiguration::emission_output_raster_path(chrono::year year, const EmissionIdentifier& emissionId) const
 {
     return _paths.emission_output_raster_path(year, emissionId);
 }
 
-fs::path RunConfiguration::emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const
+fs::path RunConfiguration::emission_brn_output_path(chrono::year year, const Pollutant& pol, const EmissionSector& sector) const
 {
     return _paths.emission_brn_output_path(year, pol, sector);
 }
@@ -206,17 +206,17 @@ ValidationType RunConfiguration::validation_type() const noexcept
     return _validation;
 }
 
-date::year RunConfiguration::year() const noexcept
+chrono::year RunConfiguration::year() const noexcept
 {
     return _year;
 }
 
-void RunConfiguration::set_year(date::year year) noexcept
+void RunConfiguration::set_year(chrono::year year) noexcept
 {
     _year = year;
 }
 
-date::year RunConfiguration::reporting_year() const noexcept
+chrono::year RunConfiguration::reporting_year() const noexcept
 {
     return _reportYear;
 }

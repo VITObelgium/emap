@@ -84,7 +84,6 @@
                   pkg-mod-cryptopp
                   pkg-mod-eigen
                   pkg-mod-gdal
-                  pkg-mod-howard-hinnant-date
                   pkg-mod-libxlsxwriter
                   pkg-mod-lyra
                   pkg-mod-indicators
@@ -95,7 +94,6 @@
                   pkg-mod-tomlplusplus
                   pkg-mod-vc
                   fast-cpp-csv-parser # header-only
-                  microsoft-gsl # header-only
                 ]
                 ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
                   glib

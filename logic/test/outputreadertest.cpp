@@ -10,7 +10,6 @@
 namespace emap::test {
 
 using namespace inf;
-using namespace date;
 using namespace doctest;
 
 TEST_CASE("Output readers")

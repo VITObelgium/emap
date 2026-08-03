@@ -11,7 +11,6 @@
 namespace emap::test {
 
 using namespace inf;
-using namespace date;
 using namespace doctest;
 
 TEST_CASE("Parse run configuration")
@@ -47,8 +46,8 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.year() == 2020_y);
-        CHECK(config.reporting_year() == 2018_y);
+        CHECK(config.year() == chrono::year(2020));
+        CHECK(config.reporting_year() == chrono::year(2018));
         CHECK(config.scenario() == "scenarionaam");
         CHECK(config.combine_identical_point_sources() == true);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
@@ -153,8 +152,8 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.model_grid() == ModelGrid::Vlops1km);
         CHECK(config.data_root() == expectedDataRoot);
-        CHECK(config.year() == 2020_y);
-        CHECK(config.reporting_year() == 2018_y);
+        CHECK(config.year() == chrono::year(2020));
+        CHECK(config.reporting_year() == chrono::year(2018));
         CHECK(config.scenario() == "scenarionaam");
         CHECK(config.combine_identical_point_sources() == false);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
@@ -194,7 +193,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config.total_emissions_path_gnfr(config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021_scen.txt");
         // No scenario specific input available
         CHECK(config.total_emissions_path_nfr_belgium(country::BEF) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx");
-        CHECK(config.total_emissions_path_nfr(1990_y, config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt");
+        CHECK(config.total_emissions_path_nfr(chrono::year(1990), config.reporting_year()) == expectedDataRoot / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt");
     }
 
     SUBCASE("invalid file: empty")

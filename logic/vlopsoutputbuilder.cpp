@@ -76,7 +76,7 @@ void VlopsOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id, 
     current.cellSize = cellSizeInM;
 }
 
-static fs::path create_vlops_output_name(const Pollutant& pol, date::year year, std::string_view suffix)
+static fs::path create_vlops_output_name(const Pollutant& pol, chrono::year year, std::string_view suffix)
 {
     auto filename = fmt::format("{}_OPS_{}", pol.code(), static_cast<int32_t>(year));
     if (!suffix.empty()) {

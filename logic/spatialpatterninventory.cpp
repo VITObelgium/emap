@@ -22,9 +22,9 @@ namespace emap {
 using namespace inf;
 namespace gdal = inf::gdal;
 
-static std::set<date::year> scan_available_years(const fs::path& spatialPatternPath)
+static std::set<chrono::year> scan_available_years(const fs::path& spatialPatternPath)
 {
-    std::set<date::year> years;
+    std::set<chrono::year> years;
 
     for (const auto& dirEntry : std::filesystem::directory_iterator(spatialPatternPath)) {
         if (dirEntry.is_directory()) {
@@ -37,7 +37,7 @@ static std::set<date::year> scan_available_years(const fs::path& spatialPatternP
     return years;
 }
 
-static std::deque<date::year> create_years_sequence(date::year startYear, std::set<date::year> availableYears)
+static std::deque<chrono::year> create_years_sequence(chrono::year startYear, std::set<chrono::year> availableYears)
 {
     /*
         When looking for spatial patterns, the following sequence should be used to look for a pattern
@@ -49,7 +49,7 @@ static std::deque<date::year> create_years_sequence(date::year startYear, std::s
         - and so on ...
     */
 
-    std::deque<date::year> years;
+    std::deque<chrono::year> years;
 
     if (availableYears.count(startYear) > 0) {
         years.push_back(startYear);
@@ -60,7 +60,7 @@ static std::deque<date::year> create_years_sequence(date::year startYear, std::s
     auto currentYear      = startYear;
 
     while (!availableYears.empty()) {
-        currentYear = startYear + date::years(currentOffset);
+        currentYear = startYear + chrono::years(currentOffset);
 
         if (availableYears.count(currentYear) > 0) {
             years.push_back(currentYear);
@@ -127,7 +127,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
 
     if (std::regex_match(filename, baseMatch, _spatialPatternCamsRegex)) {
         try {
-            // const auto year      = date::year(str::to_int32_value(baseMatch[1].str()));
+            // const auto year      = chrono::year(str::to_int32_value(baseMatch[1].str()));
             const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[2].str());
             const auto sector    = _cfg.sectors().sector_from_string(baseMatch[3].str());
 
@@ -153,8 +153,8 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
         try {
             const auto pollutant = _cfg.pollutants().pollutant_from_string(baseMatch[1].str());
             const auto sector    = _cfg.sectors().sector_from_string(baseMatch[2].str());
-            // const auto reportYear = date::year(str::to_int32_value(baseMatch[3].str()));
-            // const auto year = date::year(str::to_int32_value(baseMatch[4].str()));
+            // const auto reportYear = chrono::year(str::to_int32_value(baseMatch[3].str()));
+            // const auto year = chrono::year(str::to_int32_value(baseMatch[4].str()));
 
             return SpatialPatternFile{
                 SpatialPatternFile::Source::Ceip,
@@ -195,7 +195,7 @@ std::optional<SpatialPatternInventory::SpatialPatternFile> SpatialPatternInvento
     return {};
 }
 
-std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_rest(date::year startYear, const fs::path& spatialPatternPath) const
+std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_rest(chrono::year startYear, const fs::path& spatialPatternPath) const
 {
     std::vector<SpatialPatterns> result;
 
@@ -250,7 +250,7 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
     return result;
 }
 
-std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_flanders(date::year startYear, const fs::path& spatialPatternPath) const
+std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::scan_dir_flanders(chrono::year startYear, const fs::path& spatialPatternPath) const
 {
     std::vector<SpatialPatterns> result;
 
@@ -282,12 +282,12 @@ std::vector<SpatialPatternInventory::SpatialPatterns> SpatialPatternInventory::s
     return result;
 }
 
-static fs::path reporing_dir(date::year reportYear)
+static fs::path reporing_dir(chrono::year reportYear)
 {
     return file::u8path(fmt::format("reporting_{}", static_cast<int>(reportYear)));
 }
 
-void SpatialPatternInventory::scan_dir(date::year reportingYear, date::year startYear, const fs::path& spatialPatternPath)
+void SpatialPatternInventory::scan_dir(chrono::year reportingYear, chrono::year startYear, const fs::path& spatialPatternPath)
 {
     std::vector<SpatialPatternSource> result;
 
@@ -306,7 +306,7 @@ std::optional<SpatialPatternSource> SpatialPatternInventory::search_spatial_patt
                                                                                                 const Pollutant& polToReport,
                                                                                                 const EmissionSector& sector,
                                                                                                 const EmissionSector& sectorToReport,
-                                                                                                date::year year,
+                                                                                                chrono::year year,
                                                                                                 const std::vector<SpatialPatternFile>& patterns) const
 {
     bool isException = sector != sectorToReport;
@@ -398,7 +398,7 @@ std::optional<SpatialPattern> SpatialPatternInventory::find_spatial_pattern_exce
     return result;
 }
 
-SpatialPatternSource SpatialPatternInventory::source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, date::year year)
+SpatialPatternSource SpatialPatternInventory::source_from_exception(const SpatialPatternException& ex, const Pollutant& pollutantToReport, const EmissionSector& sectorToReport, chrono::year year)
 {
     const EmissionIdentifier emissionId(ex.emissionId.country, sectorToReport, pollutantToReport);
 

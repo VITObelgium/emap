@@ -18,7 +18,6 @@ namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
-using namespace date::literals;
 
 TEST_CASE("Emission inventory [integration]" * skip(true))
 {

@@ -6,7 +6,6 @@
 #include "infra/hash.h"
 #include "infra/point.h"
 
-#include <date/date.h>
 #include <fmt/core.h>
 #include <optional>
 #include <string>

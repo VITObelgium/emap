@@ -10,12 +10,10 @@
 
 #include <cassert>
 #include <filesystem>
-#include <numeric>
 
 namespace emap {
 
 using namespace inf;
-using namespace date::literals;
 namespace gdal = inf::gdal;
 
 static fs::path throw_if_not_exists(const fs::path& path)
@@ -26,6 +24,8 @@ static fs::path throw_if_not_exists(const fs::path& path)
 
     return path;
 }
+
+
 
 static std::unordered_map<EmissionIdentifier, double> create_gnfr_sums(const SingleEmissions& totalEmissionsGnfr)
 {
@@ -63,7 +63,7 @@ static std::unordered_map<EmissionIdentifier, double> create_nfr_sums(const Sing
     return result;
 }
 
-static SingleEmissions handle_missing_nfr_data(date::year nfrYear,
+static SingleEmissions handle_missing_nfr_data(chrono::year nfrYear,
                                                const std::unordered_map<EmissionIdentifier, double>& nfrBasedTotals,
                                                const std::unordered_map<EmissionIdentifier, double>& gnfrTotals,
                                                const RunConfiguration& cfg)
@@ -79,7 +79,7 @@ static SingleEmissions handle_missing_nfr_data(date::year nfrYear,
                     bool dataFound = false;
 
                     // Disable for now, does not occur
-                    /*while (nfrYear >= 1990_y) {
+                    /*while (nfrYear >= chrono::year(1990)) {
                         --nfrYear;
 
                         if (auto path = cfg.total_emissions_path_nfr(nfrYear); fs::is_regular_file(path)) {
@@ -479,7 +479,7 @@ EmissionInventory create_emission_inventory(SingleEmissions totalEmissionsNfr,
     const auto gnfrSums     = create_gnfr_sums(totalEmissionsGnfr);    // GNFR: Y-2
 
     // Extrapolate the emissions based on the previous GNFR emissions
-    SingleEmissions extrapolatedTotalEmissionsGnfr(totalEmissionsGnfr.year() + date::years(1));
+    SingleEmissions extrapolatedTotalEmissionsGnfr(totalEmissionsGnfr.year() + chrono::years(1));
 
     std::unordered_map<EmissionIdentifier, double> correctedGnfrSums;
 
@@ -576,11 +576,11 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
     return result;
 }
 
-SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg, RunSummary& runSummary)
+SingleEmissions read_nfr_emissions(chrono::year year, const RunConfiguration& cfg, RunSummary& runSummary)
 {
     chrono::DurationRecorder duration;
 
-    date::year reportYear = cfg.reporting_year();
+    chrono::year reportYear = cfg.reporting_year();
     fs::path totalEmissionsNfrPath;
     while (totalEmissionsNfrPath.empty()) {
         if (auto path = cfg.total_emissions_path_nfr(year, reportYear); fs::is_regular_file(path)) {
@@ -589,7 +589,7 @@ SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg,
             --reportYear;
         }
 
-        if (cfg.reporting_year() - reportYear > date::years(10)) {
+        if (cfg.reporting_year() - reportYear > chrono::years(10)) {
             throw RuntimeError("NFR emissions could not be found");
         }
     }
@@ -614,7 +614,7 @@ SingleEmissions read_nfr_emissions(date::year year, const RunConfiguration& cfg,
     return nfrTotalEmissions;
 }
 
-static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary, date::year& reportYear)
+static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSummary& runSummary, chrono::year& reportYear)
 {
     chrono::DurationRecorder duration;
 
@@ -629,14 +629,15 @@ static SingleEmissions read_gnfr_emissions(const RunConfiguration& cfg, RunSumma
 
     if (!gnfrTotalEmissions.has_value() || gnfrTotalEmissions->empty()) {
         // No GNFR data available yet for this year, read last years Gnfr data
-        auto year = cfg.year();
-        if (year > cfg.reporting_year() - date::years(2)) {
-            throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(cfg.reporting_year() - date::years(2)));
-        } else if (year == cfg.reporting_year() - date::years(2)) {
+        auto year                     = cfg.year();
+        const auto latestGnfrDataYear = cfg.reporting_year() - chrono::years(2);
+        if (year > latestGnfrDataYear) {
+            throw RuntimeError("The requested year is too recent should be {} or earlier", static_cast<int>(latestGnfrDataYear));
+        } else if (year == latestGnfrDataYear) {
             --year; // Read GNFR Y-3
         }
 
-        reportYear           = cfg.reporting_year() - date::years(1);
+        reportYear           = cfg.reporting_year() - chrono::years(1);
         reportedGnfrDataPath = cfg.total_emissions_path_gnfr(reportYear);
         gnfrTotalEmissions   = parse_emissions(EmissionSector::Type::Gnfr, throw_if_not_exists(reportedGnfrDataPath), year, cfg, RespectIgnoreList::Yes);
         if (gnfrTotalEmissions->empty()) {
@@ -682,14 +683,14 @@ EmissionInventory make_emission_inventory(const RunConfiguration& cfg, RunSummar
         summary.add_totals_source(extraNfrPath);
     }
 
-    date::year gnfrReportYear;
+    chrono::year gnfrReportYear;
     auto gnfrTotalEmissions = read_gnfr_emissions(cfg, summary, gnfrReportYear);
     assert(gnfrTotalEmissions.validate_uniqueness());
 
-    if (gnfrReportYear < cfg.reporting_year() && (cfg.year() == (cfg.reporting_year() - date::years(2)))) {
+    if (gnfrReportYear < cfg.reporting_year() && (cfg.year() == cfg.reporting_year() - chrono::years(2))) {
         // no gnfr data was available for the reporting year, older data was read
         // and interpolation is needed for recent years: year = report_year - 2
-        auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - date::years(1), cfg, summary);
+        auto olderNfrTotalEmissions = read_nfr_emissions(cfg.year() - chrono::years(1), cfg, summary);
         return create_emission_inventory(std::move(nfrTotalEmissions),
                                          std::move(olderNfrTotalEmissions),
                                          std::move(gnfrTotalEmissions),

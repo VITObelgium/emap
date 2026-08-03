@@ -34,5 +34,8 @@ updatedeps:
 buildmusl:
     nix build .#packages.x86_64-linux.musl
 
+buildmingw:
+    nix build .#packages.x86_64-linux.windows
+
 updateclusterdevversion: buildmusl
     scp ./result/emapcli cluster:/projects/E-MAP/03_Software/snapshots/devlatest/emapcli

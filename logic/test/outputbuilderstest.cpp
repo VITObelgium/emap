@@ -11,7 +11,6 @@
 namespace emap::test {
 
 using namespace inf;
-using namespace date;
 using namespace doctest;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, ModelGrid grid, const fs::path& outputDir, bool poinSourcesSeparate, std::optional<GridData> configuredGrid = std::nullopt)
@@ -21,7 +20,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.outputLevelName      = "NFR";
     outputConfig.separatePointSources = poinSourcesSeparate;
 
-    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::move(configuredGrid));
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::move(configuredGrid));
 }
 
 TEST_CASE("Output builders")

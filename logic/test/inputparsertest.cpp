@@ -18,7 +18,6 @@
 namespace emap::test {
 
 using namespace inf;
-using namespace date;
 using namespace doctest;
 
 static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
@@ -27,7 +26,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
 }
 
 TEST_CASE("Input parsers")
@@ -45,7 +44,7 @@ TEST_CASE("Input parsers")
         {
             // year == 2016, no results
             CHECK(parse_emissions(EmissionSector::Type::Nfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes).empty());
-            cfg.set_year(1990_y);
+            cfg.set_year(chrono::year(1990));
 
             auto emissions = parse_emissions(EmissionSector::Type::Nfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "nfr_1990_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
             REQUIRE(emissions.size() == 9);
@@ -74,7 +73,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("gnfr sectors")
         {
-            cfg.set_year(1990_y);
+            cfg.set_year(chrono::year(1990));
 
             auto emissions = parse_emissions(EmissionSector::Type::Gnfr, file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "gnfr_allyears_2021.txt", cfg.year(), cfg, RespectIgnoreList::Yes);
 
@@ -95,7 +94,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Brussels)")
         {
-            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEB_2021.xlsx", chrono::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -111,7 +110,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Flanders)")
         {
-            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2021.xlsx", chrono::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -147,7 +146,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Flanders) no fuel used")
         {
-            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", date::year(2022), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEF_2022.xlsx", chrono::year(2022), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -162,7 +161,7 @@ TEST_CASE("Input parsers")
 
         SUBCASE("Belgian emissions xlsx (Wallonia)")
         {
-            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", date::year(2019), cfg);
+            auto emissions = parse_emissions_belgium(file::u8path(TEST_DATA_DIR) / "_input" / "01_data_emissions" / "inventory" / "reporting_2021" / "totals" / "BEW_2021.xlsx", chrono::year(2019), cfg);
             REQUIRE(emissions.size() == 3302);
 
             for (auto& em : emissions) {
@@ -271,61 +270,61 @@ TEST_CASE("Input parsers")
         {
             // Check that a specific year should overrule the * for years
             EmissionIdentifier id(country::BEF, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::PM10);
-            CHECK(scalings.point_scaling_for_id(id, 2015_y) == 2.5);
-            CHECK(scalings.point_scaling_for_id(id, 2014_y) == 1.5);
-            CHECK(scalings.point_scaling_for_id(id, 2013_y) == 1.5);
+            CHECK(scalings.point_scaling_for_id(id, chrono::year(2015)) == 2.5);
+            CHECK(scalings.point_scaling_for_id(id, chrono::year(2014)) == 1.5);
+            CHECK(scalings.point_scaling_for_id(id, chrono::year(2013)) == 1.5);
 
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2013_y).has_value());
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_pollutant(pollutants::NOx), 2015_y).has_value());
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, chrono::year(2013)).has_value());
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_pollutant(pollutants::NOx), chrono::year(2015)).has_value());
         }
 
         {
             // Check that a specific year should overrule year ranges
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2b), pollutants::NOx);
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2009_y).has_value());
-            CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2011_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2012_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2013_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2014_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2015_y) == 5);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2016_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2017_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2018_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2019_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2020_y) == 3);
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, 2021_y).has_value());
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, chrono::year(2009)).has_value());
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2010)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2011)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2012)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2013)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2014)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2015)) == 5);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2016)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2017)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2018)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2019)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2020)) == 3);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id, chrono::year(2021)).has_value());
         }
 
         {
             // Check fallback to GNFR
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr1A2a), pollutants::NOx);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2015_y) == 4);
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr1A1a)), 2021_y).has_value()); // sector from GNFR A should not match the B code
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2015)) == 4);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr1A1a)), chrono::year(2021)).has_value()); // sector from GNFR A should not match the B code
         }
 
         {
             // Check year range overlap handling, first match will be taken
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::As);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2010_y) == 3);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2021_y) == 4);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2010)) == 3);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2021)) == 4);
         }
 
         {
             // Check gnfr/type wildcard
             EmissionIdentifier id(countries::NL, EmissionSector(sectors::nfr::Nfr3B1a), pollutants::Cd);
-            CHECK(scalings.diffuse_scaling_for_id(id, 2005_y) == 0.8);
-            CHECK(scalings.point_scaling_for_id(id, 2005_y) == 0.8);
-            CHECK(scalings.point_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr2D3d)), 2005_y) == 0.5);
+            CHECK(scalings.diffuse_scaling_for_id(id, chrono::year(2005)) == 0.8);
+            CHECK(scalings.point_scaling_for_id(id, chrono::year(2005)) == 0.8);
+            CHECK(scalings.point_scaling_for_id(id.with_sector(EmissionSector(sectors::nfr::Nfr2D3d)), chrono::year(2005)) == 0.5);
         }
 
         {
             // Check pollutant/country/type wildcard
-            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::Cd), 2000_y) == 10);
-            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
-            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
-            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 2000_y) == 10);
-            CHECK_FALSE(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), 1999_y).has_value());
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::Cd), chrono::year(2000)) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::NL, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), chrono::year(2000)) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), chrono::year(2000)) == 10);
+            CHECK(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), chrono::year(2000)) == 10);
+            CHECK_FALSE(scalings.diffuse_scaling_for_id(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr5E), pollutants::CO), chrono::year(1999)).has_value());
         }
     }
 

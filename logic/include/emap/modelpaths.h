@@ -4,9 +4,8 @@
 #include "emap/emissions.h"
 #include "emap/griddefinition.h"
 #include "emap/pollutant.h"
+#include "infra/chrono.h"
 #include "infra/filesystem.h"
-
-#include <date/date.h>
 
 namespace emap {
 
@@ -19,17 +18,17 @@ public:
                const fs::path& spatialBoundariesFilename,
                const fs::path& spatialBoundariesEezFilename);
 
-    fs::path point_source_emissions_dir_path(const Country& country, date::year reportYear) const;
-    fs::path total_emissions_path_nfr(date::year year, date::year reportYear, date::year lookupReportYear) const;
-    fs::path total_extra_emissions_path_nfr(date::year reportYear) const;
-    fs::path total_emissions_path_gnfr(date::year reportYear, date::year lookupReportYear) const;
-    fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian, date::year reportYear) const;
+    fs::path point_source_emissions_dir_path(const Country& country, inf::chrono::year reportYear) const;
+    fs::path total_emissions_path_nfr(inf::chrono::year year, inf::chrono::year reportYear, inf::chrono::year lookupReportYear) const;
+    fs::path total_extra_emissions_path_nfr(inf::chrono::year reportYear) const;
+    fs::path total_emissions_path_gnfr(inf::chrono::year reportYear, inf::chrono::year lookupReportYear) const;
+    fs::path total_emissions_path_nfr_belgium(const Country& belgianRegian, inf::chrono::year reportYear) const;
     fs::path spatial_pattern_path() const;
 
     fs::path sector_parameters_config_path() const;
 
-    fs::path emission_output_raster_path(date::year year, const EmissionIdentifier& emissionId) const;
-    fs::path emission_brn_output_path(date::year year, const Pollutant& pol, const EmissionSector& sector) const;
+    fs::path emission_output_raster_path(inf::chrono::year year, const EmissionIdentifier& emissionId) const;
+    fs::path emission_brn_output_path(inf::chrono::year year, const Pollutant& pol, const EmissionSector& sector) const;
 
     const fs::path& data_root() const noexcept;
     void set_data_root(const fs::path& root);
@@ -43,7 +42,7 @@ public:
     fs::path output_path_for_spatial_pattern_raster(const EmissionIdentifier& id, const GridData& grid) const;
 
 private:
-    fs::path emissions_dir_path(date::year reportYear) const;
+    fs::path emissions_dir_path(inf::chrono::year reportYear) const;
     fs::path append_scenario_suffix_if_available(const fs::path& path) const;
 
     std::string _scenario;
