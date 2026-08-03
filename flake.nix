@@ -105,10 +105,8 @@
 
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
+                "-DEMAP_STRIP_BINARY=ON"
               ];
-
-              # Explicitly strip binaries completely (including static builds)
-              stripAllList = [ "bin" ];
 
               meta = {
                 description = "Emission preprocessor for different Air Quality Models";

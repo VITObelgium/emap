@@ -18,6 +18,7 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0)
 
 option(INFRA_INSOURCE "Use submodule version of infra" ON)
 option(GDX_INSOURCE "Use submodule version of geodynamix" ON)
+option(EMAP_STRIP_BINARY "Strip the emapcli binary after linking" OFF)
 set(PACKAGE_VERSION_COMMITHASH "dev" CACHE STRING "git commit hash")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

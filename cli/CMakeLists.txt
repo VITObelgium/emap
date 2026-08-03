@@ -18,6 +18,18 @@ target_link_options(emapcli PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<NOT:$<PLATFORM_ID:Windows>>>:-fuse-ld=gold>
 )
 
+if(EMAP_STRIP_BINARY)
+    if(NOT CMAKE_STRIP)
+        message(FATAL_ERROR "EMAP_STRIP_BINARY requires a strip tool")
+    endif()
+
+    add_custom_command(TARGET emapcli POST_BUILD
+        COMMAND "${CMAKE_STRIP}" "$<TARGET_FILE:emapcli>"
+        COMMENT "Stripping emapcli"
+        VERBATIM
+    )
+endif()
+
 install(TARGETS emapcli
     BUNDLE DESTINATION . COMPONENT Runtime
     RESOURCE DESTINATION data COMPONENT Runtime

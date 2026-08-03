@@ -8,7 +8,6 @@
 
 #include <mutex>
 #include <set>
-#include <unordered_map>
 #include <vector>
 
 struct lxw_workbook;

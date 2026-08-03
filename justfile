@@ -33,3 +33,6 @@ updatedeps:
 
 buildmusl:
     nix build .#packages.x86_64-linux.musl
+
+updateclusterdevversion: buildmusl
+    scp ./result/emapcli cluster:/projects/E-MAP/03_Software/snapshots/devlatest/emapcli

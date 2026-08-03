@@ -3,6 +3,7 @@
 - Bugfix: Give an error when the scaling factor file is not found instead of silently ignoring it and not applying any scaling
 - New grid definitions: emap_1 emap_3tf emap_5tf
 - Added: --list-grids cli option to list the available grid definitions
+- Added: option to specify custom grid definitions in a config file that can be referenced in the model config section
 - Set diameter from emission input for point sources in the vlops output writer
 
 Release 3.3.0
