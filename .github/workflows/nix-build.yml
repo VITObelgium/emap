@@ -19,8 +19,8 @@ jobs:
         with:
           submodules: true
 
-      - name: "Setup env"
-        uses: JRMurr/direnv-nix-action@v4.2.0
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
 
       - name: Build and check the packages
         run: nix flake check --max-jobs 1 -L
