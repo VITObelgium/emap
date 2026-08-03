@@ -27,11 +27,13 @@ RunConfiguration::RunConfiguration(
     SectorInventory sectors,
     PollutantInventory pollutants,
     CountryInventory countries,
-    Output outputConfig)
+    Output outputConfig,
+    std::optional<GridData> configuredGrid)
 : _paths(scenario, dataPath, outputConfig.path, spatialBoundariesFilename, spatialBoundariesEezFilename)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _emissionScalingsPath(emissionScalings)
 , _grid(grid)
+, _configuredGrid(std::move(configuredGrid))
 , _validation(validation)
 , _year(year)
 , _reportYear(reportYear)
@@ -44,6 +46,17 @@ RunConfiguration::RunConfiguration(
 , _countryInventory(std::move(countries))
 , _outputConfig(outputConfig)
 {
+    if ((_grid == ModelGrid::Config) != _configuredGrid.has_value()) {
+        throw RuntimeError("A configured model grid requires grid definition data");
+    }
+
+    if (_configuredGrid.has_value() && _configuredGrid->type != GridDefinition::Config) {
+        throw RuntimeError("Invalid configured grid definition type");
+    }
+
+    if (_configuredGrid.has_value() && _configuredGrid->outputFormat == ModelOuputFormat::Dat && _configuredGrid->gridResolution.empty()) {
+        throw RuntimeError("A configured grid with 'dat' output requires a grid resolution string");
+    }
 }
 
 fs::path RunConfiguration::point_source_emissions_dir_path(const Country& country) const
@@ -142,6 +155,19 @@ ModelGrid RunConfiguration::model_grid() const noexcept
     return _grid;
 }
 
+const GridData& RunConfiguration::grid_data(GridDefinition grid) const
+{
+    if (grid == GridDefinition::Config) {
+        if (!_configuredGrid.has_value()) {
+            throw RuntimeError("No configured grid definition available");
+        }
+
+        return *_configuredGrid;
+    }
+
+    return emap::grid_data(grid);
+}
+
 ModelOuputFormat RunConfiguration::model_output_format() const
 {
     switch (model_grid()) {
@@ -165,6 +191,8 @@ ModelOuputFormat RunConfiguration::model_output_format() const
     case ModelGrid::Emap3tf:
     case ModelGrid::Emap5tf:
         return ModelOuputFormat::Dat;
+    case ModelGrid::Config:
+        return grid_data(GridDefinition::Config).outputFormat;
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid:
         break;

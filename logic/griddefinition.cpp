@@ -128,6 +128,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Emap1, "EMAP 1", GeoMetadata(47, 68, -11, 34.5, {0.5, -0.5}, nan, s_epsg4326)},
     {GridDefinition::Emap3tf, "EMAP 3TF", GeoMetadata(63, 112, -1.1, 47.30, {0.1, -0.1}, nan, s_epsg4326)},
     {GridDefinition::Emap5tf, "EMAP 5TF", GeoMetadata(109, 208, 1.3375, 48.8125, {0.025, -0.025}, nan, s_epsg4326)},
+    {GridDefinition::Config, "Config", GeoMetadata()},
 }};
 
 std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
@@ -169,6 +170,8 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid)
         return {GridDefinition::Emap3tf};
     case emap::ModelGrid::Emap5tf:
         return {GridDefinition::Emap5tf};
+    case ModelGrid::Config:
+        return {GridDefinition::Config};
     default:
         break;
     }
@@ -203,6 +206,7 @@ std::string model_grid_config_name(ModelGrid grid)
     case ModelGrid::Emap1: return "emap_1";
     case ModelGrid::Emap3tf: return "emap_3tf";
     case ModelGrid::Emap5tf: return "emap_5tf";
+    case ModelGrid::Config: return "config";
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid: break;
     }
@@ -231,6 +235,7 @@ static GridDefinition output_grid_for_model_grid(ModelGrid grid)
     case ModelGrid::Emap1: return GridDefinition::Emap1;
     case ModelGrid::Emap3tf: return GridDefinition::Emap3tf;
     case ModelGrid::Emap5tf: return GridDefinition::Emap5tf;
+    case ModelGrid::Config: return GridDefinition::Invalid;
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid: break;
     }

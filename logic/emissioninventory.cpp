@@ -560,7 +560,7 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
         }
 
         const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
-        const auto outputGridMeta = grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
+        const auto outputGridMeta = cfg.grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
 
         if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
             gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);

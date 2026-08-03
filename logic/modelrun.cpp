@@ -106,14 +106,14 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
     const auto gridDefinitions = grids_for_model_grid(cfg.model_grid());
 
     // Clip the boundaries on the CAMS grid, we do not want to consider country geometries outside of the cams grid
-    auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, grid_data(gridDefinitions.front()).meta.projection);
+    auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, cfg.grid_data(gridDefinitions.front()).meta.projection);
 
     CPLSetConfigOption("OGR_ENABLE_PARTIAL_REPROJECTION", "TRUE");
     CountryBorders countryBorders(cfg.boundaries_vector_path(), cfg.boundaries_field_id(), clipExtent, cfg.countries());
     CountryBorders eezCountryBorders(cfg.eez_boundaries_vector_path(), cfg.eez_boundaries_field_id(), clipExtent, cfg.countries());
 
     if (validator) {
-        validator->set_grid_countries(countryBorders.known_countries_in_extent(grid_data(gridDefinitions.front()).meta));
+        validator->set_grid_countries(countryBorders.known_countries_in_extent(cfg.grid_data(gridDefinitions.front()).meta));
     }
 
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
@@ -128,12 +128,12 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
 
         // Current grid definition
         auto& gridDefinition = *gridIter;
-        auto& gridData       = grid_data(gridDefinition);
+        auto& gridData       = cfg.grid_data(gridDefinition);
 
         // Obtain the grid of the upcoming subgrid with finer resolution if it is available
         std::optional<GeoMetadata> subGridMeta;
         if (auto nextIter = gridIter + 1; nextIter != gridDefinitions.end()) {
-            subGridMeta = metadata_with_modified_cellsize(grid_data(*nextIter).meta, gridData.meta.cellSize);
+            subGridMeta = metadata_with_modified_cellsize(cfg.grid_data(*nextIter).meta, gridData.meta.cellSize);
         }
 
         ModelProgressInfo progressInfo;

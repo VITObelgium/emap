@@ -241,7 +241,7 @@ static CountryGeometries create_country_geometries(const fs::path& inputPath,
 
 static void process_geometries(const RunConfiguration& runConfig, const fs::path& boundaries, const std::string& fieldId, const std::string& suffix, const fs::path& outputDir)
 {
-    const auto gridProjection = grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
+    const auto gridProjection = runConfig.grid_data(grids_for_model_grid(runConfig.model_grid()).front()).meta.projection;
 
     // Clip the boundaries on the CAMS grid, we do not want to consider country geometries outside of the cams grid
     auto clipExtent = gdal::warp_metadata(grid_data(GridDefinition::CAMS).meta, gridProjection);
@@ -254,7 +254,7 @@ static void process_geometries(const RunConfiguration& runConfig, const fs::path
     const auto grids = grids_for_model_grid((runConfig.model_grid()));
     for (auto iter = grids.begin(); iter != grids.end(); ++iter) {
         const bool coursestGrid = iter == grids.begin();
-        auto outputGridData     = grid_data(*iter);
+        auto outputGridData     = runConfig.grid_data(*iter);
         Log::info("Processing grid level {}", outputGridData.name);
 
         chrono::DurationRecorder dur;

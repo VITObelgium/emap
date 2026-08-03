@@ -5,6 +5,7 @@
 
 #include "testconfig.h"
 
+#include <cmath>
 #include <doctest/doctest.h>
 
 namespace emap::test {
@@ -61,6 +62,69 @@ TEST_CASE("Parse run configuration")
 
         CHECK(config.sectors().nfr_sector_from_string("1A3di(ii)").destination() == EmissionDestination::Eez);
         CHECK(config.sectors().nfr_sector_from_string("1A3di(ii)").has_land_destination());
+    }
+
+    SUBCASE("valid configured grid")
+    {
+        constexpr std::string_view tomlConfig = R"toml(
+            [model]
+                grid = "file://grid_definition.toml"
+                datapath = "_input"
+                year = 2020
+                report_year = 2018
+
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
+        )toml";
+
+        const auto config = parse_run_configuration(tomlConfig, file::u8path(TEST_DATA_DIR));
+
+        CHECK(config.model_grid() == ModelGrid::Config);
+        CHECK(grids_for_model_grid(config.model_grid()) == std::vector<GridDefinition>{GridDefinition::Config});
+
+        const auto& configuredGrid = config.grid_data(GridDefinition::Config);
+        CHECK(configuredGrid.type == GridDefinition::Config);
+        CHECK(configuredGrid.name == "Configured test grid");
+        CHECK(configuredGrid.meta.rows == 47);
+        CHECK(configuredGrid.meta.cols == 68);
+        CHECK(configuredGrid.meta.xll == -11.0);
+        CHECK(configuredGrid.meta.yll == 34.5);
+        CHECK(configuredGrid.meta.cellSize.x == 0.5);
+        CHECK(configuredGrid.meta.cellSize.y == -0.5);
+        REQUIRE(configuredGrid.meta.nodata.has_value());
+        CHECK(std::isnan(*configuredGrid.meta.nodata));
+        CHECK(configuredGrid.meta.geographic_epsg() == 4326);
+        CHECK(configuredGrid.outputFormat == ModelOuputFormat::Brn);
+        CHECK(configuredGrid.gridResolution.empty());
+        CHECK(config.model_output_format() == ModelOuputFormat::Brn);
+    }
+
+    SUBCASE("configured DAT grid has a resolution string")
+    {
+        const auto configuredGrid = parse_grid_definition_file(file::u8path(TEST_DATA_DIR) / "grid_definition_dat.toml");
+
+        CHECK(configuredGrid.outputFormat == ModelOuputFormat::Dat);
+        CHECK(configuredGrid.gridResolution == "configured_05deg");
+    }
+
+    SUBCASE("configured grid file URI requires a path")
+    {
+        constexpr std::string_view tomlConfig = R"toml(
+            [model]
+                grid = "file://"
+                datapath = "_input"
+                year = 2020
+                report_year = 2018
+
+            [output]
+                path = "/temp"
+                sector_level = "GNFR"
+        )toml";
+
+        CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, file::u8path(TEST_DATA_DIR)),
+                             "No grid definition path present after 'file://' in 'model.grid'",
+                             RuntimeError);
     }
 
     SUBCASE("valid file with specified pollutants")

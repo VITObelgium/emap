@@ -14,7 +14,7 @@ ChimereOutputBuilder::ChimereOutputBuilder(SectorParameterConfiguration sectorPa
                                            const RunConfiguration& cfg)
 : _sectorLevel(cfg.output_sector_level())
 , _cfg(cfg)
-, _meta(grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta)
+, _meta(cfg.grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta)
 , _countryMapping(std::move(countryMapping))
 , _sectorParams(std::move(sectorParams))
 {
@@ -87,9 +87,9 @@ void ChimereOutputBuilder::add_diffuse_output_entry(const EmissionIdentifier& id
     _diffuseSources[id.pollutant][mappedCountry][chimereCell][mappedSectorName] += emission * 1000.0;
 }
 
-static std::string_view grid_resolution_string(ModelGrid grid)
+static std::string_view grid_resolution_string(const RunConfiguration& cfg)
 {
-    switch (grid) {
+    switch (cfg.model_grid()) {
     case ModelGrid::Chimere05deg:
     case ModelGrid::Emap1:
         return "05deg";
@@ -122,6 +122,8 @@ static std::string_view grid_resolution_string(ModelGrid grid)
         return "1km";
     case ModelGrid::Vlops250m:
         return "250m";
+    case ModelGrid::Config:
+        return cfg.grid_data(GridDefinition::Config).gridResolution;
     case ModelGrid::EnumCount:
     case ModelGrid::Invalid:
         break;
@@ -130,10 +132,10 @@ static std::string_view grid_resolution_string(ModelGrid grid)
     throw RuntimeError("Invalid chimere model grid");
 }
 
-static fs::path create_chimere_output_name(ModelGrid grid, const Pollutant& pol, date::year year, std::string_view suffix)
+static fs::path create_chimere_output_name(const RunConfiguration& cfg, const Pollutant& pol)
 {
     // output_Chimere_resolutie_polluent_zichtjaar_suffix
-    return file::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(grid), pol.code(), static_cast<int32_t>(year), suffix));
+    return file::u8path(fmt::format("output_Chimere_{}_{}_{}{}.dat", grid_resolution_string(cfg), pol.code(), static_cast<int32_t>(cfg.year()), cfg.output_filename_suffix()));
 }
 
 static fs::path create_chimere_point_source_output_name(date::year year, std::string_view suffix)
@@ -171,7 +173,7 @@ void ChimereOutputBuilder::flush_pollutant(const Pollutant& pol, WriteMode /*mod
             }
         }
 
-        const auto outputPath = _cfg.output_path() / create_chimere_output_name(_cfg.model_grid(), pol, _cfg.year(), _cfg.output_filename_suffix());
+        const auto outputPath = _cfg.output_path() / create_chimere_output_name(_cfg, pol);
         write_dat_output(outputPath, entries);
     }
 

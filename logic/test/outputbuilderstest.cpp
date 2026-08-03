@@ -14,14 +14,14 @@ using namespace inf;
 using namespace date;
 using namespace doctest;
 
-static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, ModelGrid grid, const fs::path& outputDir, bool poinSourcesSeparate)
+static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, ModelGrid grid, const fs::path& outputDir, bool poinSourcesSeparate, std::optional<GridData> configuredGrid = std::nullopt)
 {
     RunConfiguration::Output outputConfig;
     outputConfig.path                 = outputDir;
     outputConfig.outputLevelName      = "NFR";
     outputConfig.separatePointSources = poinSourcesSeparate;
 
-    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, 2016_y, 2021_y, "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::move(configuredGrid));
 }
 
 TEST_CASE("Output builders")
@@ -75,6 +75,23 @@ TEST_CASE("Output builders")
         CHECK(container_contains(pointLines, "PIG      Long       Lat Country snap      temp     Vel  Height    Diam        CO       NH3     NMVOC       NOx      PM10     PM2.5  PMcoarse       SOx       TSP        BC        Pb        Cd        Hg        As        Cr        Cu        Ni        Se        Zn PCDD-PCDF       BaP       BbF       BkF    Indeno      PAHs       HCB      PCBs"));
         CHECK(container_contains(pointLines, "  0    5.0000   36.0000       1 7001     0.000   0.000   0.000   0.000  4000.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000     0.000"));
         CHECK(pointLines[2].empty());
+    }
+
+    SUBCASE("Configured Chimere grid resolution")
+    {
+        GridData configuredGrid{GridDefinition::Config,
+                                "Configured grid",
+                                grid_data(GridDefinition::Chimere05deg).meta,
+                                ModelOuputFormat::Dat,
+                                "configured_05deg"};
+        const auto cfg     = create_config(sectorInventory, pollutantInventory, countryInventory, ModelGrid::Config, tempDir.path(), true, std::move(configuredGrid));
+        auto outputBuilder = make_output_builder(cfg);
+
+        outputBuilder->add_diffuse_output_entry(EmissionIdentifier(countries::AL, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::CO), Point<double>(5.0, 35.0), 2.0, 1000);
+        outputBuilder->flush_pollutant(pollutants::CO, IOutputBuilder::WriteMode::Create);
+        outputBuilder->flush(IOutputBuilder::WriteMode::Create);
+
+        REQUIRE(fs::is_regular_file(tempDir.path() / "output_Chimere_configured_05deg_CO_2016.dat"));
     }
 
     SUBCASE("Chimere merged points")

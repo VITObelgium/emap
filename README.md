@@ -70,6 +70,23 @@ This section configures the model run
     - "chimere_rio1"
     - "chimere_rio4"
     - "chimere_rio32"
+    - `"file://path/to/grid_definition.toml"`
+
+  A `file://` value loads a custom grid from a TOML file. Relative paths are resolved from the run configuration directory:
+
+  ```toml
+  name = "Custom grid name"
+  output_format = "dat"
+  grid_resolution = "custom_05deg"
+  rows = 47
+  cols = 68
+  xll = -11.0
+  yll = 34.5
+  cell_size = [0.5, -0.5]
+  epsg = 4326
+  ```
+
+  `output_format` must be `"dat"` or `"brn"`. For `"dat"` output, `grid_resolution` is required and is used in Chimere output filenames. `cell_size` may also be a single positive number for square north-up cells, or be specified with `cell_size_x` and `cell_size_y`. `epsg` must be an integer EPSG code.
 
 - `datapath` the directory path to the model input data
 - `year` the year to run the model for

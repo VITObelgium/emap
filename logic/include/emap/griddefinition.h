@@ -3,6 +3,7 @@
 #include "infra/geometadata.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace emap {
@@ -27,8 +28,15 @@ enum class ModelGrid
     Emap1,
     Emap3tf,
     Emap5tf,
+    Config,
     EnumCount,
     Invalid,
+};
+
+enum class ModelOuputFormat
+{
+    Brn,
+    Dat,
 };
 
 enum class GridDefinition
@@ -60,6 +68,7 @@ enum class GridDefinition
     Emap1,
     Emap3tf,
     Emap5tf,
+    Config,
     EnumCount,
     Invalid,
 };
@@ -68,9 +77,22 @@ std::vector<GridDefinition> grids_for_model_grid(ModelGrid grid);
 
 struct GridData
 {
+    GridData() = default;
+
+    GridData(GridDefinition type_, std::string name_, inf::GeoMetadata meta_, ModelOuputFormat outputFormat_ = ModelOuputFormat::Dat, std::string gridResolution_ = {})
+    : type(type_)
+    , name(std::move(name_))
+    , meta(std::move(meta_))
+    , outputFormat(outputFormat_)
+    , gridResolution(std::move(gridResolution_))
+    {
+    }
+
     GridDefinition type = GridDefinition::Invalid;
     std::string name;
     inf::GeoMetadata meta;
+    ModelOuputFormat outputFormat = ModelOuputFormat::Dat;
+    std::string gridResolution;
 };
 
 const GridData& grid_data(GridDefinition grid) noexcept;

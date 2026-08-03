@@ -9,7 +9,9 @@
 #include "infra/string.h"
 
 #include <cassert>
+#include <cmath>
 #include <filesystem>
+#include <limits>
 #include <toml++/toml.h>
 
 namespace emap {
@@ -403,7 +405,7 @@ static ModelGrid model_grid_from_string(std::string_view grid)
     auto gridLowercase = str::lowercase(grid);
 
     for (auto modelGrid : inf::enum_entries<ModelGrid>()) {
-        if (gridLowercase == model_grid_config_name(modelGrid)) {
+        if (modelGrid != ModelGrid::Config && gridLowercase == model_grid_config_name(modelGrid)) {
             return modelGrid;
         }
     }
@@ -411,13 +413,34 @@ static ModelGrid model_grid_from_string(std::string_view grid)
     throw RuntimeError("Invalid model grid type: '{}'", grid);
 }
 
-static ModelGrid read_grid(std::optional<std::string_view> grid)
+struct ModelGridSelection
+{
+    ModelGrid type;
+    std::optional<GridData> configuredGrid;
+};
+
+static ModelGridSelection read_grid(std::optional<std::string_view> grid, const fs::path& basePath)
 {
     if (!grid.has_value()) {
         throw RuntimeError("No grid definition present in 'model' section (e.g. grid = \"beleuros\")");
     }
 
-    return model_grid_from_string(*grid);
+    constexpr std::string_view filePrefix = "file://";
+    if (str::starts_with_ignore_case(*grid, filePrefix)) {
+        const auto pathValue = grid->substr(filePrefix.size());
+        if (pathValue.empty()) {
+            throw RuntimeError("No grid definition path present after 'file://' in 'model.grid'");
+        }
+
+        auto path = file::u8path(pathValue);
+        if (path.is_relative()) {
+            path = fs::absolute(basePath / path);
+        }
+
+        return {ModelGrid::Config, parse_grid_definition_file(path)};
+    }
+
+    return {model_grid_from_string(*grid), std::nullopt};
 }
 
 static std::string read_sector_level(std::optional<std::string_view> level)
@@ -458,6 +481,160 @@ static fs::path read_path(const NamedSection& ns, std::string_view name, const f
     }
 
     return path;
+}
+
+static const toml::node& required_grid_definition_node(const toml::table& table, std::string_view name)
+{
+    const auto* node = table.get(name);
+    if (node == nullptr) {
+        throw RuntimeError("'{}' key not present in grid definition", name);
+    }
+
+    return *node;
+}
+
+template <typename T>
+static T required_grid_definition_value(const toml::table& table, std::string_view name)
+{
+    const auto& node = required_grid_definition_node(table, name);
+    if (auto value = node.value<T>(); value.has_value()) {
+        return *value;
+    }
+
+    throw RuntimeError("Invalid '{}' value in grid definition", name);
+}
+
+static double grid_definition_number(const toml::node& node, std::string_view name)
+{
+    if (node.is_integer() || node.is_floating_point()) {
+        if (auto value = node.value<double>(); value.has_value()) {
+            return *value;
+        }
+    }
+
+    throw RuntimeError("Invalid '{}' value in grid definition, expected a number", name);
+}
+
+static int32_t grid_definition_dimension(const toml::table& table, std::string_view name)
+{
+    const auto& node = required_grid_definition_node(table, name);
+    if (!node.is_integer()) {
+        throw RuntimeError("Invalid '{}' value in grid definition, expected a positive 32-bit integer", name);
+    }
+
+    const auto value = *node.value<int64_t>();
+    if (!fits_in_type<int32_t>(value) || value <= 0) {
+        throw RuntimeError("Invalid '{}' value in grid definition, expected a positive 32-bit integer", name);
+    }
+
+    return truncate<int32_t>(value);
+}
+
+static GeoMetadata::CellSize grid_definition_cell_size(const toml::table& table)
+{
+    GeoMetadata::CellSize result;
+
+    if (const auto* node = table.get("cell_size"); node != nullptr) {
+        if (const auto* values = node->as_array(); values != nullptr) {
+            if (values->size() != 2) {
+                throw RuntimeError("Invalid 'cell_size' value in grid definition, expected [x, y]");
+            }
+
+            result.x = grid_definition_number(*values->get(0), "cell_size[0]");
+            result.y = grid_definition_number(*values->get(1), "cell_size[1]");
+        } else {
+            result.x = grid_definition_number(*node, "cell_size");
+            result.y = -result.x;
+        }
+    } else {
+        result.x = grid_definition_number(required_grid_definition_node(table, "cell_size_x"), "cell_size_x");
+        result.y = grid_definition_number(required_grid_definition_node(table, "cell_size_y"), "cell_size_y");
+    }
+
+    if (!std::isfinite(result.x) || !std::isfinite(result.y) || result.x <= 0.0 || result.y >= 0.0) {
+        throw RuntimeError("Invalid 'cell_size' value in grid definition, x must be positive and y must be negative");
+    }
+
+    return result;
+}
+
+static ModelOuputFormat grid_definition_output_format(const toml::table& table)
+{
+    const auto value = required_grid_definition_value<std::string_view>(table, "output_format");
+    if (str::iequals(value, "brn")) {
+        return ModelOuputFormat::Brn;
+    }
+
+    if (str::iequals(value, "dat")) {
+        return ModelOuputFormat::Dat;
+    }
+
+    throw RuntimeError("Invalid 'output_format' value in grid definition, expected 'dat' or 'brn'");
+}
+
+static int32_t grid_definition_epsg(const toml::node& node, std::string_view name)
+{
+    if (!node.is_integer()) {
+        throw RuntimeError("Invalid '{}' value in grid definition, expected a positive EPSG code", name);
+    }
+
+    const auto value = *node.value<int64_t>();
+    if (!fits_in_type<int32_t>(value) || value <= 0) {
+        throw RuntimeError("Invalid '{}' value in grid definition, expected a positive EPSG code", name);
+    }
+
+    return truncate<int32_t>(value);
+}
+
+GridData parse_grid_definition_file(const fs::path& path)
+{
+    if (path.empty()) {
+        throw RuntimeError("No grid definition file provided");
+    }
+
+    try {
+        const toml::table document = toml::parse(file::read_as_text(path), str::from_u8(path.u8string()));
+        const toml::table* table   = &document;
+        if (const auto* gridTable = document["grid"].as_table(); gridTable != nullptr) {
+            table = gridTable;
+        }
+
+        auto name = required_grid_definition_value<std::string>(*table, "name");
+        if (name.empty()) {
+            throw RuntimeError("Invalid 'name' value in grid definition, name cannot be empty");
+        }
+
+        const auto rows = grid_definition_dimension(*table, "rows");
+        const auto cols = grid_definition_dimension(*table, "cols");
+        const auto xll  = grid_definition_number(required_grid_definition_node(*table, "xll"), "xll");
+        const auto yll  = grid_definition_number(required_grid_definition_node(*table, "yll"), "yll");
+        const auto epsg         = grid_definition_epsg(required_grid_definition_node(*table, "epsg"), "epsg");
+        const auto outputFormat = grid_definition_output_format(*table);
+
+        std::string gridResolution;
+        if (outputFormat == ModelOuputFormat::Dat) {
+            gridResolution = required_grid_definition_value<std::string>(*table, "grid_resolution");
+            if (gridResolution.empty()) {
+                throw RuntimeError("Invalid 'grid_resolution' value in grid definition, value cannot be empty for 'dat' output");
+            }
+        }
+
+        if (!std::isfinite(xll) || !std::isfinite(yll)) {
+            throw RuntimeError("Invalid grid definition origin, 'xll' and 'yll' must be finite numbers");
+        }
+
+        GeoMetadata meta(rows, cols, xll, yll, grid_definition_cell_size(*table), std::numeric_limits<double>::quiet_NaN());
+        meta.set_projection_from_epsg(epsg);
+
+        return {GridDefinition::Config, std::move(name), std::move(meta), outputFormat, std::move(gridResolution)};
+    } catch (const toml::parse_error& e) {
+        const auto pathString = str::from_u8(path.generic_u8string());
+        if (const auto& errorBegin = e.source().begin; errorBegin) {
+            throw RuntimeError("Failed to parse grid definition '{}': {} (line {} column {})", pathString, e.description(), errorBegin.line, errorBegin.column);
+        }
+
+        throw RuntimeError("Failed to parse grid definition '{}': {}", pathString, e.description());
+    }
 }
 
 static date::year parse_year(toml::node_view<const toml::node> nodeValue)
@@ -572,7 +749,9 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         auto sectorInventory    = parse_sectors(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
         auto pollutantInventory = parse_pollutants(idNumbersPath, codeConversionsNumbersPath, ignorePath, countryInventory);
 
-        const auto grid                         = read_grid(model.section["grid"].value<std::string_view>());
+        auto gridSelection = read_grid(model.section["grid"].value<std::string_view>(), basePath);
+        const auto grid    = gridSelection.type;
+
         const auto scenario                     = read_string(model, "scenario", "");
         const auto combinePointSources          = model.section["combine_identical_point_sources"].value<bool>().value_or(true);
         const double rescaleThreshold           = model.section["point_source_rescale_threshold"].value<double>().value_or(100.0);
@@ -616,7 +795,8 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
                                 std::move(sectorInventory),
                                 std::move(pollutantInventory),
                                 std::move(countryInventory),
-                                outputConfig);
+                                outputConfig,
+                                std::move(gridSelection.configuredGrid));
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
             throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);

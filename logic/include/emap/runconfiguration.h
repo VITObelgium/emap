@@ -19,12 +19,6 @@ enum class SectorLevel
     Custom,
 };
 
-enum class ModelOuputFormat
-{
-    Brn,
-    Dat,
-};
-
 enum class ValidationType
 {
     NoValidation,
@@ -62,7 +56,8 @@ public:
         SectorInventory sectors,
         PollutantInventory pollutants,
         CountryInventory countries,
-        Output outputConfig);
+        Output outputConfig,
+        std::optional<GridData> configuredGrid = std::nullopt);
 
     fs::path point_source_emissions_dir_path(const Country& country) const;
     fs::path total_emissions_path_nfr(date::year year, date::year reportYear) const;
@@ -88,6 +83,7 @@ public:
     std::string eez_boundaries_field_id() const noexcept;
 
     ModelGrid model_grid() const noexcept;
+    const GridData& grid_data(GridDefinition grid) const;
     ModelOuputFormat model_output_format() const;
     ValidationType validation_type() const noexcept;
 
@@ -132,6 +128,7 @@ private:
     fs::path _spatialPatternExceptions;
     fs::path _emissionScalingsPath;
     ModelGrid _grid;
+    std::optional<GridData> _configuredGrid;
     ValidationType _validation;
     date::year _year;
     date::year _reportYear;
