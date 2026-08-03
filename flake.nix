@@ -58,7 +58,10 @@
         }:
         let
           mkPackage =
-            pkgsForBuild: pkgsForHost: isStatic:
+            pkgsForBuild: pkgsForHost: isStatic: crossEmulator:
+            let
+              needsCrossEmulator = crossEmulator != null;
+            in
             pkgsForHost.stdenv.mkDerivation {
               pname = "emap";
               version = "dev";
@@ -72,11 +75,14 @@
                 ln -s ${inputs.geodynamix-src} deps/geodynamix
               '';
 
-              nativeBuildInputs = with pkgsForBuild; [
-                cmake
-                ninja
-                pkg-config
-              ];
+              nativeBuildInputs =
+                with pkgsForBuild;
+                [
+                  cmake
+                  ninja
+                  pkg-config
+                ]
+                ++ lib.optionals needsCrossEmulator [ crossEmulator ];
 
               buildInputs =
                 with pkgsForHost;
@@ -93,18 +99,34 @@
                   pkg-mod-onetbb
                   pkg-mod-tomlplusplus
                   pkg-mod-vc
+                  pkg-mod-doctest
                   fast-cpp-csv-parser # header-only
                 ]
                 ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
                   glib
                 ];
 
-              checkInputs = with pkgsForHost; [ pkg-mod-doctest ];
+              cmakeFlags =
+                [
+                  "-DCMAKE_BUILD_TYPE=Release"
+                  "-DEMAP_STRIP_BINARY=ON"
+                  "-DBUILD_TESTING=ON"
+                ]
+                ++ pkgsForBuild.lib.optionals needsCrossEmulator [
+                  "-DCMAKE_CROSSCOMPILING_EMULATOR=${pkgsForBuild.lib.getExe crossEmulator}"
+                  "-DGDX_AVX2=OFF"
+                ];
 
-              cmakeFlags = [
-                "-DCMAKE_BUILD_TYPE=Release"
-                "-DEMAP_STRIP_BINARY=ON"
-              ];
+              # Run tests during the build so cross-compiled packages can use the
+              # configured emulator instead of having checkPhase suppressed by nixpkgs.
+              postBuild = ''
+                export HOME="$TMPDIR"
+                ${pkgsForBuild.lib.optionalString needsCrossEmulator ''
+                  export WINEDEBUG=-all
+                  export WINEPREFIX="$TMPDIR/wine-prefix"
+                ''}
+                ctest --output-on-failure
+              '';
 
               meta = {
                 description = "Emission preprocessor for different Air Quality Models";
@@ -114,11 +136,18 @@
             };
         in
         {
-          default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false;
+          default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false null;
         }
         // inputs.nixpkgs.lib.optionalAttrs (nixpkgs.lib.strings.hasInfix "linux" system) {
-          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl true;
-          windows = mkPackage buildEnvMingwCross.pkgsDefault buildEnvMingwCross.pkgsMingw true;
+          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl true null;
+        }
+        // inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          windows =
+            mkPackage
+              buildEnvMingwCross.pkgsDefault
+              buildEnvMingwCross.pkgsMingw
+              true
+              buildEnv.pkgsDefault.wine64Packages.stable;
         }
       );
 

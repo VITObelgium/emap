@@ -104,7 +104,7 @@ if(GDX_INSOURCE)
     set(GDX_ENABLE_SIMD ON)
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
-        set(GDX_AVX2 ON)
+        set(GDX_AVX2 ON CACHE BOOL "Build geodynamix with AVX2 support")
     endif()
 
     add_subdirectory(deps/geodynamix)

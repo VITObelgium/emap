@@ -33,11 +33,4 @@ PRIVATE
 
 configure_file(testconfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/testconfig.h)
 
-add_test(
-    NAME emaplogictest
-    COMMAND
-        ${CMAKE_COMMAND}
-        -DTEST_EXECUTABLE=$<TARGET_FILE:emaplogictest>
-        -P
-        ${CMAKE_CURRENT_SOURCE_DIR}/run_test.cmake
-)
+add_test(NAME emaplogictest COMMAND emaplogictest)

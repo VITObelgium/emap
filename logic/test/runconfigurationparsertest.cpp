@@ -17,7 +17,7 @@ TEST_CASE("Parse run configuration")
 {
     const auto scaleFactors = file::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "historic" / "1990" / "scaling_diffuse.csv";
 
-    const auto expectedDataRoot = file::u8path(TEST_DATA_DIR) / "_input";
+    const auto expectedDataRoot = fs::canonical(file::u8path(TEST_DATA_DIR) / "_input");
     const auto expectedOutput   = fs::absolute("/temp");
 
     SUBCASE("valid file")
