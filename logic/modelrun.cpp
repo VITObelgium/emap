@@ -267,22 +267,6 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         }
 
                         // Add the point sources to the grid
-                        auto pointEmissions = container_as_vector(emission->scaled_point_emissions());
-                        if (subGridMeta.has_value()) {
-                            // remove the points from the subGrid
-                            remove_from_container(pointEmissions, [meta = *subGridMeta](const EmissionEntry& entry) {
-                                if (!entry.coordinate().has_value()) {
-                                    return true;
-                                }
-
-                                if (meta.is_on_map(*entry.coordinate())) {
-                                    return true;
-                                }
-
-                                return false;
-                            });
-                        }
-
                         if (isCoursestGrid) {
                             // Only add the point emissions once for the coursest grid as they are resolution independent
                             collector.add_emissions(cellCoverageInfo, sector, std::move(spatialPattern.raster), emission->scaled_point_emissions());
