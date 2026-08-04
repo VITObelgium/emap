@@ -46,7 +46,7 @@ jobs:
         if: matrix.format == 'zip'
         run: |
           cd result
-          zip -r "../${{ matrix.archive }}" . -x "nix-support/*"
+          zip -r "${GITHUB_WORKSPACE}/${{ matrix.archive }}" . -x "nix-support/*"
 
       - name: Upload release artifact
         if: startsWith(github.ref, 'refs/tags/')
