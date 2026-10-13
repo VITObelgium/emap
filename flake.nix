@@ -109,6 +109,8 @@
               cmakeGenerator = "Ninja";
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
+                # The sandbox source has no .git; use the flake's revision metadata.
+                "-DPACKAGE_VERSION_COMMITHASH=${self.rev or self.dirtyRev or "dev"}"
                 "-DEMAP_STRIP_BINARY=ON"
                 "-DBUILD_TESTING=ON"
               ]
