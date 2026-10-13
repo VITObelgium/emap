@@ -1,4 +1,4 @@
-﻿Release 3.x.x
+﻿Release 3.4.0
 -------------
 - Bugfix: Give an error when the scaling factor file is not found instead of silently ignoring it and not applying any scaling
 - New grid definitions: emap_1 emap_3tf emap_5tf

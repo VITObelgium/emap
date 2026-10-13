@@ -22,5 +22,11 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
 
+      - name: Configure geo-overlay cache
+        uses: cachix/cachix-action@v17
+        with:
+          name: geo-overlay
+          skipPush: true
+
       - name: Build and check the packages
         run: nix flake check --max-jobs 1 -L
