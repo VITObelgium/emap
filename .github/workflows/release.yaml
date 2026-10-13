@@ -15,6 +15,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: Linux glibc (x86_64)
+            package: .#packages.x86_64-linux.default
+            artifact: emap-linux-glibc
+            archive: e-map-Linux-glibc.tar.gz
+            format: tar
           - name: Linux musl (x86_64)
             package: .#packages.x86_64-linux.musl
             artifact: emap-linux-musl
@@ -74,6 +79,8 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
+          mv artifacts/emap-linux-glibc/e-map-Linux-glibc.tar.gz \
+            "e-map-${TAG_NAME}-Linux-glibc.tar.gz"
           mv artifacts/emap-linux-musl/e-map-Linux-musl.tar.gz \
             "e-map-${TAG_NAME}-Linux-musl.tar.gz"
           mv artifacts/emap-windows/e-map-win64.zip \
@@ -89,5 +96,6 @@ jobs:
             --generate-notes \
             --draft=false \
             --prerelease=false \
+            "e-map-${TAG_NAME}-Linux-glibc.tar.gz" \
             "e-map-${TAG_NAME}-Linux-musl.tar.gz" \
             "e-map-${TAG_NAME}-win64.zip"

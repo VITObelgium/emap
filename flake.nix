@@ -2,10 +2,9 @@
   description = "emap";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.follows = "pkgs-mod/nixpkgs";
 
     pkgs-mod.url = "github:VITO-RMA/nix-pkgs/main";
-    pkgs-mod.inputs.nixpkgs.follows = "nixpkgs";
 
     infra-src = {
       url = "github:VITObelgium/cpp-infra/master";
@@ -13,7 +12,7 @@
     };
 
     geodynamix-src = {
-      url = "github:VITObelgium/geodynamix/develop";
+      url = "github:VITObelgium/geodynamix/main";
       flake = false;
     };
   };
@@ -40,7 +39,10 @@
           system:
           f {
             inherit system;
-            buildEnv = pkgs-mod.lib.mkBuildEnv system;
+            buildEnv = pkgs-mod.lib.mkBuildEnvWith {
+              inherit system;
+              glibcVersion = "2.28";
+            };
             buildEnvMingwCross =
               if (nixpkgs.lib.strings.hasInfix "linux" system) then
                 pkgs-mod.lib.mkBuildEnvMingwCross system { llvm = false; }
@@ -58,9 +60,11 @@
         }:
         let
           mkPackage =
-            pkgsForBuild: pkgsForHost: isStatic: crossEmulator:
+            pkgsForBuild: pkgsForHost: crossEmulator:
             let
               needsCrossEmulator = crossEmulator != null;
+              canRunTests =
+                pkgsForHost.stdenv.buildPlatform.canExecute pkgsForHost.stdenv.hostPlatform || needsCrossEmulator;
             in
             pkgsForHost.stdenv.mkDerivation {
               pname = "emap";
@@ -84,42 +88,44 @@
                 ]
                 ++ lib.optionals needsCrossEmulator [ crossEmulator ];
 
-              buildInputs =
-                with pkgsForHost;
-                [
-                  pkg-mod-cryptopp
-                  pkg-mod-eigen
-                  pkg-mod-gdal
-                  pkg-mod-libxlsxwriter
-                  pkg-mod-lyra
-                  pkg-mod-indicators
-                  pkg-mod-type_safe
-                  pkg-mod-fmt
-                  pkg-mod-spdlog
-                  pkg-mod-onetbb
-                  pkg-mod-tomlplusplus
-                  pkg-mod-vc
-                  pkg-mod-doctest
-                  fast-cpp-csv-parser # header-only
-                ]
-                ++ pkgsForHost.lib.optionals (pkgsForHost.stdenv.isLinux && !isStatic) [
-                  glib
-                ];
+              buildInputs = with pkgsForHost; [
+                pkg-mod-cryptopp
+                pkg-mod-eigen
+                pkg-mod-gdal
+                pkg-mod-libxlsxwriter
+                pkg-mod-lyra
+                pkg-mod-indicators
+                pkg-mod-type_safe
+                pkg-mod-fmt
+                pkg-mod-spdlog
+                pkg-mod-onetbb
+                pkg-mod-tomlplusplus
+                pkg-mod-vc
+                pkg-mod-doctest
+                pkg-mod-howard-hinnant-date
+                fast-cpp-csv-parser # header-only
+              ];
 
-              cmakeFlags =
-                [
-                  "-DCMAKE_BUILD_TYPE=Release"
-                  "-DEMAP_STRIP_BINARY=ON"
-                  "-DBUILD_TESTING=ON"
-                ]
-                ++ pkgsForBuild.lib.optionals needsCrossEmulator [
-                  "-DCMAKE_CROSSCOMPILING_EMULATOR=${pkgsForBuild.lib.getExe crossEmulator}"
-                  "-DGDX_AVX2=OFF"
-                ];
+              cmakeGenerator = "Ninja";
+              cmakeFlags = [
+                "-DCMAKE_BUILD_TYPE=Release"
+                "-DEMAP_STRIP_BINARY=ON"
+                "-DBUILD_TESTING=ON"
+              ]
+              ++
+                pkgsForBuild.lib.optionals
+                  (pkgsForHost.stdenv.hostPlatform.isLinux && pkgsForHost.stdenv.hostPlatform.isGnu)
+                  [
+                    "-DCMAKE_EXE_LINKER_FLAGS=-static-libstdc++"
+                  ]
+              ++ pkgsForBuild.lib.optionals needsCrossEmulator [
+                "-DCMAKE_CROSSCOMPILING_EMULATOR=${pkgsForBuild.lib.getExe crossEmulator}"
+                "-DGDX_AVX2=OFF"
+              ];
 
-              # Run tests during the build so cross-compiled packages can use the
-              # configured emulator instead of having checkPhase suppressed by nixpkgs.
-              postBuild = ''
+              # Portable Zig/glibc binaries use a distro loader absent from the sandbox.
+              # Other builds run tests directly or through the configured emulator.
+              postBuild = pkgsForBuild.lib.optionalString canRunTests ''
                 export HOME="$TMPDIR"
                 ${pkgsForBuild.lib.optionalString needsCrossEmulator ''
                   export WINEDEBUG=-all
@@ -136,17 +142,14 @@
             };
         in
         {
-          default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic false null;
+          default = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStatic null;
         }
         // inputs.nixpkgs.lib.optionalAttrs (nixpkgs.lib.strings.hasInfix "linux" system) {
-          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl true null;
+          musl = mkPackage buildEnv.pkgsDefault buildEnv.pkgsStaticMusl null;
         }
         // inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           windows =
-            mkPackage
-              buildEnvMingwCross.pkgsDefault
-              buildEnvMingwCross.pkgsMingw
-              true
+            mkPackage buildEnvMingwCross.pkgsDefault buildEnvMingwCross.pkgsMingw
               buildEnv.pkgsDefault.wine64Packages.stable;
         }
       );

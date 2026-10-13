@@ -31,6 +31,9 @@ update:
 updatedeps:
     nix flake update --update-input pkgs-mod
 
+buildglibc:
+    nix build .#packages.x86_64-linux.default
+
 buildmusl:
     nix build .#packages.x86_64-linux.musl
 
