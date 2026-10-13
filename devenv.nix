@@ -65,6 +65,8 @@ in
     };
   };
 
+  env.DEVENV_MAX_JOBS = "1";
+
   languages.cplusplus = {
     enable = true;
   };

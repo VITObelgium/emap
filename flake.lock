@@ -3,16 +3,16 @@
     "geodynamix-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1769699708,
-        "narHash": "sha256-421fCjmzOf/27MXUYlZvGOepeQLdQMd+puM/QSWI+h4=",
+        "lastModified": 1791383190,
+        "narHash": "sha256-Vky1FQVklmBGCoGyGKwgsIQ/WPJKc/pnEhG9EWmwQYA=",
         "owner": "VITObelgium",
         "repo": "geodynamix",
-        "rev": "c9d00d6644a10364f75d10af99d6cc45b2e95f8f",
+        "rev": "81cb9ecbf856b9d2536b2eefaa2c3a1df472ff38",
         "type": "github"
       },
       "original": {
         "owner": "VITObelgium",
-        "ref": "develop",
+        "ref": "main",
         "repo": "geodynamix",
         "type": "github"
       }
@@ -20,11 +20,11 @@
     "infra-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1785756635,
-        "narHash": "sha256-HVBOUrqpwJsv3FUlXpznzy+Q8F42i+qd1RV0Kqbq4Xs=",
+        "lastModified": 1791884692,
+        "narHash": "sha256-S9ZjBNS8TSZmkO9q3Y/TNYE/VDG355V4RK8Wt9/Kp6k=",
         "owner": "VITObelgium",
         "repo": "cpp-infra",
-        "rev": "0a6b5b875a10bb6c233592926fe7e4e9d35acdd0",
+        "rev": "4c7c7ca09b173399f66808c15fdc4f6787460061",
         "type": "github"
       },
       "original": {
@@ -36,32 +36,30 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1774244481,
-        "narHash": "sha256-4XfMXU0DjN83o6HWZoKG9PegCvKvIhNUnRUI19vzTcQ=",
+        "lastModified": 1786201459,
+        "narHash": "sha256-CiOTEjmwAmG2AWnaIno9YaCJJmpca2FXPhMAsnrolCg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "4590696c8693fea477850fe379a01544293ca4e2",
+        "rev": "8b8c811c7c2541c30382c5de7ed26be055569c60",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.11",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "pkgs-mod": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1774012533,
-        "narHash": "sha256-SFzA77kEq4++rmxPaqSbE1dOMe2leZcuo7HErM+J5fk=",
+        "lastModified": 1791878297,
+        "narHash": "sha256-6U0iql+a4AzEBeE3G6UQIT7I6TzSD4SMPMxVxiq8JfE=",
         "owner": "VITO-RMA",
         "repo": "nix-pkgs",
-        "rev": "e5f1907b8cd2efed9d4a8cb4392da356ee7e79ca",
+        "rev": "05b858d8e2620acff1d392806aa4df95a1424ba9",
         "type": "github"
       },
       "original": {
@@ -75,7 +73,10 @@
       "inputs": {
         "geodynamix-src": "geodynamix-src",
         "infra-src": "infra-src",
-        "nixpkgs": "nixpkgs",
+        "nixpkgs": [
+          "pkgs-mod",
+          "nixpkgs"
+        ],
         "pkgs-mod": "pkgs-mod"
       }
     }
