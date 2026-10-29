@@ -1,5 +1,5 @@
 #include "outputwriters.h"
-#include "emap/runconfiguration.h"
+#include "infra/exception.h"
 #include "emapconfig.h"
 
 #include <fmt/compile.h>

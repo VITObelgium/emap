@@ -1,6 +1,5 @@
 #pragma once
 
-#include "infra/exception.h"
 #include "infra/string.h"
 
 #include <algorithm>

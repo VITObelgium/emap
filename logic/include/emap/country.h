@@ -1,12 +1,11 @@
 #pragma once
 
-#include "emap/inputconversion.h"
-#include "infra/span.h"
-
+#include <vector>
 #include <compare>
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
+#include <span>
 #include <type_safe/strong_typedef.hpp>
 
 namespace emap {

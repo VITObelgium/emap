@@ -2,7 +2,7 @@
 
 #include "emap/ignoredname.h"
 #include "emap/sector.h"
-#include "infra/span.h"
+#include "emap/inputconversion.h"
 
 #include <string_view>
 #include <type_safe/strong_typedef.hpp>
