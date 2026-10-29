@@ -238,10 +238,10 @@ TEST_CASE("Emission inventory")
         // 2 out of 7 offroad sectors have a value
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::NOx), EmissionValue(50.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A4bi), pollutants::NOx), EmissionValue(60.0)));
-        // pollutant emissions should not corrected to 0.0 when GNFR is missing (GNFR is considered to be a validated 0.0)
+        // Missing GNFR data must leave NFR emissions unchanged for all pollutants.
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::Cd), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::Cd), EmissionValue(222.0)));
-        // TSP, As pollutant emissions should not be corrected to 0.0 when GNFR is missing
+        // Pollutants previously exempted from the zero fallback must also remain unchanged.
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::TSP), EmissionValue(111.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::TSP), EmissionValue(222.0)));
         totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), EmissionValue(111.0)));
@@ -259,14 +259,35 @@ TEST_CASE("Emission inventory")
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3c), pollutants::NOx), (80.0 / (50.0 + 60.0)) * 50.0, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A4bi), pollutants::NOx), (80.0 / (50.0 + 60.0)) * 60.0, 0.0);
 
-        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::Cd), 0.0, 0.0);
-        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::Cd), 0.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::Cd), 111.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::Cd), 222.0, 0.0);
 
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::TSP), 111.0, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::TSP), 222.0, 0.0);
 
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3ai_i), pollutants::As), 111.0, 0.0);
         checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3aii_i), pollutants::As), 222.0, 0.0);
+    }
+
+    SUBCASE("Missing GNFR data preserves NFR emissions but explicit zero still scales to zero")
+    {
+        SingleEmissions totalEmissions(chrono::year(2019)), pointEmissions(chrono::year(2019));
+        SingleEmissions gnfrTotals(chrono::year(2019));
+        ScalingFactors scalings;
+
+        for (const auto& country : {countries::FR, countries::DE}) {
+            totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(country, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), EmissionValue(111.0)));
+            totalEmissions.add_emission(EmissionEntry(EmissionIdentifier(country, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::NOx), EmissionValue(222.0)));
+        }
+
+        gnfrTotals.add_emission(EmissionEntry(EmissionIdentifier(countries::DE, EmissionSector(sectors::gnfr::RoadTransport), pollutants::NOx), EmissionValue(0.0)));
+
+        const auto inv = create_emission_inventory(totalEmissions, gnfrTotals, {}, pointEmissions, scalings, cfg, summary);
+
+        checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 111.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::FR, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::NOx), 222.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::NOx), 0.0, 0.0);
+        checkEmission(inv, EmissionIdentifier(countries::DE, EmissionSector(sectors::nfr::Nfr1A3bii), pollutants::NOx), 0.0, 0.0);
     }
 
     SUBCASE("Use scenario point sources if present")

@@ -4,6 +4,7 @@
 - Breaking default change: Flemish input now defaults to Lambert2008 (EPSG:3812). Existing Lambert72 datasets must explicitly configure `flanders_input_epsg = 31370`.
 - Flemish tabular-pattern coordinates honor the configured input CRS while retaining the existing pattern cache and output resampling.
 - Flemish spatial patterns use `Flanders1km` only for EPSG:31370 input, and the new EPSG:3812 `Flanders1kmLambert2008` grid otherwise.
+- Missing or ignored validated GNFR data now uses a correction factor of 1.0, preserving the underlying NFR emissions instead of scaling them to zero.
 
 Release 3.4.0
 -------------
