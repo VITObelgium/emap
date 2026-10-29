@@ -1,6 +1,7 @@
 ﻿#include "emap/configurationparser.h"
 #include "emap/outputbuilderfactory.h"
 
+#include "infra/crs.h"
 #include "infra/tempdir.h"
 #include "infra/algo.h"
 #include "testconfig.h"
@@ -20,7 +21,7 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.outputLevelName      = "NFR";
     outputConfig.separatePointSources = poinSourcesSeparate;
 
-    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::move(configuredGrid));
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", {}, {}, {}, {}, grid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::move(configuredGrid), crs::epsg::BelgianLambert72);
 }
 
 TEST_CASE("Output builders")

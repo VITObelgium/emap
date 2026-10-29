@@ -1,16 +1,11 @@
 #pragma once
 
 #include "emap/emissiondestination.h"
-#include "emap/inputconversion.h"
-#include "infra/span.h"
 
+#include <compare>
 #include <fmt/core.h>
-#include <optional>
-#include <span>
 #include <string_view>
 #include <type_safe/strong_typedef.hpp>
-#include <unordered_map>
-#include <unordered_set>
 #include <variant>
 
 namespace emap {
@@ -75,14 +70,9 @@ public:
         return id() == other.id();
     }
 
-    bool operator!=(const GnfrSector& other) const noexcept
+    std::strong_ordering operator<=>(const GnfrSector& other) const noexcept
     {
-        return !(*this == other);
-    }
-
-    bool operator<(const GnfrSector& other) const noexcept
-    {
-        return id() < other.id();
+        return static_cast<int32_t>(id()) <=> static_cast<int32_t>(other.id());
     }
 
 private:
@@ -132,14 +122,9 @@ public:
         return id() == other.id();
     }
 
-    bool operator!=(const NfrSector& other) const noexcept
+    std::strong_ordering operator<=>(const NfrSector& other) const noexcept
     {
-        return !(*this == other);
-    }
-
-    bool operator<(const NfrSector& other) const noexcept
-    {
-        return id() < other.id();
+        return static_cast<int32_t>(id()) <=> static_cast<int32_t>(other.id());
     }
 
     bool has_land_destination() const noexcept
@@ -199,20 +184,12 @@ public:
     /* Returns the nfr sector this sector overrides if it is applicable */
     // std::optional<NfrSector> is_sector_override() const noexcept;
 
-    bool operator<(const EmissionSector& other) const noexcept
-    {
-        return name() < other.name();
-    }
-
     constexpr bool operator==(const EmissionSector& other) const noexcept
     {
         return _sector == other._sector;
     }
 
-    constexpr bool operator!=(const EmissionSector& other) const noexcept
-    {
-        return !(*this == other);
-    }
+    auto operator<=>(const EmissionSector& other) const noexcept = default;
 
 private:
     const NfrSector& get_nfr_sector() const noexcept;

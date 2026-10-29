@@ -1,0 +1,4 @@
+year,nfr_sector,gnfr_sector,pollutant,x_lambert,y_lambert,emission
+2019,1A1a,,NH3,650000,700000,2.5
+2019,1A2a,,NH3,nan,inf,99
+2019,,K_AgriLiveStock,NH3,651001,701000,99

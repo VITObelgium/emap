@@ -3,6 +3,7 @@
 #include "emap/inputconversion.h"
 #include "infra/span.h"
 
+#include <compare>
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
@@ -62,9 +63,9 @@ public:
         return _id == other._id;
     }
 
-    bool operator!=(const Country& other) const noexcept
+    std::strong_ordering operator<=>(const Country& other) const noexcept
     {
-        return !(*this == other);
+        return static_cast<int32_t>(_id) <=> static_cast<int32_t>(other._id);
     }
 
     std::string_view to_string() const noexcept;

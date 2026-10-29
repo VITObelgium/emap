@@ -3,12 +3,15 @@
 #include "emap/configurationparser.h"
 #include "emap/scalingfactors.h"
 
+#include "infra/crs.h"
 #include "infra/tempdir.h"
 #include "runsummary.h"
 #include "testconfig.h"
 #include "testconstants.h"
 
+#include <cmath>
 #include <doctest/doctest.h>
+#include <limits>
 
 namespace emap::test {
 
@@ -21,13 +24,105 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::ChimereCams, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "test", true, 90.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::nullopt, crs::epsg::BelgianLambert72);
 }
 
 static void create_empty_point_source_file(const fs::path& path)
 {
     const auto csvHeader = "type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;debiet_Nm3/u;dv;type_emissie;EIL_nummer;exploitatie_naam;NACE_code;EIL_Emissiepunt_Jaar_Naam;Activiteit_type";
     file::write_as_text(path, csvHeader);
+}
+
+TEST_CASE("Flanders point source input CRS")
+{
+    TempDir temp("flanders_point_crs");
+    const auto parametersPath     = file::u8path(TEST_DATA_DIR) / "_input" / "05_model_parameters";
+    const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
+    const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
+    const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
+    const auto pointSourcesPath   = temp.path() / "01_data_emissions" / "inventory" / "reporting_2021" / "pointsources" / "BEF";
+    const auto pointSourceFile    = pointSourcesPath / "emap_test_NOx_2016_native.csv";
+    fs::create_directories(pointSourcesPath);
+    file::write_as_text(pointSourceFile,
+                        "type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;debiet_Nm3/u;dv;type_emissie;EIL_nummer;exploitatie_naam;EIL_Emissiepunt_Jaar_Naam;Activiteit_type\n"
+                        "historic;test;2016;BEF;1A1a;NOx;2;Gg;650123.25;700456.75;35;2;120;4;5;6;stack;123;plant;stack_2016;power\n"
+                        "historic;test;2016;BEF;1A1a;NOx;3;Gg;650123.25;700456.75;35;2;120;4;5;6;stack;123;plant;stack_2016;power\n");
+
+    auto createPointConfig = [&](ModelGrid grid, std::optional<GridData> configuredGrid = std::nullopt) {
+        RunConfiguration::Output outputConfig;
+        outputConfig.path            = temp.path() / "out";
+        outputConfig.outputLevelName = "GNFR";
+        return RunConfiguration(temp.path(), {}, {}, {}, {}, grid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "test", true, 90.0, {pollutants::NOx}, sectorInventory, pollutantInventory, countryInventory, outputConfig, std::move(configuredGrid), crs::epsg::BelgianLambert2008);
+    };
+
+    auto checkPointSource = [&](const SingleEmissions& emissions, const RunSummary& summary) {
+        REQUIRE(emissions.size() == 1);
+        const auto& point = *emissions.begin();
+        CHECK(point.id() == EmissionIdentifier(countries::BEF, EmissionSector(sectors::nfr::Nfr1A1a), pollutants::NOx));
+        REQUIRE(point.coordinate().has_value());
+        CHECK(point.value().amount() == Approx(5.0));
+        CHECK(point.height() == 35.0);
+        CHECK(point.diameter() == 2.0);
+        CHECK(point.temperature() == 120.0);
+        CHECK(point.warmth_contents() == 4.0);
+        CHECK(point.flow_rate() == 5.0);
+        CHECK(point.dv() == 6);
+        CHECK(summary.used_point_sources().size() == 1);
+        CHECK(summary.used_point_sources().count(pointSourceFile) == 1);
+    };
+
+    SUBCASE("Matching native output CRS retains point coordinates without a half-cell offset")
+    {
+        GeoMetadata nativeMeta(3, 3, 649000.0, 699000.0, 1000.0, std::numeric_limits<double>::quiet_NaN());
+        nativeMeta.set_projection_from_epsg(crs::epsg::BelgianLambert2008);
+        const GridData nativeGrid{GridDefinition::Config, "Native point test", nativeMeta, ModelOuputFormat::Dat, "native_1km"};
+        const auto cfg = createPointConfig(ModelGrid::Config, nativeGrid);
+        RunSummary summary;
+        const auto emissions = read_country_point_sources(cfg, countries::BEF, summary);
+        checkPointSource(emissions, summary);
+        CHECK(emissions.begin()->coordinate().value() == Coordinate(650123.25, 700456.75));
+        CHECK(cfg.grid_data(GridDefinition::Config).meta == nativeMeta);
+    }
+
+    SUBCASE("Lambert2008 false origin is transformed to its independently known geographic location")
+    {
+        file::write_as_text(pointSourceFile,
+                            "type;scenario;year;reporting_country;nfr_sector;pollutant;emission;unit;x;y;hoogte_m;diameter_m;temperatuur_C;warmteinhoud_MW;debiet_Nm3/u;dv;type_emissie;EIL_nummer;exploitatie_naam;EIL_Emissiepunt_Jaar_Naam;Activiteit_type\n"
+                            "historic;test;2016;BEF;1A1a;NOx;2;Gg;649328;665262;35;2;120;4;5;6;stack;123;plant;stack_2016;power\n"
+                            "historic;test;2016;BEF;1A1a;NOx;3;Gg;649328;665262;35;2;120;4;5;6;stack;123;plant;stack_2016;power\n");
+        const auto cfg            = createPointConfig(ModelGrid::Chimere05deg);
+        const auto outputGridMeta = cfg.grid_data(GridDefinition::Chimere05deg).meta;
+        REQUIRE(outputGridMeta.projected_epsg() == crs::epsg::WGS84);
+        RunSummary summary;
+        const auto emissions = read_country_point_sources(cfg, countries::BEF, summary);
+        checkPointSource(emissions, summary);
+        const auto coordinate = emissions.begin()->coordinate().value();
+        // EPSG:3812's false origin is defined at this longitude/latitude; allow a small ETRS89/WGS84 difference.
+        CHECK(std::abs(coordinate.x - 4.359215833333333) <= 1e-5);
+        CHECK(std::abs(coordinate.y - 50.797815) <= 1e-5);
+        CHECK(outputGridMeta.is_on_map(coordinate));
+        CHECK(cfg.grid_data(GridDefinition::Chimere05deg).meta == outputGridMeta);
+        CHECK(grid_data(GridDefinition::Chimere05deg).meta == outputGridMeta);
+    }
+
+    SUBCASE("Native inputs are transformed to the unchanged Lambert72 output grid")
+    {
+        const auto cfg            = createPointConfig(ModelGrid::Vlops1km);
+        const auto outputGridMeta = cfg.grid_data(GridDefinition::Vlops1km).meta;
+        RunSummary summary;
+        const auto emissions = read_country_point_sources(cfg, countries::BEF, summary);
+        checkPointSource(emissions, summary);
+        const auto coordinate = emissions.begin()->coordinate().value();
+        CHECK(coordinate != Coordinate(650123.25, 700456.75));
+        // Broad location checks catch a wrong source CRS without depending on a particular PROJ datum operation.
+        CHECK(coordinate.x > 149000.0);
+        CHECK(coordinate.x < 151000.0);
+        CHECK(coordinate.y > 199000.0);
+        CHECK(coordinate.y < 201000.0);
+        CHECK(outputGridMeta.is_on_map(coordinate));
+        CHECK(cfg.grid_data(GridDefinition::Vlops1km).meta == outputGridMeta);
+        CHECK(grid_data(GridDefinition::Vlops1km).meta == outputGridMeta);
+    }
 }
 
 TEST_CASE("Emission inventory")
@@ -298,5 +393,4 @@ TEST_CASE("Emission inventory")
         checkEmission(inv, EmissionIdentifier(countries::BEW, EmissionSector(sectors::nfr::Nfr1A3bi), pollutants::PMcoarse), 200.0 - 50.0 /* 150 */, 50.0);
     }
 }
-
 }

@@ -6,7 +6,9 @@
 #include "emap/sectorinventory.h"
 #include "infra/filesystem.h"
 #include "infra/chrono.h"
+#include "infra/crs.h"
 
+#include <cstdint>
 #include <fmt/core.h>
 #include <optional>
 
@@ -28,6 +30,8 @@ enum class ValidationType
 class RunConfiguration
 {
 public:
+    static constexpr int32_t DefaultFlandersInputEpsg = inf::crs::epsg::BelgianLambert2008;
+
     struct Output
     {
         fs::path path;
@@ -57,7 +61,8 @@ public:
         PollutantInventory pollutants,
         CountryInventory countries,
         Output outputConfig,
-        std::optional<GridData> configuredGrid = std::nullopt);
+        std::optional<GridData> configuredGrid = std::nullopt,
+        int32_t flandersInputEpsg              = DefaultFlandersInputEpsg);
 
     fs::path point_source_emissions_dir_path(const Country& country) const;
     fs::path total_emissions_path_nfr(inf::chrono::year year, inf::chrono::year reportYear) const;
@@ -98,6 +103,7 @@ public:
     void set_combine_identical_point_sources(bool enabled) noexcept;
 
     double point_source_rescale_threshold() const noexcept;
+    int32_t flanders_input_epsg() const noexcept;
 
     void set_max_concurrency(std::optional<int32_t> concurrency) noexcept;
     std::optional<int32_t> max_concurrency() const noexcept;
@@ -135,6 +141,7 @@ private:
     std::string _scenario;
     bool _combineIdenticalPointSources;
     double _pointRescaleThreshold;
+    int32_t _flandersInputEpsg;
     std::vector<Pollutant> _includedPollutants;
     SectorInventory _sectorInventory;
     PollutantInventory _pollutantInventory;

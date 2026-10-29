@@ -5,6 +5,7 @@
 
 #include "infra/algo.h"
 #include "infra/chrono.h"
+#include "infra/gdalspatialreference.h"
 #include "infra/log.h"
 #include "runsummary.h"
 
@@ -559,16 +560,18 @@ SingleEmissions read_country_point_sources(const RunConfiguration& cfg, const Co
             }
         }
 
-        const auto flandersMeta   = grid_data(GridDefinition::Flanders1km).meta;
-        const auto outputGridMeta = cfg.grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
+        const auto& outputGridMeta = cfg.grid_data(grids_for_model_grid(cfg.model_grid()).front()).meta;
+        gdal::SpatialReference source(cfg.flanders_input_epsg());
+        gdal::SpatialReference destination(outputGridMeta.projection);
 
-        if (outputGridMeta.projected_epsg() != flandersMeta.projected_epsg()) {
-            gdal::CoordinateTransformer transformer(flandersMeta.projection, outputGridMeta.projection);
-
-            for (auto& pointSource : result) {
-                auto coord = pointSource.coordinate().value();
-                transformer.transform_in_place(coord);
-                pointSource.set_coordinate(coord);
+        if (!source.is_same(destination)) {
+            try {
+                gdal::CoordinateTransformer transformer(std::move(source), std::move(destination));
+                for (auto& pointSource : result) {
+                    pointSource.set_coordinate(transformer.transform(pointSource.coordinate().value()));
+                }
+            } catch (const std::exception& e) {
+                throw RuntimeError("Failed to reproject Flemish point sources from {} (EPSG:{}) to output grid '{}': {}", pointEmissionsDir, cfg.flanders_input_epsg(), outputGridMeta.projection, e.what());
             }
         }
     }

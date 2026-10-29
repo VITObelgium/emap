@@ -6,6 +6,8 @@
 #include "emap/scalingfactors.h"
 #include "emap/sector.h"
 #include "infra/chrono.h"
+
+#include "infra/crs.h"
 #include "infra/exception.h"
 #include "infra/gdal.h"
 #include "infra/hash.h"
@@ -14,10 +16,12 @@
 #include "unitconversion.h"
 
 #include <cassert>
+#include <cmath>
 #include <cpl_port.h>
 #include <csv.h>
 #include <exception>
 #include <limits>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -683,17 +687,56 @@ static std::optional<EmissionSector> emission_sector_from_feature(const gdal::Fe
     return {};
 }
 
-static Cell cell_for_emission_feature(const gdal::Feature& feature, int colX, int colY, const GeoMetadata& meta)
+static Point<double> read_feature_coordinate(const gdal::Feature& feature, int colX, int colY, const fs::path& path)
 {
-    const double centerOffsetX = meta.cell_size_x() / 2.0;
-    const double centerOffsetY = (-meta.cell_size_y()) / 2.0;
+    auto coordinate = [&](int column) {
+        std::optional<double> value;
+        if (feature.field_is_valid(column)) {
+            const auto& type = feature.field_definition(column).type();
+            if (type == typeid(std::string_view)) {
+                value = str::to_double(str::trimmed_view(feature.field_as<std::string>(column)));
+            } else if (type == typeid(double) || type == typeid(int32_t) || type == typeid(int64_t)) {
+                value = feature.field_as<double>(column);
+            }
+        }
 
-    // Coordinates are lower left cell corners: put the point in the cell center for determining the cell
-    const Point<double> point(feature.field_as<double>(colX) + centerOffsetX, feature.field_as<double>(colY) + centerOffsetY);
+        if (!value.has_value() || !std::isfinite(*value)) {
+            throw RuntimeError("Invalid spatial-pattern coordinate '{}' in {}", feature.field_name(column), path);
+        }
+
+        return *value;
+    };
+    return Point<double>(coordinate(colX), coordinate(colY));
+}
+
+static std::unique_ptr<gdal::CoordinateTransformer> create_flanders_pattern_transformer(int32_t inputEpsg, const GeoMetadata& outputGrid)
+{
+    gdal::SpatialReference source(inputEpsg);
+    gdal::SpatialReference destination(outputGrid.projection);
+    if (source.is_same(destination)) {
+        return nullptr;
+    }
+    return std::make_unique<gdal::CoordinateTransformer>(std::move(source), std::move(destination));
+}
+
+static Cell cell_for_emission_feature(const gdal::Feature& feature, int colX, int colY, const GeoMetadata& meta, const fs::path& path, const gdal::CoordinateTransformer* transformer)
+{
+    auto point = read_feature_coordinate(feature, colX, colY, path);
+    if (transformer != nullptr) {
+        point = transformer->transform(point);
+    }
+    point.x += meta.cell_size_x() / 2.0;
+    point.y -= meta.cell_size_y() / 2.0;
     return meta.convert_point_to_cell(point);
 }
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg)
+{
+    const auto grid = cfg.flanders_input_epsg() == crs::epsg::BelgianLambert72 ? GridDefinition::Flanders1km : GridDefinition::Flanders1kmLambert2008;
+    return parse_spatial_pattern_flanders(spatialPatternPath, cfg, grid_data(grid).meta);
+}
+
+std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg, const GeoMetadata& meta)
 {
     std::vector<SpatialPatternData> result;
 
@@ -704,8 +747,6 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     auto ds    = gdal::VectorDataSet::open(spatialPatternPath);
     auto layer = ds.layer(0);
     std::optional<chrono::year> year;
-
-    const auto gridData = grid_data(GridDefinition::Flanders1km);
 
     EmissionIdentifier id;
     id.country = country::BEF;
@@ -718,12 +759,14 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
     auto colY          = layer.layer_definition().required_field_index("y_lambert");
     auto colEmission   = layer.layer_definition().required_field_index("emission");
 
+    const auto transformer = create_flanders_pattern_transformer(cfg.flanders_input_epsg(), meta);
+
     std::optional<EmissionSector> currentSector;
-    gdx::DenseRaster<double> currentRaster(gridData.meta, gridData.meta.nodata.value());
+    gdx::DenseRaster<double> currentRaster(meta, meta.nodata.value());
     std::unordered_set<std::string> invalidSectors;
     for (const auto& feature : layer) {
-        if (!feature.field_is_valid(colYear)) {
-            continue; // skip empy lines
+        if (!feature.field_is_valid(colYear) || str::trimmed_view(feature.field_as<std::string>(colYear)).empty()) {
+            continue; // Skip rows without a year, including empty CSV fields.
         }
 
         if (auto sector = emission_sector_from_feature(feature, colNfrSector, colGnfrSector, id.country, sectorInv); sector.has_value()) {
@@ -742,17 +785,18 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
                     result.push_back(std::move(spData));
 
                     // reset the raster
-                    currentRaster = gdx::DenseRaster<double>(gridData.meta, gridData.meta.nodata.value());
+                    currentRaster = gdx::DenseRaster<double>(meta, meta.nodata.value());
                 }
 
                 currentSector = id.sector;
             }
 
-            const auto cell = cell_for_emission_feature(feature, colX, colY, gridData.meta);
-            if (gridData.meta.is_on_map(cell)) {
-                currentRaster[cell] = feature.field_as<double>(colEmission);
+            const auto cell = cell_for_emission_feature(feature, colX, colY, meta, spatialPatternPath, transformer.get());
+            if (meta.is_on_map(cell)) {
+                const auto value    = feature.field_as<double>(colEmission);
+                currentRaster[cell] = currentRaster.is_nodata(cell) ? value : currentRaster[cell] + value;
             } else {
-                Log::warn("Point outside of flanders extent: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
+                Log::warn("Point outside of output grid: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
             }
         }
     }
@@ -770,13 +814,17 @@ std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& s
 
 gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg)
 {
+    const auto grid = cfg.flanders_input_epsg() == crs::epsg::BelgianLambert72 ? GridDefinition::Flanders1km : GridDefinition::Flanders1kmLambert2008;
+    return parse_spatial_pattern_flanders(spatialPatternPath, sector, cfg, grid_data(grid).meta);
+}
+
+gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg, const GeoMetadata& meta)
+{
     const auto& sectorInv = cfg.sectors();
 
     CPLSetThreadLocalConfigOption("OGR_XLSX_HEADERS", "FORCE");
     auto ds    = gdal::VectorDataSet::open(spatialPatternPath);
     auto layer = ds.layer(0);
-
-    const auto gridData = grid_data(GridDefinition::Flanders1km);
 
     auto colNfrSector  = layer.layer_definition().required_field_index("nfr_sector");
     auto colGnfrSector = layer.layer_definition().field_index("gnfr_sector");
@@ -784,8 +832,9 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
     auto colY          = layer.layer_definition().required_field_index("y_lambert");
     auto colEmission   = layer.layer_definition().required_field_index("emission");
 
-    gdx::DenseRaster<double> nfrRaster(gridData.meta, gridData.meta.nodata.value());
-    gdx::DenseRaster<double> gnfrRaster(gridData.meta, gridData.meta.nodata.value());
+    const auto transformer = create_flanders_pattern_transformer(cfg.flanders_input_epsg(), meta);
+    gdx::DenseRaster<double> nfrRaster(meta, meta.nodata.value());
+    gdx::DenseRaster<double> gnfrRaster(meta, meta.nodata.value());
 
     bool nfrAvailable = false;
     for (const auto& feature : layer) {
@@ -798,14 +847,15 @@ gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialP
             }
 
             if (rasterPtr) {
-                const auto cell = cell_for_emission_feature(feature, colX, colY, gridData.meta);
-                if (gridData.meta.is_on_map(cell)) {
-                    (*rasterPtr)[cell] = feature.field_as<double>(colEmission);
+                const auto cell = cell_for_emission_feature(feature, colX, colY, meta, spatialPatternPath, transformer.get());
+                if (meta.is_on_map(cell)) {
+                    const auto value   = feature.field_as<double>(colEmission);
+                    (*rasterPtr)[cell] = rasterPtr->is_nodata(cell) ? value : (*rasterPtr)[cell] + value;
                     if (rasterPtr == &nfrRaster) {
                         nfrAvailable = true;
                     }
                 } else {
-                    Log::warn("Point outside of flanders extent: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
+                    Log::warn("Point outside of output grid: {}", Point(feature.field_as<double>(colX), feature.field_as<double>(colY)));
                 }
             }
         }

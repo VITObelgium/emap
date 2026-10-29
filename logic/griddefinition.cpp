@@ -72,6 +72,29 @@ static const char* s_belgianLambert72 = R"wkt(PROJCS["Belge 1972 / Belgian Lambe
     AUTHORITY["EPSG","31370"]]
 )wkt";
 
+static const char* s_belgianLambert2008 = R"wkt(PROJCS["ETRS89 / Belgian Lambert 2008",
+    GEOGCS["ETRS89",
+        DATUM["European_Terrestrial_Reference_System_1989",
+            SPHEROID["GRS 1980",6378137,298.257222101,
+                AUTHORITY["EPSG","7019"]],
+            AUTHORITY["EPSG","6258"]],
+        PRIMEM["Greenwich",0],
+        UNIT["degree",0.0174532925199433],
+        AUTHORITY["EPSG","4258"]],
+    PROJECTION["Lambert_Conformal_Conic_2SP"],
+    PARAMETER["latitude_of_origin",50.797815],
+    PARAMETER["central_meridian",4.35921583333333],
+    PARAMETER["standard_parallel_1",49.8333333333333],
+    PARAMETER["standard_parallel_2",51.1666666666667],
+    PARAMETER["false_easting",649328],
+    PARAMETER["false_northing",665262],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["EPSG","3812"]]
+)wkt";
+
 static const char* s_epsg3035 = R"wkt(PROJCS["ETRS89-extended / LAEA Europe",
     GEOGCS["ETRS89",
         DATUM["European_Terrestrial_Reference_System_1989",
@@ -109,6 +132,7 @@ static const std::array<GridData, enum_count<GridDefinition>()> s_gridData{{
     {GridDefinition::Rio4x4, "RIO 4x4", GeoMetadata(57, 69, 22000.0, 20000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Rio4x4Extended, "RIO 4x4 extended", GeoMetadata(61, 73, 14000.0, 12000.0, {4000.0, -4000.0}, nan, s_belgianLambert72)},
     {GridDefinition::Flanders1km, "Flanders 1km", GeoMetadata(154, 260, 0.0, 142000.0, 1000.0, nan, s_belgianLambert72)},
+    {GridDefinition::Flanders1kmLambert2008, "Flanders 1km Lambert2008", GeoMetadata(154, 260, 500000.0, 642000.0, 1000.0, nan, s_belgianLambert2008)},
     {GridDefinition::CAMS, "CAMS", GeoMetadata(841, 1801, -30.0, 29.95, 0.05, nan, s_epsg4326)},
 
     {GridDefinition::Chimere05deg, "Chimere 0.5 degrees", GeoMetadata(46, 67, -10.750, 34.750, 0.5, nan, s_epsg4326)},

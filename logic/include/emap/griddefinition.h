@@ -51,6 +51,7 @@ enum class GridDefinition
     Rio4x4,
     Rio4x4Extended,
     Flanders1km,
+    Flanders1kmLambert2008,
     CAMS,
     Chimere05deg,
     Chimere01deg,

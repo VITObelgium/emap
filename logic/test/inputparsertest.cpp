@@ -1,32 +1,38 @@
 ﻿#include "emap/configurationparser.h"
 #include "emap/emissions.h"
+#include "emap/griddefinition.h"
 #include "emap/inputparsers.h"
 #include "emap/scalingfactors.h"
 #include "gdx/algo/sum.h"
 #include "gdx/rasteriterator.h"
 #include "infra/algo.h"
 #include "infra/chrono.h"
-#include "infra/test/printsupport.h"
+#include "infra/crs.h"
+#include "infra/tempdir.h"
 #include "unitconversion.h"
+#include "xlsxworkbook.h"
 
 #include "testconfig.h"
 #include "testconstants.h"
 #include "testprinters.h"
 
 #include <doctest/doctest.h>
+#include <initializer_list>
+#include <limits>
+#include <utility>
 
 namespace emap::test {
 
 using namespace inf;
 using namespace doctest;
 
-static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv)
+static RunConfiguration create_config(const SectorInventory& sectorInv, const PollutantInventory& pollutantInv, const CountryInventory& countryInv, int32_t flandersInputEpsg = crs::epsg::BelgianLambert72)
 {
     RunConfiguration::Output outputConfig;
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "GNFR";
 
-    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration("./data", {}, {}, {}, {}, ModelGrid::Invalid, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::nullopt, flandersInputEpsg);
 }
 
 TEST_CASE("Input parsers")
@@ -357,8 +363,11 @@ TEST_CASE("Input parsers")
 
     SUBCASE("Load spatial patterns with gnfr sector")
     {
-        const auto spatialPatterns = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg);
-        CHECK(spatialPatterns.size() == 2);
+        const auto spatialPatterns = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", cfg, grid_data(GridDefinition::Flanders1km).meta);
+        REQUIRE(spatialPatterns.size() == 2);
+        for (const auto& pattern : spatialPatterns) {
+            CHECK(pattern.raster.metadata() == grid_data(GridDefinition::Flanders1km).meta);
+        }
 
         // Flanders
         CHECK(gdx::sum(rasterForNfrSector(spatialPatterns, sectors::nfr::Nfr1A1a)) == Approx(7.47416E-05).epsilon(1e-4));
@@ -369,9 +378,211 @@ TEST_CASE("Input parsers")
     SUBCASE("Load spatial pattern with gnfr sector fallback")
     {
         // Nfr3B1a is not present in the file, but K_AgriLiveStock is
-        const auto spatialPattern = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", EmissionSector(sectors::nfr::Nfr3B1a), cfg);
+        const auto spatialPattern = parse_spatial_pattern_flanders(file::u8path(TEST_DATA_DIR) / "_input" / "03_spatial_disaggregation" / "bef" / "reporting_2021" / "2019" / "Emissies per km2 excl puntbrongegevens_2019_NH3.xlsx", EmissionSector(sectors::nfr::Nfr3B1a), cfg, grid_data(GridDefinition::Flanders1km).meta);
+        CHECK(spatialPattern.metadata() == grid_data(GridDefinition::Flanders1km).meta);
         CHECK(gdx::sum(spatialPattern) == Approx(18.0750674).epsilon(1e-4));
     }
 }
 
+TEST_CASE("Flanders spatial patterns reproject directly to the output grid")
+{
+    const auto dataPath           = file::u8path(TEST_DATA_DIR);
+    const auto parametersPath     = dataPath / "_input" / "05_model_parameters";
+    const auto countryInventory   = parse_countries(parametersPath / "id_nummers.xlsx");
+    const auto sectorInventory    = parse_sectors(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
+    const auto pollutantInventory = parse_pollutants(parametersPath / "id_nummers.xlsx", parametersPath / "code_conversions.xlsx", parametersPath / "names_to_be_ignored.xlsx", countryInventory);
+    const auto cfg                = create_config(sectorInventory, pollutantInventory, countryInventory, crs::epsg::BelgianLambert2008);
+    const EmissionSector nfrSector(sectors::nfr::Nfr1A1a);
+    const EmissionSector fallbackSector(sectors::nfr::Nfr3B1a);
+    const auto makeGrid = [](int rows, int cols, double x, double y, double cellSize, int epsg) {
+        GeoMetadata meta(rows, cols, x, y, cellSize, std::numeric_limits<double>::quiet_NaN());
+        meta.set_projection_from_epsg(epsg);
+        return meta;
+    };
+    const auto meta       = makeGrid(5, 5, 649000.0, 699000.0, 1000.0, crs::epsg::BelgianLambert2008);
+    const auto firstCell  = meta.convert_point_to_cell(Point<double>(650500.0, 700500.0));
+    const auto secondCell = meta.convert_point_to_cell(Point<double>(651500.0, 701500.0));
+    const auto gnfrFirst  = meta.convert_point_to_cell(Point<double>(652500.0, 700500.0));
+    const auto gnfrSecond = meta.convert_point_to_cell(Point<double>(650500.0, 702500.0));
+    TempDir temp("flanders_native");
+    const auto csvPath       = temp.path() / "patterns.csv";
+    const std::string header = "year,nfr_sector,gnfr_sector,pollutant,x_lambert,y_lambert,emission\n";
+    const auto checkRaster   = [](const gdx::DenseRaster<double>& raster, const GeoMetadata& target, std::initializer_list<std::pair<Cell, double>> expected) {
+        CHECK(raster.metadata() == target);
+        double sum = 0.0;
+        for (const auto& [cell, value] : expected) {
+            CHECK_FALSE(raster.is_nodata(cell));
+            CHECK(raster[cell] == Approx(value));
+            sum += value;
+        }
+        size_t populated = 0;
+        for (const auto cell : gdx::RasterCells(raster)) {
+            populated += !raster.is_nodata(cell);
+        }
+        CHECK(populated == expected.size());
+        CHECK(gdx::sum(raster) == Approx(sum));
+    };
+    const auto checkSingle = [&](const fs::path& path, const RunConfiguration& sourceCfg, const GeoMetadata& target, Cell cell, double weight) {
+        const auto patterns = parse_spatial_pattern_flanders(path, sourceCfg, target);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{cell, weight}});
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, sourceCfg, target), target, {{cell, weight}});
+    };
+
+    SUBCASE("Both overloads retain native locations, weights and GNFR fallback")
+    {
+        const auto path     = dataPath / "flanders_native_3812.csv";
+        const auto patterns = parse_spatial_pattern_flanders(path, cfg, meta);
+        REQUIRE(patterns.size() == 2);
+        for (const auto& pattern : patterns) {
+            CHECK(pattern.id.country == countries::BEF);
+            CHECK(pattern.id.pollutant == pollutants::NH3);
+            CHECK(pattern.year == chrono::year(2019));
+        }
+        CHECK(patterns[0].id.sector == nfrSector);
+        CHECK(patterns[1].id.sector == EmissionSector(sectors::gnfr::AgriLiveStock));
+        checkRaster(patterns[0].raster, meta, {{firstCell, 2.5}, {secondCell, 3.5}});
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, cfg, meta), meta, {{firstCell, 2.5}, {secondCell, 3.5}});
+        checkRaster(patterns[1].raster, meta, {{gnfrFirst, 7.0}, {gnfrSecond, 11.0}});
+        checkRaster(parse_spatial_pattern_flanders(path, fallbackSector, cfg, meta), meta, {{gnfrFirst, 7.0}, {gnfrSecond, 11.0}});
+    }
+
+    SUBCASE("Original parser API uses the Lambert2008 pattern grid for Lambert2008 input")
+    {
+        const auto& target = grid_data(GridDefinition::Flanders1kmLambert2008).meta;
+        CHECK(target == makeGrid(154, 260, 500000.0, 642000.0, 1000.0, crs::epsg::BelgianLambert2008));
+        const auto path     = dataPath / "flanders_native_origin_3812.csv";
+        const auto patterns = parse_spatial_pattern_flanders(path, cfg);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{Cell(130, 149), 5.0}});
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, cfg), target, {{Cell(130, 149), 5.0}});
+    }
+
+    SUBCASE("Original parser API retains the Lambert72 pattern grid for EPSG 31370")
+    {
+        const auto sourceCfg = create_config(sectorInventory, pollutantInventory, countryInventory, crs::epsg::BelgianLambert72);
+        const auto& target   = grid_data(GridDefinition::Flanders1km).meta;
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,149000,165000,5\n");
+        const auto patterns = parse_spatial_pattern_flanders(csvPath, sourceCfg);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{Cell(130, 149), 5.0}});
+        checkRaster(parse_spatial_pattern_flanders(csvPath, nfrSector, sourceCfg), target, {{Cell(130, 149), 5.0}});
+    }
+
+    SUBCASE("Original parser API uses Lambert2008 for other input projections")
+    {
+        const auto sourceCfg = create_config(sectorInventory, pollutantInventory, countryInventory, crs::epsg::WGS84WebMercator);
+        const auto& target   = grid_data(GridDefinition::Flanders1kmLambert2008).meta;
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,485265.686825,6585607.162460,5\n");
+        const auto patterns = parse_spatial_pattern_flanders(csvPath, sourceCfg);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{Cell(130, 149), 5.0}});
+        checkRaster(parse_spatial_pattern_flanders(csvPath, nfrSector, sourceCfg), target, {{Cell(130, 149), 5.0}});
+    }
+
+    SUBCASE("The output half-cell offset follows reprojection to arbitrary output grids")
+    {
+        // EPSG:3812's origin (649328, 665262) is lon 4.35921583333333, lat 50.797815.
+        // The fixture stores that point; the offset uses each target's cell size after reprojection.
+        const auto path = dataPath / "flanders_native_origin_3812.csv";
+        for (const auto& [target, cell] : {
+                 std::pair{makeGrid(4, 4, 649000.0, 665000.0, 250.0, crs::epsg::BelgianLambert2008), Cell(2, 1)},
+                 std::pair{makeGrid(3, 3, 148000.0, 164000.0, 1000.0, crs::epsg::BelgianLambert72), Cell(1, 1)},
+                 std::pair{makeGrid(4, 4, 4.358, 50.797, 0.0005, crs::epsg::WGS84), Cell(1, 2)},
+                 // Spherical Mercator of the independent lon/lat is (485265.686825, 6585607.162460).
+                 std::pair{makeGrid(4, 4, 485000.0, 6585000.0, 250.0, crs::epsg::WGS84WebMercator), Cell(1, 1)}}) {
+            INFO(target.projection);
+            checkSingle(path, cfg, target, cell, 5.0);
+        }
+    }
+
+    SUBCASE("Matching CRS skips transformation; coarse-cell weights add within the output extent")
+    {
+        const auto target = makeGrid(2, 2, 800000.0, 900000.0, 2000.0, crs::epsg::BelgianLambert2008);
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,800000.25,900000.75,2.5\n"
+                                              "2019,1A1a,,NH3,800000.25,900000.75,3.5\n"
+                                              "2019,1A1a,,NH3,801000,901000,4\n"
+                                              "2019,1A1a,,NH3,798000,900000,99\n"
+                                              "2019,1A1a,,NH3,804000,900000,99\n"
+                                              "2019,1A1a,,NH3,800000,898000,99\n"
+                                              "2019,1A1a,,NH3,800000,904000,99\n");
+        const auto patterns = parse_spatial_pattern_flanders(csvPath, cfg, target);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{Cell(1, 0), 6.0}, {Cell(1, 1), 4.0}});
+        checkRaster(parse_spatial_pattern_flanders(csvPath, nfrSector, cfg, target), target, {{Cell(1, 0), 6.0}, {Cell(1, 1), 4.0}});
+    }
+
+    SUBCASE("Fractional EPSG:3857 source coordinates need no input grid or alignment")
+    {
+        const auto mercatorCfg = create_config(sectorInventory, pollutantInventory, countryInventory, crs::epsg::WGS84WebMercator);
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,485265.686824642,6585607.162459933,5\n");
+        checkSingle(csvPath, mercatorCfg, makeGrid(4, 4, 485000.0, 6585000.0, 250.0, crs::epsg::WGS84WebMercator), Cell(1, 1), 5.0);
+        checkSingle(csvPath, mercatorCfg, makeGrid(4, 4, 4.358, 50.797, 0.0005, crs::epsg::WGS84), Cell(1, 2), 5.0);
+    }
+
+    SUBCASE("Rectangular output cells supply independent offsets for each axis")
+    {
+        GeoMetadata target(2, 2, 100.0, 200.0, GeoMetadata::CellSize{200.0, -100.0}, std::numeric_limits<double>::quiet_NaN());
+        target.set_projection_from_epsg(crs::epsg::BelgianLambert2008);
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,100,200,2\n2019,1A1a,,NH3,300,300,3\n");
+        const auto patterns = parse_spatial_pattern_flanders(csvPath, cfg, target);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, target, {{Cell(1, 0), 2.0}, {Cell(0, 1), 3.0}});
+        checkRaster(parse_spatial_pattern_flanders(csvPath, nfrSector, cfg, target), target, {{Cell(1, 0), 2.0}, {Cell(0, 1), 3.0}});
+    }
+
+    SUBCASE("Consumed coordinates must be numeric and finite, but need not be aligned")
+    {
+        for (const auto& [x, y] : {std::pair{"", "700000"}, std::pair{"650000", ""}, std::pair{"invalid", "700000"},
+                                   std::pair{"nan", "700000"}, std::pair{"650000", "inf"}, std::pair{"-inf", "700000"}}) {
+            INFO(fmt::format("x='{}', y='{}'", x, y));
+            file::write_as_text(csvPath, header + fmt::format("2019,1A1a,,NH3,{},{},2.5\n", x, y));
+            CHECK_THROWS_AS(parse_spatial_pattern_flanders(csvPath, cfg, meta), RuntimeError);
+            CHECK_THROWS_AS(parse_spatial_pattern_flanders(csvPath, nfrSector, cfg, meta), RuntimeError);
+        }
+        file::write_as_text(csvPath, header + "2019,1A1a,,NH3,650001.25,700000.75,2.5\n");
+        checkSingle(csvPath, cfg, meta, firstCell, 2.5);
+    }
+
+    SUBCASE("Excluded or unrelated sectors do not validate unused coordinates")
+    {
+        checkSingle(dataPath / "flanders_native_excluded_3812.csv", cfg, meta, firstCell, 2.5);
+        const auto path = dataPath / "flanders_native_unrelated_3812.csv";
+        CHECK_THROWS_AS(parse_spatial_pattern_flanders(path, cfg, meta), RuntimeError);
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, cfg, meta), meta, {{firstCell, 2.5}});
+    }
+
+    SUBCASE("Empty input retains the requested output metadata and nodata gaps")
+    {
+        const auto path = dataPath / "flanders_native_empty.csv";
+        CHECK(parse_spatial_pattern_flanders(path, cfg, meta).empty());
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, cfg, meta), meta, {});
+    }
+
+    SUBCASE("Numeric XLSX coordinates use the same output cells as CSV")
+    {
+        const auto path = temp.path() / "patterns.xlsx";
+        {
+            xl::WorkBook workbook(path);
+            auto* worksheet = workbook_add_worksheet(workbook, "Patterns");
+            REQUIRE(worksheet != nullptr);
+            lxw_col_t column = 0;
+            for (const auto* name : {"year", "nfr_sector", "gnfr_sector", "pollutant", "x_lambert", "y_lambert", "emission"}) {
+                REQUIRE(worksheet_write_string(worksheet, 0, column++, name, nullptr) == LXW_NO_ERROR);
+            }
+            for (lxw_row_t row = 1; row <= 2; ++row) {
+                REQUIRE(worksheet_write_number(worksheet, row, 0, 2019.0, nullptr) == LXW_NO_ERROR);
+                REQUIRE(worksheet_write_string(worksheet, row, 1, "1A1a", nullptr) == LXW_NO_ERROR);
+                REQUIRE(worksheet_write_string(worksheet, row, 3, "NH3", nullptr) == LXW_NO_ERROR);
+                REQUIRE(worksheet_write_number(worksheet, row, 4, 649000.0 + row * 1000.0, nullptr) == LXW_NO_ERROR);
+                REQUIRE(worksheet_write_number(worksheet, row, 5, 699000.0 + row * 1000.0, nullptr) == LXW_NO_ERROR);
+                REQUIRE(worksheet_write_number(worksheet, row, 6, 1.5 + row, nullptr) == LXW_NO_ERROR);
+            }
+        } // Close the workbook before GDAL opens it.
+        const auto patterns = parse_spatial_pattern_flanders(path, cfg, meta);
+        REQUIRE(patterns.size() == 1);
+        checkRaster(patterns.front().raster, meta, {{firstCell, 2.5}, {secondCell, 3.5}});
+        checkRaster(parse_spatial_pattern_flanders(path, nfrSector, cfg, meta), meta, {{firstCell, 2.5}, {secondCell, 3.5}});
+    }
+}
 }

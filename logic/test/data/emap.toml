@@ -15,6 +15,7 @@
 
 [model]
 grid = "beleuros"
+flanders_input_epsg = 31370
 datapath = "C:/emap/emissies/"
 type = "Emep" # of gains
 year = 2020

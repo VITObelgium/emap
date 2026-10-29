@@ -32,7 +32,9 @@ SingleEmissions parse_point_sources(const fs::path& emissionsCsv, const RunConfi
 ScalingFactors parse_scaling_factors(const fs::path& scalingFactors, const RunConfiguration& cfg);
 
 std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg);
+std::vector<SpatialPatternData> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const RunConfiguration& cfg, const inf::GeoMetadata& outputGrid);
 gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg);
+gdx::DenseRaster<double> parse_spatial_pattern_flanders(const fs::path& spatialPatternPath, const EmissionSector& sector, const RunConfiguration& cfg, const inf::GeoMetadata& outputGrid);
 gdx::DenseRaster<double> parse_spatial_pattern_ceip(const fs::path& spatialPatternPath, const EmissionIdentifier& id, const RunConfiguration& cfg);
 
 }

@@ -722,6 +722,24 @@ static std::string read_string(const NamedSection& ns, std::string_view name, st
     return nodeValue.value<std::string>().value();
 }
 
+static int32_t read_flanders_input_epsg(toml::node_view<const toml::node> nodeValue)
+{
+    if (!nodeValue) {
+        return RunConfiguration::DefaultFlandersInputEpsg;
+    }
+
+    if (!nodeValue.is_integer()) {
+        throw RuntimeError("Invalid 'model.flanders_input_epsg' value, expected a positive int32 EPSG code");
+    }
+
+    const auto value = *nodeValue.value<int64_t>();
+    if (!fits_in_type<int32_t>(value) || value <= 0) {
+        throw RuntimeError("Invalid 'model.flanders_input_epsg' value {}, expected a positive int32 EPSG code", value);
+    }
+
+    return truncate<int32_t>(value);
+}
+
 static RunConfiguration parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
@@ -738,7 +756,8 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
         NamedSection model("model", table["model"]);
         NamedSection output("output", table["output"]);
 
-        const auto dataPath = read_path(model, "datapath", basePath);
+        const auto flandersInputEpsg = read_flanders_input_epsg(model.section["flanders_input_epsg"]);
+        const auto dataPath          = read_path(model, "datapath", basePath);
 
         const auto parametersPath             = basePath / dataPath / "05_model_parameters";
         const auto idNumbersPath              = parametersPath / "id_nummers.xlsx";
@@ -796,7 +815,8 @@ static RunConfiguration parse_run_configuration_impl(std::string_view configCont
                                 std::move(pollutantInventory),
                                 std::move(countryInventory),
                                 outputConfig,
-                                std::move(gridSelection.configuredGrid));
+                                std::move(gridSelection.configuredGrid),
+                                flandersInputEpsg);
     } catch (const toml::parse_error& e) {
         if (const auto& errorBegin = e.source().begin; errorBegin) {
             throw RuntimeError("Failed to parse run configuration: {} (line {} column {})", e.description(), errorBegin.line, errorBegin.column);

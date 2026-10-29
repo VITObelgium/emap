@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include "emap/emissions.h"
+#include "emap/sector.h"
+#include "infra/point.h"
 
 #include <doctest/doctest.h>
 

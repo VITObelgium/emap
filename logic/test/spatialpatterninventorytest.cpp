@@ -6,8 +6,11 @@
 #include "testconstants.h"
 #include "testprinters.h"
 #include "infra/algo.h"
+#include "infra/crs.h"
+
 
 #include <doctest/doctest.h>
+
 
 namespace emap::test {
 
@@ -20,8 +23,9 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
     outputConfig.path            = "./out";
     outputConfig.outputLevelName = "NFR";
 
-    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, fs::path(), fs::path(), fs::path(), ModelGrid::Vlops1km, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig);
+    return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, fs::path(), fs::path(), fs::path(), ModelGrid::Vlops1km, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::nullopt, crs::epsg::BelgianLambert72);
 }
+
 
 TEST_CASE("Spatial pattern selection test")
 {

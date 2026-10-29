@@ -315,7 +315,8 @@ int debug_grids(const fs::path& runConfigPath, inf::Log::Level logLevel)
 
         store_grid("Spatial pattern grid CAMS", grid_data(GridDefinition::CAMS).meta, outputDir / "spatial_pattern_grid_cams.gpkg");
         store_grid("Spatial pattern grid CEIP", grid_data(GridDefinition::ChimereEmep).meta, outputDir / "spatial_pattern_grid_ceip.gpkg");
-        store_grid("Spatial pattern grid Flanders", grid_data(GridDefinition::Flanders1km).meta, outputDir / "spatial_pattern_grid_flanders.gpkg");
+        store_grid("Flanders Lambert72 reference grid (EPSG:31370)", grid_data(GridDefinition::Flanders1km).meta, outputDir / "spatial_pattern_grid_flanders.gpkg");
+
 
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {

@@ -38,6 +38,7 @@ grid = "vlops1km"
 datapath = "./_input"
 year = 2020
 report_year = 2022
+flanders_input_epsg = 3812
 spatial_pattern_exceptions = "./_input/03_spatial_disaggregation/exceptions.xlsx"
 included_pollutants = ["PM2.5", "PM10"]
 
@@ -89,6 +90,10 @@ This section configures the model run
   `output_format` must be `"dat"` or `"brn"`. For `"dat"` output, `grid_resolution` is required and is used in Chimere output filenames. `cell_size` may also be a single positive number for square north-up cells, or be specified with `cell_size_x` and `cell_size_y`. `epsg` must be an integer EPSG code.
 
 - `datapath` the directory path to the model input data
+- `flanders_input_epsg` EPSG code for all Flemish tabular spatial patterns and point sources (default = **3812**, Belgian Lambert 2008). Must identify a projected CRS with metre units. This does not change the output grid or override georeferencing in rasters and boundary vectors. All selected Flemish tables, including scenario files, fallback years, and exceptions, must use the same CRS. The configured CRS is used when reading input coordinates. Spatial patterns retain the existing file cache and resampling to the model grids.
+
+  **Migration:** existing Lambert72 datasets must explicitly set `flanders_input_epsg = 31370` in `[model]`; omitting the option now assumes Lambert2008, even for Lambert72 output grids. Coordinate column names remain unchanged. Spatial-pattern coordinates are transformed into the destination raster CRS, then offset by half that raster's cell size before cell lookup. The internal pattern raster uses `Flanders1km` (Lambert72) only for EPSG:31370 input; otherwise it uses `Flanders1kmLambert2008` (EPSG:3812). Both are 154 × 260 grids with 1 km cells; the Lambert2008 grid has lower-left origin (500000, 642000). The raster is cached once per file and resampled to the requested model grid as before. Point-source coordinates are transformed directly into the model CRS without a cell offset.
+
 - `year` the year to run the model for
 - `report_year` the report year of the emission data of the model run
 - `spatial_pattern_exceptions` path to an xlsx file in which exceptions for spatial patterns are configured. These exceptions overrule the standard rules for spatial patterns.

@@ -1,0 +1,5 @@
+year,nfr_sector,gnfr_sector,pollutant,x_lambert,y_lambert,emission
+2019,1A1a,,NH3,650000,700000,2.5
+2019,issue10_unknown_nfr,,NH3,,,99
+2019,,issue10_unknown_gnfr,NH3,nan,inf,99
+2019,1A5c,,NH3,650001,700000,99

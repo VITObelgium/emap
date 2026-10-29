@@ -6,7 +6,6 @@
 #include "emap/runconfiguration.h"
 #include "emap/sectorinventory.h"
 
-#include "infra/enumutils.h"
 #include "infra/gdal.h"
 #include "infra/log.h"
 #include "infra/string.h"
@@ -15,7 +14,6 @@
 #include "gdx/denserasterio.h"
 
 #include <deque>
-#include <tuple>
 
 namespace emap {
 

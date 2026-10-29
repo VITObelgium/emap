@@ -31,6 +31,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
                 year = 2019
                 report_year = 2021
                 scenario = "test"
+                flanders_input_epsg = 31370
 
             [output]
                 path = "./_output_gnfr"
@@ -103,6 +104,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
                 report_year = 2021
                 scenario = "test"
                 included_pollutants = [ "SOx", "HCB" ]
+                flanders_input_epsg = 31370
 
             [output]
                 path = "{}"
@@ -170,6 +172,7 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
                  year = 2020
                  report_year = 2022
                  scenario = "test"
+                 flanders_input_epsg = 31370
 
              [output]
                  path = "./_output_gnfr"

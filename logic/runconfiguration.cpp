@@ -3,8 +3,11 @@
 #include "emap/constants.h"
 #include "emap/griddefinition.h"
 #include "infra/exception.h"
+#include "infra/gdalspatialreference.h"
 #include "infra/string.h"
 #include "infra/algo.h"
+
+#include <cmath>
 
 namespace emap {
 
@@ -28,7 +31,8 @@ RunConfiguration::RunConfiguration(
     PollutantInventory pollutants,
     CountryInventory countries,
     Output outputConfig,
-    std::optional<GridData> configuredGrid)
+    std::optional<GridData> configuredGrid,
+    int32_t flandersInputEpsg)
 : _paths(scenario, dataPath, outputConfig.path, spatialBoundariesFilename, spatialBoundariesEezFilename)
 , _spatialPatternExceptions(spatialPatternExceptions)
 , _emissionScalingsPath(emissionScalings)
@@ -40,12 +44,31 @@ RunConfiguration::RunConfiguration(
 , _scenario(scenario)
 , _combineIdenticalPointSources(combineIdenticalPointSources)
 , _pointRescaleThreshold(rescaleThreshold)
+, _flandersInputEpsg(flandersInputEpsg)
 , _includedPollutants(std::move(includedPollutants))
 , _sectorInventory(std::move(sectors))
 , _pollutantInventory(std::move(pollutants))
 , _countryInventory(std::move(countries))
 , _outputConfig(outputConfig)
 {
+    if (_flandersInputEpsg <= 0) {
+        throw RuntimeError("Invalid 'model.flanders_input_epsg' value {}, expected a positive EPSG code", _flandersInputEpsg);
+    }
+
+    try {
+        const gdal::SpatialReference srs(_flandersInputEpsg);
+        if (!srs.is_projected()) {
+            throw RuntimeError("Expected a projected CRS");
+        }
+
+        const auto linearUnits = srs.get()->GetLinearUnits();
+        if (!std::isfinite(linearUnits) || std::abs(linearUnits - 1.0) > 1e-9) {
+            throw RuntimeError("Expected a CRS with metre units");
+        }
+    } catch (const std::exception& e) {
+        throw RuntimeError("Invalid 'model.flanders_input_epsg' value {}: {}", _flandersInputEpsg, e.what());
+    }
+
     if ((_grid == ModelGrid::Config) != _configuredGrid.has_value()) {
         throw RuntimeError("A configured model grid requires grid definition data");
     }
@@ -239,6 +262,11 @@ void RunConfiguration::set_combine_identical_point_sources(bool enabled) noexcep
 double RunConfiguration::point_source_rescale_threshold() const noexcept
 {
     return _pointRescaleThreshold;
+}
+
+int32_t RunConfiguration::flanders_input_epsg() const noexcept
+{
+    return _flandersInputEpsg;
 }
 
 void RunConfiguration::set_max_concurrency(std::optional<int32_t> concurrency) noexcept

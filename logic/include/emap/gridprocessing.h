@@ -2,19 +2,17 @@
 
 #include "emap/country.h"
 #include "emap/griddefinition.h"
-#include "emap/sector.h"
 #include "infra/filesystem.h"
 
-#include "infra/gdalalgo.h"
 
 #include "infra/cell.h"
 #include "infra/gdal.h"
 #include "infra/geometadata.h"
 #include "infra/progressinfo.h"
-#include "infra/span.h"
 
 #include <fmt/core.h>
 #include <gdx/rasterfwd.h>
+#include <unordered_set>
 
 namespace geos::geom {
 class Geometry;

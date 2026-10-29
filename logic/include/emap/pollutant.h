@@ -5,6 +5,7 @@
 #include "emap/inputconversion.h"
 #include "infra/span.h"
 
+#include <compare>
 #include <fmt/core.h>
 #include <optional>
 #include <string_view>
@@ -39,9 +40,9 @@ public:
         return _code == other._code;
     }
 
-    bool operator!=(const Pollutant& other) const noexcept
+    std::strong_ordering operator<=>(const Pollutant& other) const noexcept
     {
-        return !(*this == other);
+        return _code <=> other._code;
     }
 
 private:

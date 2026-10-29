@@ -1,4 +1,11 @@
-﻿Release 3.4.0
+﻿Release 3.5.x
+----------
+- Added: `model.flanders_input_epsg` configures the CRS of Flemish spatial patterns and point sources independently of the output grid.
+- Breaking default change: Flemish input now defaults to Lambert2008 (EPSG:3812). Existing Lambert72 datasets must explicitly configure `flanders_input_epsg = 31370`.
+- Flemish tabular-pattern coordinates honor the configured input CRS while retaining the existing pattern cache and output resampling.
+- Flemish spatial patterns use `Flanders1km` only for EPSG:31370 input, and the new EPSG:3812 `Flanders1kmLambert2008` grid otherwise.
+
+Release 3.4.0
 -------------
 - Bugfix: Give an error when the scaling factor file is not found instead of silently ignoring it and not applying any scaling
 - New grid definitions: emap_1 emap_3tf emap_5tf
