@@ -553,8 +553,8 @@ SpatialPattern SpatialPatternInventory::get_spatial_pattern_impl(EmissionIdentif
     }
 
     // then the regular patterns
-    if (auto exception = find_spatial_pattern(emissionId, countryCoverage, patterns, emissionId.pollutant, sectorToReport, checkContents, patternAvailableButWithoutData); exception.has_value()) {
-        return std::move(*exception);
+    if (auto pattern = find_spatial_pattern(emissionId, countryCoverage, patterns, emissionId.pollutant, sectorToReport, checkContents, patternAvailableButWithoutData); pattern.has_value()) {
+        return std::move(*pattern);
     }
 
     // Try the fallback pollutant
