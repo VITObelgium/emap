@@ -48,13 +48,19 @@ The emissions from the emission inventory will now be spread using the spatial p
 > For land sectors the country borders from the `03_spatial_aggregation/boundaries.gpkg` vector are used, for sea sectors the country borders from the `03_spatial_aggregation/boundaries_inc_EEZ.gpkg` vector are used.
 
 # Obtaining a spatial pattern
-The following logic is applied to obtain a spatial pattern from the inventory for a Country/Sector/Pollutant combination:
-- Check if the sector should be with a different sector pattern (congigured through the `via_NFR` or `via_GNFR` column in the spatial pattern exceptions file)
-- Check if the sector has an explicit exception path configured in the exceptions file (file_path column in the spatial pattern exceptions file)
-- If no exceptions are configured the regular patterns are checked from the emission inventory
-    - Patterns from `03_spatial_aggregation/bef` for Flanders
-    - Patterns from `03_spatial_aggregation/bef` for the other countries
-- If no spatial pattern has been found yet, check if there is a fallback pollutant configured for the current pollutant in `03_spatial_aggregation/pollutant_reference_when_missing` if this is the case then same search logic is applied again but now with the fallback pollutant
-- If no spatial pattern could be found the emissions a spatial pattern is created for the country with a uniform spread pattern
+The spatial pattern inventory is built from `03_spatial_disaggregation` for the configured `report_year`:
+- Flanders: `bef/reporting_<report_year>/<year>/*.xlsx` (one table per pollutant containing all sectors)
+- Other countries: `rest/reporting_<report_year>/CAMS/<year>/*.tif` and `rest/reporting_<report_year>/CEIP/<year>/*.txt` (one file per pollutant and sector)
 
-> Before a spatial pattern is considered as found, the current country is first extracted from the spatial pattern. If the sum of the extracted cells is 0 then the spatial pattern is not considered as found and the search logic continues.
+The available years are searched starting with the configured `year`, followed by `year - 1`, `year + 1`, `year - 2`, `year + 2`, and so on.
+
+If a spatial pattern exceptions file is configured (`model.spatial_pattern_exceptions`), only the rows whose `Year` range contains the configured year are used. The `file_path` column is resolved relative to the exceptions file.
+
+The following logic is applied to obtain a spatial pattern from the inventory for a Country/Sector/Pollutant combination:
+- Check if the pattern should be searched with a different sector (configured through the `via_NFR` or `via_GNFR` column in the exceptions file). If so, the search below is performed for that sector, the result is still reported for the original sector.
+- Check if there is an explicit pattern configured in the exceptions file (`file_path` column). The exact sector is checked first, for NFR sectors the exception at GNFR level is checked next.
+- If no exception applies, the regular patterns of the inventory are searched year by year in the order described above. Within a year the patterns for the exact sector are checked first (CAMS before CEIP for the other countries), for NFR sectors the patterns for the corresponding GNFR sector are checked next.
+- If no spatial pattern has been found yet, check if there is a fallback pollutant configured for the current pollutant in `03_spatial_disaggregation/pollutant_reference_when_missing.xlsx`. If this is the case the same search logic (exceptions followed by the regular patterns) is applied again with the fallback pollutant.
+- If no spatial pattern could be found a spatial pattern with a uniform spread over the country is used.
+
+> Before a spatial pattern is considered as found, the current country is first extracted from the spatial pattern. Patterns without valid pixels for that country are skipped (this also applies to patterns configured in the exceptions file) and the search continues with the next candidate: the remaining patterns of the same year, the other years and finally the fallback pollutant. Uniform spread is used only after all these alternatives are exhausted. For multi-resolution grids this check is only performed on the coarsest grid, the pattern selected there is reused on the finer grids without searching again.

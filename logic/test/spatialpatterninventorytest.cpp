@@ -2,15 +2,17 @@
 #include "emap/configurationparser.h"
 #include "emap/countryborders.h"
 #include "emap/gridprocessing.h"
+#include "gdx/algo/sum.h"
+#include "gdx/denserasterio.h"
+#include "infra/algo.h"
+#include "infra/crs.h"
+#include "infra/tempdir.h"
 #include "testconfig.h"
 #include "testconstants.h"
 #include "testprinters.h"
-#include "infra/algo.h"
-#include "infra/crs.h"
-
 
 #include <doctest/doctest.h>
-
+#include <limits>
 
 namespace emap::test {
 
@@ -25,7 +27,6 @@ static RunConfiguration create_config(const SectorInventory& sectorInv, const Po
 
     return RunConfiguration(file::u8path(TEST_DATA_DIR) / "_input", exceptionsPath, fs::path(), fs::path(), fs::path(), ModelGrid::Vlops1km, ValidationType::NoValidation, chrono::year(2016), chrono::year(2021), "", true, 100.0, {}, sectorInv, pollutantInv, countryInv, outputConfig, std::nullopt, crs::epsg::BelgianLambert72);
 }
-
 
 TEST_CASE("Spatial pattern selection test")
 {
@@ -273,4 +274,228 @@ TEST_CASE("Spatial pattern selection test")
     }
 }
 
+TEST_CASE("Checked spatial pattern search tries regional alternatives before uniform spread")
+{
+    TempDir temp("spatial_pattern_alternatives");
+    const CountryInventory countryInventory({countries::NL});
+    InputConversions gnfrConversions;
+    gnfrConversions.add_conversion("A", "A_PublicPower", std::nullopt);
+    const SectorInventory sectorInventory({sectors::gnfr::PublicPower}, {sectors::nfr::Nfr1A1a}, gnfrConversions, {}, {}, {});
+    PollutantInventory pollutantInventory({pollutants::PMcoarse, pollutants::PM10, pollutants::NOx}, {}, {});
+    pollutantInventory.add_fallback_for_pollutant(pollutants::PMcoarse, pollutants::PM10);
+    const auto cfg = create_config(sectorInventory, pollutantInventory, countryInventory, {});
+    const EmissionSector nfr(sectors::nfr::Nfr1A1a);
+    const EmissionSector gnfr(sectors::gnfr::PublicPower);
+    const EmissionIdentifier requested(countries::NL, nfr, pollutants::PMcoarse);
+
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    GeoMetadata meta(1, 3, 4.0, 52.0, 0.1, nan);
+    meta.set_projection_from_epsg(crs::epsg::WGS84);
+    // The third cell is outside the country: positive values there must not validate a pattern.
+    const CountryCellCoverage coverage{countries::NL, meta, {{Cell(0, 0), Cell(0, 0), 1.0}, {Cell(0, 1), Cell(0, 1), 1.0}}};
+    const std::vector<double> valid{2.0, 6.0, 100.0};
+    const std::vector<double> emptyRegion{0.0, 0.0, 100.0};
+    const auto restPath = temp.path() / "rest" / "reporting_2021";
+    fs::create_directories(restPath / "CAMS");
+    fs::create_directories(restPath / "CEIP");
+
+    const auto writeCams = [&](int year, std::string_view sector, const std::vector<double>& values, std::string_view pollutant = "PMcoarse") {
+        const auto dir = restPath / "CAMS" / std::to_string(year);
+        fs::create_directories(dir);
+        const auto path = dir / fmt::format("CAMS_emissions_REG-APv5.1_{}_{}_{}.tif", year, pollutant, sector);
+        gdx::write_raster(gdx::DenseRaster<double>(meta, values), path);
+        return path;
+    };
+    const auto checkPattern = [&](const SpatialPattern& pattern, const fs::path& path, int year, const EmissionSector& usedSector, const Pollutant& usedPollutant, SpatialPatternSource::Type type = SpatialPatternSource::Type::SpatialPatternCAMS) {
+        CHECK(pattern.source.path == path);
+        CHECK(pattern.source.year == chrono::year(year));
+        CHECK(pattern.source.type == type);
+        CHECK(pattern.source.emissionId == requested);
+        CHECK(pattern.source.usedEmissionId == EmissionIdentifier(countries::NL, usedSector, usedPollutant));
+        CHECK_FALSE(pattern.source.isException);
+        CHECK_FALSE(pattern.source.patternAvailableButWithoutData);
+        REQUIRE_FALSE(pattern.raster.empty());
+        CHECK(pattern.raster.metadata() == meta);
+        CHECK_FALSE(pattern.raster.is_nodata(Cell(0, 0)));
+        CHECK_FALSE(pattern.raster.is_nodata(Cell(0, 1)));
+        CHECK(pattern.raster[Cell(0, 0)] == Approx(0.25));
+        CHECK(pattern.raster[Cell(0, 1)] == Approx(0.75));
+        CHECK(pattern.raster.is_nodata(Cell(0, 2)));
+        CHECK(gdx::sum(pattern.raster) == Approx(1.0));
+    };
+
+    SUBCASE("Zero, nodata and data outside the country do not hide same-year GNFR")
+    {
+        const auto expected = writeCams(2016, "A_PublicPower", valid);
+        writeCams(2015, "1A1a", valid);
+        writeCams(2016, "1A1a", valid, "PM10");
+        const std::vector<std::vector<double>> emptyPatterns{{0.0, 0.0, 0.0}, {nan, nan, nan}, emptyRegion};
+        for (size_t i = 0; i < emptyPatterns.size(); ++i) {
+            CAPTURE(i);
+            const auto preferred = writeCams(2016, "1A1a", emptyPatterns[i]);
+            SpatialPatternInventory inv(cfg);
+            inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+            checkPattern(inv.get_spatial_pattern_checked(requested, coverage), expected, 2016, gnfr, pollutants::PMcoarse);
+
+            const auto unchecked = inv.get_spatial_pattern(requested, coverage);
+            CHECK(unchecked.source.path == preferred);
+            CHECK(unchecked.source.year == chrono::year(2016));
+            CHECK(unchecked.source.type == SpatialPatternSource::Type::SpatialPatternCAMS);
+            CHECK(unchecked.source.emissionId == requested);
+            CHECK(unchecked.source.usedEmissionId == requested);
+            CHECK_FALSE(unchecked.source.isException);
+            CHECK_FALSE(unchecked.source.patternAvailableButWithoutData);
+            CHECK_FALSE(unchecked.raster.empty());
+        }
+    }
+
+    SUBCASE("A valid exact-sector pattern still wins over GNFR")
+    {
+        writeCams(2016, "A_PublicPower", valid);
+        const auto expected = writeCams(2016, "1A1a", valid);
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        checkPattern(inv.get_spatial_pattern_checked(requested, coverage), expected, 2016, nfr, pollutants::PMcoarse);
+    }
+
+    SUBCASE("An empty CAMS candidate does not hide same-sector CEIP")
+    {
+        std::string sector = "1A1a";
+        auto usedSector    = nfr;
+        SUBCASE("Exact-sector CEIP precedes even valid GNFR CAMS")
+        {
+            writeCams(2016, "A_PublicPower", valid);
+        }
+        SUBCASE("GNFR CEIP is tried after empty GNFR CAMS")
+        {
+            sector     = "A_PublicPower";
+            usedSector = gnfr;
+        }
+        const auto preferred = writeCams(2016, sector, emptyRegion);
+        const auto dir       = restPath / "CEIP" / "2016";
+        fs::create_directories(dir);
+        const auto expected = dir / fmt::format("PMcoarse_{}_2021_GRID_2016.txt", sector);
+        file::write_as_text(expected, fmt::format("NL;2016;{};PMcoarse;4.05;52.05;Gg;2\nNL;2016;{};PMcoarse;4.15;52.05;Gg;6\n", sector, sector));
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        checkPattern(inv.get_spatial_pattern_checked(requested, coverage), expected, 2016, usedSector, pollutants::PMcoarse, SpatialPatternSource::Type::SpatialPatternCEIP);
+        CHECK(inv.get_spatial_pattern(requested, coverage).source.path == preferred);
+    }
+
+    SUBCASE("Empty years are skipped without changing nearest-year priority")
+    {
+        writeCams(2016, "1A1a", emptyRegion);
+        writeCams(2016, "A_PublicPower", emptyRegion);
+        writeCams(2014, "1A1a", valid);
+        writeCams(2017, "1A1a", emptyRegion);
+        const auto later = writeCams(2017, "A_PublicPower", valid);
+        fs::path expected;
+        int expectedYear = 2015;
+        SUBCASE("Equally near earlier GNFR beats later exact-sector data")
+        {
+            expected = writeCams(2015, "A_PublicPower", valid);
+            writeCams(2017, "1A1a", valid);
+        }
+        SUBCASE("Later same-year GNFR alternative beats a more distant earlier year")
+        {
+            writeCams(2015, "1A1a", emptyRegion);
+            writeCams(2015, "A_PublicPower", emptyRegion);
+            expected     = later;
+            expectedYear = 2017;
+        }
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        checkPattern(inv.get_spatial_pattern_checked(requested, coverage), expected, expectedYear, gnfr, pollutants::PMcoarse);
+    }
+
+    SUBCASE("Pollutant fallback follows the full requested-pollutant search")
+    {
+        writeCams(2016, "1A1a", emptyRegion);
+        writeCams(2016, "A_PublicPower", emptyRegion);
+        writeCams(2017, "1A1a", emptyRegion);
+        writeCams(2016, "1A1a", emptyRegion, "PM10");
+        auto expected      = writeCams(2016, "A_PublicPower", valid, "PM10");
+        auto usedPollutant = pollutants::PM10;
+        int expectedYear   = 2016;
+        SUBCASE("Fallback pollutant also tries GNFR after empty NFR")
+        {
+            writeCams(2017, "A_PublicPower", emptyRegion);
+        }
+        SUBCASE("Requested pollutant in a later year beats same-year fallback pollutant")
+        {
+            expected      = writeCams(2017, "A_PublicPower", valid);
+            usedPollutant = pollutants::PMcoarse;
+            expectedYear  = 2017;
+        }
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        checkPattern(inv.get_spatial_pattern_checked(requested, coverage), expected, expectedYear, gnfr, usedPollutant);
+    }
+
+    SUBCASE("Finer grids reuse the checked alternative instead of the rejected first match")
+    {
+        const auto preferred = writeCams(2016, "1A1a", emptyRegion);
+        const auto expected  = writeCams(2016, "A_PublicPower", valid);
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        const auto selected = inv.get_spatial_pattern_checked(requested, coverage);
+        checkPattern(selected, expected, 2016, gnfr, pollutants::PMcoarse);
+
+        GeoMetadata fineMeta(2, 4, 4.0, 52.0, 0.05, nan);
+        fineMeta.set_projection_from_epsg(crs::epsg::WGS84);
+        CountryCellCoverage fineCoverage{countries::NL, fineMeta, {}};
+        for (int32_t row = 0; row < fineMeta.rows; ++row) {
+            for (int32_t col = 0; col < fineMeta.cols; ++col) {
+                fineCoverage.cells.emplace_back(Cell(row, col), Cell(row, col), 1.0);
+            }
+        }
+
+        CHECK(inv.get_spatial_pattern(requested, fineCoverage).source.path == preferred);
+        const auto reloaded = inv.get_spatial_pattern_for_source(selected.source, fineCoverage);
+        CHECK(reloaded.source.path == expected);
+        CHECK(reloaded.source.emissionId == requested);
+        CHECK(reloaded.source.usedEmissionId == selected.source.usedEmissionId);
+        REQUIRE_FALSE(reloaded.raster.empty());
+        CHECK(reloaded.raster.metadata() == fineMeta);
+        CHECK(gdx::sum(reloaded.raster) == Approx(1.0));
+        CHECK(reloaded.raster[Cell(0, 0)] == Approx(0.0625));
+        CHECK(reloaded.raster[Cell(0, 2)] == Approx(0.1875));
+    }
+
+    SUBCASE("Uniform spread distinguishes exhausted empty patterns from no matching pattern")
+    {
+        bool hadEmptyPattern = false;
+        SUBCASE("Every candidate is regionally empty")
+        {
+            for (const auto year : {2015, 2016, 2017}) {
+                writeCams(year, "1A1a", emptyRegion);
+                writeCams(year, "A_PublicPower", {nan, nan, nan});
+                writeCams(year, "1A1a", {0.0, 0.0, 0.0}, "PM10");
+                writeCams(year, "A_PublicPower", emptyRegion, "PM10");
+            }
+            hadEmptyPattern = true;
+        }
+        SUBCASE("Only an unrelated pollutant has data")
+        {
+            writeCams(2016, "1A1a", valid, "NOx");
+        }
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        const auto pattern = inv.get_spatial_pattern_checked(requested, coverage);
+        CHECK(pattern.source.type == SpatialPatternSource::Type::UnfiformSpread);
+        CHECK(pattern.source.path.empty());
+        CHECK_FALSE(pattern.source.year.has_value());
+        CHECK(pattern.source.emissionId == requested);
+        CHECK(pattern.source.usedEmissionId == requested);
+        CHECK_FALSE(pattern.source.isException);
+        CHECK(pattern.source.patternAvailableButWithoutData == hadEmptyPattern);
+        CHECK(pattern.raster.empty());
+
+        const auto reloaded = inv.get_spatial_pattern_for_source(pattern.source, coverage);
+        CHECK(reloaded.source.type == SpatialPatternSource::Type::UnfiformSpread);
+        CHECK(reloaded.source.emissionId == requested);
+        CHECK(reloaded.source.patternAvailableButWithoutData == hadEmptyPattern);
+        CHECK(reloaded.raster.empty());
+    }
+}
 }

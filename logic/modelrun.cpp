@@ -20,7 +20,7 @@
 #include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for_each.h>
 #include <oneapi/tbb/parallel_pipeline.h>
-#include <unordered_set>
+#include <unordered_map>
 
 namespace emap {
 
@@ -119,7 +119,7 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
     // A map that contains per country the remaining emission value that needs to be spread on a higher resolution
     std::unordered_map<EmissionIdentifier, double> remainingEmissions;
 
-    std::unordered_set<EmissionIdentifier> spatialPatternsCoursestGridUniformFallback;
+    std::unordered_map<EmissionIdentifier, SpatialPatternSource> selectedSpatialPatterns;
 
     EmissionsCollector collector(cfg);
 
@@ -216,20 +216,13 @@ static void spread_emissions(const EmissionInventory& emissionInv, const Spatial
                         if (isCoursestGrid) {
                             // only check the spatial pattern grid contents for the coursest grid
                             spatialPattern = spatialPatternInv.get_spatial_pattern_checked(emissionId, cellCoverageInfo);
-                            if (spatialPattern.source.patternAvailableButWithoutData) {
+                            {
                                 std::scoped_lock lock(mut);
-                                // Store the fact that we fallback to uniform spread because of missing data
-                                // This needs to be checked on finer resolutions because on finer resolutions the contents are
-                                // no longer checked and there we allso need to fallback to uniform spread if we did on the coursest grid
-                                spatialPatternsCoursestGridUniformFallback.insert(emissionId);
+                                selectedSpatialPatterns.emplace(emissionId, spatialPattern.source);
                             }
                         } else {
-                            if (spatialPatternsCoursestGridUniformFallback.count(emissionId) > 0) {
-                                // The coursest grid already fallbacked to uniform spread, so we do the same here
-                                spatialPattern = SpatialPattern(SpatialPatternSource::create_with_uniform_spread(emissionId.country, emissionId.sector, pollutant, true));
-                            } else {
-                                spatialPattern = spatialPatternInv.get_spatial_pattern(emissionId, cellCoverageInfo);
-                            }
+                            // Reuse the checked source, including alternatives and uniform fallbacks.
+                            spatialPattern = spatialPatternInv.get_spatial_pattern_for_source(selectedSpatialPatterns.at(emissionId), cellCoverageInfo);
                         }
 
                         // Write the output raster to disk if configured

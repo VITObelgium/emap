@@ -45,6 +45,9 @@ public:
     /* Obtain the spatial pattern for the given identifier without checking the contents of the pattern for data */
     SpatialPattern get_spatial_pattern(const EmissionIdentifier& emissionId, const CountryCellCoverage& countryCoverage) const;
 
+    /* Obtain the spatial pattern raster when the source is already known */
+    SpatialPattern get_spatial_pattern_for_source(const SpatialPatternSource& source, const CountryCellCoverage& countryCoverage) const;
+
 private:
     struct SpatialPatternFile
     {
@@ -86,13 +89,14 @@ private:
     };
 
     std::vector<SpatialPatternException> parse_spatial_pattern_exceptions(const fs::path& exceptionsFile) const;
-    std::optional<SpatialPatternSource> search_spatial_pattern_within_year(const Country& country,
-                                                                           const Pollutant& pol,
-                                                                           const Pollutant& polToReport,
-                                                                           const EmissionSector& sector,
-                                                                           const EmissionSector& sectorToReport,
-                                                                           inf::chrono::year year,
-                                                                           const std::vector<SpatialPatternFile>& patterns) const;
+    std::optional<SpatialPattern> search_spatial_pattern_within_year(const EmissionIdentifier& emissionId,
+                                                                     const CountryCellCoverage& countryCoverage,
+                                                                     const Pollutant& pollutantToReport,
+                                                                     const EmissionSector& sectorToReport,
+                                                                     inf::chrono::year year,
+                                                                     const std::vector<SpatialPatternFile>& patterns,
+                                                                     bool checkContents,
+                                                                     bool& patternAvailableButWithoutData) const;
 
     std::optional<SpatialPatternFile> identify_spatial_pattern_cams(const fs::path& path) const;
     std::optional<SpatialPatternFile> identify_spatial_pattern_ceip(const fs::path& path) const;
