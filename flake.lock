@@ -20,11 +20,11 @@
     "infra-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1791884692,
-        "narHash": "sha256-S9ZjBNS8TSZmkO9q3Y/TNYE/VDG355V4RK8Wt9/Kp6k=",
+        "lastModified": 1793194380,
+        "narHash": "sha256-l8Evdd05mX7UNa/m7yl3GV7w5ZX62V8Ucs0eSWqVai0=",
         "owner": "VITObelgium",
         "repo": "cpp-infra",
-        "rev": "4c7c7ca09b173399f66808c15fdc4f6787460061",
+        "rev": "a86bb08fc01282eac2d94cd78d12bbe2021503a6",
         "type": "github"
       },
       "original": {
