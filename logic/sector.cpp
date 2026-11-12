@@ -1,12 +1,7 @@
 #include "emap/sector.h"
 
-#include "enuminfo.h"
-#include "infra/algo.h"
-#include "infra/enumutils.h"
 #include "infra/exception.h"
 
-#include <algorithm>
-#include <array>
 #include <cassert>
 
 namespace emap {

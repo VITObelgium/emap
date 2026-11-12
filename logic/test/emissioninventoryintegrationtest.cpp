@@ -27,7 +27,6 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
             [model]
                 grid = "vlops1km"
                 datapath = "./_input"
-                type = "emep" # of gains
                 year = 2019
                 report_year = 2021
                 scenario = "test"
@@ -99,7 +98,6 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
             [model]
                 grid = "vlops1km"
                 datapath = "./_input"
-                type = "emep" # of gains
                 year = 2019
                 report_year = 2021
                 scenario = "test"
@@ -168,7 +166,6 @@ TEST_CASE("Emission inventory [integration]" * skip(true))
              [model]
                  grid = "vlops1km"
                  datapath = "./_input"
-                 type = "emep" # of gains
                  year = 2020
                  report_year = 2022
                  scenario = "test"

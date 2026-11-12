@@ -8,10 +8,13 @@
 #include "infra/algo.h"
 #include "infra/string.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <filesystem>
+#include <initializer_list>
 #include <limits>
+#include <stdexcept>
 #include <toml++/toml.h>
 
 namespace emap {
@@ -740,11 +743,111 @@ static int32_t read_flanders_input_epsg(toml::node_view<const toml::node> nodeVa
     return truncate<int32_t>(value);
 }
 
+struct ConfigurationKey
+{
+    std::string_view name;
+    toml::node_type type;
+};
+
+static std::string_view configuration_type_name(toml::node_type type)
+{
+    switch (type) {
+    case toml::node_type::string:
+        return "a quoted string";
+    case toml::node_type::integer:
+        return "an integer";
+    case toml::node_type::floating_point:
+        return "a finite number";
+    case toml::node_type::boolean:
+        return "a boolean (true or false, without quotes)";
+    case toml::node_type::array:
+        return "an array of quoted strings";
+    default:
+        throw std::logic_error("Unhandled configuration value type");
+    }
+}
+
+static void validate_configuration_section(const toml::table& document, std::string_view name, std::initializer_list<ConfigurationKey> keys)
+{
+    const auto* node = document.get(name);
+    if (node == nullptr) {
+        return;
+    }
+
+    const auto* section = node->as_table();
+    if (section == nullptr) {
+        throw RuntimeError("Configuration section '{}' must be a table", name);
+    }
+
+    for (const auto& [key, value] : *section) {
+        const auto spec = std::find_if(keys.begin(), keys.end(), [&](const ConfigurationKey& candidate) {
+            return candidate.name == key.str();
+        });
+        if (spec == keys.end()) {
+            if (value.is_table()) {
+                throw RuntimeError("Unknown configuration key '{}.{}'. Nested tables are not supported in [{}]; use unprefixed keys within the section", name, key.str(), name);
+            }
+            throw RuntimeError("Unknown configuration key '{}.{}'", name, key.str());
+        }
+
+        bool valid = value.type() == spec->type;
+        if (spec->type == toml::node_type::floating_point) {
+            valid = (value.is_integer() || value.is_floating_point()) && std::isfinite(value.value<double>().value());
+        } else if (spec->type == toml::node_type::array && valid) {
+            for (const auto& element : *value.as_array()) {
+                valid = valid && element.is_string();
+            }
+        }
+
+        if (!valid) {
+            throw RuntimeError("Invalid '{}.{}' value, expected {}", name, key.str(), configuration_type_name(spec->type));
+        }
+    }
+}
+
+static void validate_run_configuration(const toml::table& document)
+{
+    for (const auto& [key, value] : document) {
+        if (key.str() != "model" && key.str() != "output" && key.str() != "options") {
+            throw RuntimeError("Unknown configuration section or key '{}'", key.str());
+        }
+    }
+
+    using Type = toml::node_type;
+    validate_configuration_section(document, "model", {
+                                                          {"grid", Type::string},
+                                                          {"datapath", Type::string},
+                                                          {"year", Type::integer},
+                                                          {"report_year", Type::integer},
+                                                          {"scenario", Type::string},
+                                                          {"flanders_input_epsg", Type::integer},
+                                                          {"combine_identical_point_sources", Type::boolean},
+                                                          {"point_source_rescale_threshold", Type::floating_point},
+                                                          {"spatial_pattern_exceptions", Type::string},
+                                                          {"emission_scaling_factors", Type::string},
+                                                          {"spatial_boundaries_filename", Type::string},
+                                                          {"spatial_boundaries_eez_filename", Type::string},
+                                                          {"included_pollutants", Type::array},
+                                                      });
+    validate_configuration_section(document, "output", {
+                                                           {"path", Type::string},
+                                                           {"sector_level", Type::string},
+                                                           {"filename_suffix", Type::string},
+                                                           {"separate_point_sources", Type::boolean},
+                                                           {"create_country_rasters", Type::boolean},
+                                                           {"create_grid_rasters", Type::boolean},
+                                                           {"create_spatial_pattern_rasters", Type::boolean},
+                                                       });
+    validate_configuration_section(document, "options", {{"validation", Type::boolean}});
+}
+
 static RunConfiguration parse_run_configuration_impl(std::string_view configContents, const fs::path& tomlPath)
 {
     try {
         const auto basePath     = tomlPath.parent_path();
         const toml::table table = toml::parse(configContents, str::from_u8(tomlPath.u8string()));
+        validate_run_configuration(table);
+
         if (!table.contains("model")) {
             throw RuntimeError("No model section present in configuration file");
         }

@@ -1,12 +1,6 @@
 ﻿#include "emap/gridprocessing.h"
-#include "emap/emissions.h"
 
-#include "infra/algo.h"
-#include "infra/cast.h"
 #include "infra/chrono.h"
-#include "infra/crs.h"
-#include "infra/enumutils.h"
-#include "infra/gdalio.h"
 #include "infra/geometadata.h"
 #include "infra/geometry.h"
 #include "infra/log.h"

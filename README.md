@@ -119,6 +119,7 @@ This section configures the output of the model
     - "SNAP"
 - `create_country_rasters` set this option to true to generate geotiffs containing the emissions for the individual countries for each pollutant and each sector
 - `create_grid_rasters` set this option to true to generate geotiffs for the configured grid for each pollutant and each sector
+- `create_spatial_pattern_rasters` set this option to true to generate geotiffs of the selected spatial patterns (default = false)
 - `separate_point_sources` configure wheter point sources should be output separately for chimere grids (default = true)
 
 ### Options section

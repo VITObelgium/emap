@@ -29,12 +29,12 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
-                type = "emep"
                 year = 2020
                 report_year = 2018
                 scenario = "scenarionaam"
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
                 combine_identical_point_sources = true
+                point_source_rescale_threshold = 25
                 spatial_boundaries_filename = "spatial_bounds.geojson"
 
             [output]
@@ -55,6 +55,8 @@ TEST_CASE("Parse run configuration")
         CHECK(config.flanders_input_epsg() == RunConfiguration::DefaultFlandersInputEpsg);
         CHECK(config.flanders_input_epsg() == crs::epsg::BelgianLambert2008);
         CHECK(config.combine_identical_point_sources() == true);
+        CHECK(config.point_source_rescale_threshold() == 25.0);
+        CHECK(config.emission_scalings_path() == scaleFactors);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
         CHECK(config.boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "spatial_bounds.geojson");
         CHECK(config.eez_boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_incl_EEZ.gpkg");
@@ -138,11 +140,11 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
-                type = "emep"
                 year = 2020
                 report_year = 2018
                 scenario = "scenarionaam"
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
+                point_source_rescale_threshold = 12.5
                 included_pollutants = ["CO", "NOx", "NMVOC"]
                 combine_identical_point_sources = false
 
@@ -162,6 +164,8 @@ TEST_CASE("Parse run configuration")
         CHECK(config.reporting_year() == chrono::year(2018));
         CHECK(config.scenario() == "scenarionaam");
         CHECK(config.combine_identical_point_sources() == false);
+        CHECK(config.point_source_rescale_threshold() == 12.5);
+        CHECK(config.emission_scalings_path() == scaleFactors);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
         CHECK(config.output_path() == expectedOutput);
@@ -175,11 +179,10 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
-                type = "emep"
                 year = 2022
                 report_year = 2021
                 scenario = "scen"
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
                 included_pollutants = ["CO", "NOx", "NMVOC"]
 
             [output]
@@ -213,10 +216,9 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = _input
-                type = "gains"
                 year = 2020
                 scenario = "scenarionaam"
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
 
             [output]
                 path = "/temp"
@@ -232,10 +234,9 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
-                type = "gains"
                 year = "2020"
                 scenario = "scenarionaam"
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
 
             [output]
                 path = "/temp"
@@ -245,7 +246,7 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "Invalid year present in 'input' section, year values should not be quoted (e.g. year = 2020)", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "Invalid 'model.year' value, expected an integer", RuntimeError);
     }
 
     SUBCASE("invalid file: scenario is integer")
@@ -254,11 +255,10 @@ TEST_CASE("Parse run configuration")
             [model]
                 grid = "vlops1km"
                 datapath = "_input"
-                type = "gains"
                 year = 2020
                 report_year = 2020
                 scenario = 2010
-                scalefactors = "{}"
+                emission_scaling_factors = "{}"
 
             [output]
                 path = "/temp"
@@ -268,7 +268,203 @@ TEST_CASE("Parse run configuration")
                 validation = true
         )toml";
 
-        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "'scenario' key value in 'model' section should be a quoted string (e.g. scenario = \"value\")", RuntimeError);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(fmt::format(tomlConfig, str::from_u8(scaleFactors.generic_u8string())), file::u8path(TEST_DATA_DIR)), "Invalid 'model.scenario' value, expected a quoted string", RuntimeError);
+    }
+}
+
+TEST_CASE("Parse run configuration without optional values")
+{
+    for (const auto tomlConfig : {
+             R"toml(
+                 [model]
+                 grid = "vlops1km"
+                 datapath = "_input"
+                 year = 2020
+                 report_year = 2018
+                 [output]
+                 path = "/temp"
+                 sector_level = "GNFR"
+             )toml",
+             R"toml(
+                 model.grid = "vlops1km"
+                 model.datapath = "_input"
+                 model.year = 2020
+                 model.report_year = 2018
+                 output.path = "/temp"
+                 output.sector_level = "GNFR"
+             )toml",
+         }) {
+        CAPTURE(tomlConfig);
+        const auto config = parse_run_configuration(tomlConfig, file::u8path(TEST_DATA_DIR));
+        CHECK(config.model_grid() == ModelGrid::Vlops1km);
+        CHECK(config.data_root() == fs::canonical(file::u8path(TEST_DATA_DIR) / "_input"));
+        CHECK(config.output_path() == fs::absolute("/temp"));
+        CHECK(config.year() == chrono::year(2020));
+        CHECK(config.reporting_year() == chrono::year(2018));
+        CHECK(config.flanders_input_epsg() == RunConfiguration::DefaultFlandersInputEpsg);
+        CHECK(config.validation_type() == ValidationType::NoValidation);
+        CHECK(config.scenario().empty());
+        CHECK(config.combine_identical_point_sources());
+        CHECK(config.point_source_rescale_threshold() == 100.0);
+        CHECK(config.spatial_pattern_exceptions().empty());
+        CHECK(config.emission_scalings_path().empty());
+        CHECK(config.included_pollutants() == container_as_vector(config.pollutants().list()));
+        CHECK(config.output_filename_suffix().empty());
+        CHECK(config.output_point_sources_separately());
+        CHECK_FALSE(config.output_country_rasters());
+        CHECK_FALSE(config.output_grid_rasters());
+        CHECK_FALSE(config.output_spatial_pattern_rasters());
+    }
+}
+
+TEST_CASE("Run configuration rejects unknown keys before loading input")
+{
+    SUBCASE("unknown root keys and sections")
+    {
+        struct TestCase
+        {
+            std::string_view config;
+            std::string_view key;
+        };
+        for (const auto& test : {
+                 TestCase{"[input]", "input"},
+                 TestCase{"[modle]", "modle"},
+                 TestCase{"grid = \"vlops1km\"", "grid"},
+                 TestCase{"validation = true", "validation"},
+             }) {
+            CAPTURE(test.config);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(test.config, {}),
+                                 fmt::format("Unknown configuration section or key '{}'", test.key), RuntimeError);
+        }
+    }
+
+    SUBCASE("unknown section keys and misplaced EPSG")
+    {
+        struct TestCase
+        {
+            std::string_view section;
+            std::string_view key;
+        };
+        for (const auto& test : {
+                 TestCase{"model", "gird"},
+                 TestCase{"model", "type"},
+                 TestCase{"model", "scalefactors"},
+                 TestCase{"output", "flanders_input_epsg"},
+                 TestCase{"output", "unknown"},
+                 TestCase{"options", "validate"},
+             }) {
+            const auto tomlConfig = fmt::format("[{}]\n{} = 31370", test.section, test.key);
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 fmt::format("Unknown configuration key '{}.{}'", test.section, test.key), RuntimeError);
+        }
+    }
+
+    SUBCASE("Lambert72 override must not repeat the model prefix")
+    {
+        for (const auto tomlConfig : {
+                 "[model]\nmodel.flanders_input_epsg = 31370",
+                 "[model]\nflanders_input_epsg = 3812\nmodel.flanders_input_epsg = 31370",
+             }) {
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 "Unknown configuration key 'model.model'. Nested tables are not supported in [model]; use unprefixed keys within the section",
+                                 RuntimeError);
+        }
+    }
+
+    SUBCASE("repeated prefixes and explicit nested tables")
+    {
+        for (const auto section : {"model", "output", "options"}) {
+            for (const auto nested : {section, "nested"}) {
+                for (const auto& tomlConfig : {
+                         fmt::format("[{}]\n{}.unknown = true", section, nested),
+                         fmt::format("[{}.{}]\nunknown = true", section, nested),
+                     }) {
+                    CAPTURE(tomlConfig);
+                    CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                         fmt::format("Unknown configuration key '{}.{}'. Nested tables are not supported in [{}]; use unprefixed keys within the section",
+                                                     section, nested, section),
+                                         RuntimeError);
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("Run configuration requires sections to be tables before loading input")
+{
+    for (const auto section : {"model", "output", "options"}) {
+        for (const auto value : {"42", "\"invalid\"", "true", "[]", "[{}]"}) {
+            const auto tomlConfig = fmt::format("{} = {}", section, value);
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 fmt::format("Configuration section '{}' must be a table", section), RuntimeError);
+        }
+        const auto tomlConfig = fmt::format("[[{}]]", section);
+        CAPTURE(tomlConfig);
+        CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                             fmt::format("Configuration section '{}' must be a table", section), RuntimeError);
+    }
+}
+
+TEST_CASE("Run configuration validates field types before loading input")
+{
+    SUBCASE("strings, integers and boolean flags")
+    {
+        struct TestCase
+        {
+            std::string_view section;
+            std::string_view key;
+            std::string_view value;
+            std::string_view expected;
+        };
+        for (const auto& test : {
+                 TestCase{"model", "grid", "42", "a quoted string"},
+                 TestCase{"model", "datapath", "42", "a quoted string"},
+                 TestCase{"model", "scenario", "42", "a quoted string"},
+                 TestCase{"model", "spatial_pattern_exceptions", "42", "a quoted string"},
+                 TestCase{"model", "emission_scaling_factors", "42", "a quoted string"},
+                 TestCase{"model", "spatial_boundaries_filename", "42", "a quoted string"},
+                 TestCase{"model", "spatial_boundaries_eez_filename", "42", "a quoted string"},
+                 TestCase{"output", "path", "42", "a quoted string"},
+                 TestCase{"output", "sector_level", "42", "a quoted string"},
+                 TestCase{"output", "filename_suffix", "42", "a quoted string"},
+                 TestCase{"model", "year", "\"2020\"", "an integer"},
+                 TestCase{"model", "report_year", "2020.0", "an integer"},
+                 TestCase{"model", "flanders_input_epsg", "3812.0", "an integer"},
+                 TestCase{"model", "combine_identical_point_sources", "\"false\"", "a boolean (true or false, without quotes)"},
+                 TestCase{"output", "separate_point_sources", "\"true\"", "a boolean (true or false, without quotes)"},
+                 TestCase{"output", "create_country_rasters", "1", "a boolean (true or false, without quotes)"},
+                 TestCase{"output", "create_grid_rasters", "0", "a boolean (true or false, without quotes)"},
+                 TestCase{"output", "create_spatial_pattern_rasters", "[]", "a boolean (true or false, without quotes)"},
+                 TestCase{"options", "validation", "\"false\"", "a boolean (true or false, without quotes)"},
+             }) {
+            const auto tomlConfig = fmt::format("[{}]\n{} = {}", test.section, test.key, test.value);
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 fmt::format("Invalid '{}.{}' value, expected {}", test.section, test.key, test.expected), RuntimeError);
+        }
+    }
+
+    SUBCASE("rescale threshold must be finite and numeric")
+    {
+        for (const auto value : {"\"100\"", "true", "[]", "nan", "+inf", "-inf"}) {
+            const auto tomlConfig = fmt::format("[model]\npoint_source_rescale_threshold = {}", value);
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 "Invalid 'model.point_source_rescale_threshold' value, expected a finite number", RuntimeError);
+        }
+    }
+
+    SUBCASE("included pollutants must be an array containing only strings")
+    {
+        for (const auto value : {"\"CO\"", "true", "[42]", "[\"CO\", false]", "[[\"CO\"]]", "[{ name = \"CO\" }]"}) {
+            const auto tomlConfig = fmt::format("[model]\nincluded_pollutants = {}", value);
+            CAPTURE(tomlConfig);
+            CHECK_THROWS_WITH_AS(parse_run_configuration(tomlConfig, {}),
+                                 "Invalid 'model.included_pollutants' value, expected an array of quoted strings", RuntimeError);
+        }
     }
 }
 

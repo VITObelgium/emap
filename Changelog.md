@@ -1,5 +1,6 @@
 ﻿Release 3.5.x
 ----------
+- Configuration parsing now rejects unknown or misplaced settings, unexpected nested tables, and incorrect value types before loading input data instead of silently ignoring them or using defaults.
 - Added: `model.flanders_input_epsg` configures the CRS of Flemish spatial patterns and point sources independently of the output grid.
 - Breaking default change: Flemish input now defaults to Lambert2008 (EPSG:3812). Existing Lambert72 datasets must explicitly configure `flanders_input_epsg = 31370`.
 - Flemish tabular-pattern coordinates honor the configured input CRS while retaining the existing pattern cache and output resampling.

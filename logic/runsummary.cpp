@@ -1,14 +1,10 @@
 #include "runsummary.h"
 #include "emap/emissioninventory.h"
 
-#include "enuminfo.h"
 #include "infra/cast.h"
-#include "infra/enumutils.h"
 #include "infra/exception.h"
-#include "infra/log.h"
 #include "xlsxworkbook.h"
 
-#include <algorithm>
 #include <array>
 
 namespace emap {
