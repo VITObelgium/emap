@@ -20,8 +20,9 @@ TEST_CASE("Parse run configuration")
 {
     const auto scaleFactors = file::u8path(TEST_DATA_DIR) / "_input" / "02_scaling" / "historic" / "1990" / "scaling_diffuse.csv";
 
-    const auto expectedDataRoot = fs::canonical(file::u8path(TEST_DATA_DIR) / "_input");
-    const auto expectedOutput   = fs::absolute("/temp");
+    const auto expectedScaleFactors = fs::absolute(scaleFactors);
+    const auto expectedDataRoot     = fs::canonical(file::u8path(TEST_DATA_DIR) / "_input");
+    const auto expectedOutput       = fs::absolute("/temp");
 
     SUBCASE("valid file")
     {
@@ -56,7 +57,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config.flanders_input_epsg() == crs::epsg::BelgianLambert2008);
         CHECK(config.combine_identical_point_sources() == true);
         CHECK(config.point_source_rescale_threshold() == 25.0);
-        CHECK(config.emission_scalings_path() == scaleFactors);
+        CHECK(config.emission_scalings_path() == expectedScaleFactors);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
         CHECK(config.boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "spatial_bounds.geojson");
         CHECK(config.eez_boundaries_vector_path() == expectedDataRoot / "03_spatial_disaggregation" / "boundaries" / "boundaries_incl_EEZ.gpkg");
@@ -165,7 +166,7 @@ TEST_CASE("Parse run configuration")
         CHECK(config.scenario() == "scenarionaam");
         CHECK(config.combine_identical_point_sources() == false);
         CHECK(config.point_source_rescale_threshold() == 12.5);
-        CHECK(config.emission_scalings_path() == scaleFactors);
+        CHECK(config.emission_scalings_path() == expectedScaleFactors);
         CHECK(config.spatial_pattern_path() == expectedDataRoot / "03_spatial_disaggregation");
 
         CHECK(config.output_path() == expectedOutput);
