@@ -5,6 +5,9 @@ project(e-map
     LANGUAGES CXX
 )
 
+set(EMAP_VERSION_SUFFIX "-rc.1" CACHE STRING "Version suffix; empty for a final release")
+set(EMAP_FULL_VERSION "${PROJECT_VERSION}${EMAP_VERSION_SUFFIX}")
+
 enable_testing()
 
 set(CMAKE_INSTALL_BINDIR ".")
