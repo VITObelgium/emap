@@ -40,7 +40,7 @@ buildmusl:
 buildmingw:
     nix build .#packages.x86_64-linux.windows
 
-updateclusterdevversion: buildmusl
+updateclusterdevversion: buildglibc
     scp ./result/emapcli cluster:/projects/E-MAP/03_Software/snapshots/devlatest/emapcli
 
 # Download the latest GitHub release and install it in the cluster's releases directory.
