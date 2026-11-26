@@ -349,6 +349,35 @@ TEST_CASE("Checked spatial pattern search tries regional alternatives before uni
         }
     }
 
+    SUBCASE("A border cell with full spreading weight does not validate a pattern")
+    {
+        const auto preferred = writeCams(2016, "1A1a", {0.0, 6.0, 100.0});
+        const auto expected  = writeCams(2016, "A_PublicPower", valid);
+        const CountryCellCoverage geometricCoverage{countries::NL, meta, {{Cell(0, 0), Cell(0, 0), 1.0}, {Cell(0, 1), Cell(0, 1), 0.5}}};
+        const auto adjusted = process_country_borders({geometricCoverage}).front();
+        REQUIRE(adjusted.cells[1].coverage == 1.0);
+
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        // The accepted pattern still spreads emissions over the border cell.
+        checkPattern(inv.get_spatial_pattern_checked(requested, adjusted), expected, 2016, gnfr, pollutants::PMcoarse);
+        CHECK(inv.get_spatial_pattern(requested, adjusted).source.path == preferred);
+    }
+
+    SUBCASE("A country without fully covered cells uses uniform spread")
+    {
+        const auto preferred = writeCams(2016, "1A1a", valid);
+        const CountryCellCoverage geometricCoverage{countries::NL, meta, {{Cell(0, 0), Cell(0, 0), 0.5}, {Cell(0, 1), Cell(0, 1), 0.5}}};
+        const auto adjusted = process_country_borders({geometricCoverage}).front();
+
+        SpatialPatternInventory inv(cfg);
+        inv.scan_dir(chrono::year(2021), chrono::year(2016), temp.path());
+        const auto pattern = inv.get_spatial_pattern_checked(requested, adjusted);
+        CHECK(pattern.source.type == SpatialPatternSource::Type::UnfiformSpread);
+        CHECK(pattern.source.patternAvailableButWithoutData);
+        CHECK(inv.get_spatial_pattern(requested, adjusted).source.path == preferred);
+    }
+
     SUBCASE("A valid exact-sector pattern still wins over GNFR")
     {
         writeCams(2016, "A_PublicPower", valid);

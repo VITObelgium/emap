@@ -245,7 +245,8 @@ static std::vector<CountryCellCoverage::CellInfo> create_cell_coverages(const Ge
             auto intersectGeometry   = preparedGeom->getGeometry().intersection(cellGeom.get());
             const auto intersectArea = intersectGeometry->getArea();
             if (intersectArea > 0) {
-                result.emplace_back(outputCell, cell, intersectArea / cellArea);
+                // An area ratio rounded to 1 must not turn a partial intersection into a full cell.
+                result.emplace_back(outputCell, cell, intersectArea / cellArea).fullyCovered = false;
             }
         }
     }

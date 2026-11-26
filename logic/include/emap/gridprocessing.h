@@ -47,12 +47,14 @@ struct CountryCellCoverage
         : computeGridCell(compute)
         , countryGridCell(country)
         , coverage(cov)
+        , fullyCovered(cov == 1.0)
         {
         }
 
         inf::Cell computeGridCell; // row column index of this cell in the full output grid
         inf::Cell countryGridCell; // row column index of this cell in the country sub grid of the spatial pattern grid
-        double coverage = 0.0;     // The cell coverage percentage of this country in the grid
+        double coverage = 0.0;     // The cell's weight for spreading, possibly adjusted at borders
+        bool fullyCovered = false; // The cell is fully covered by the country geometry, no border adjustments were made
 
         constexpr bool operator==(const CellInfo& other) const noexcept
         {
