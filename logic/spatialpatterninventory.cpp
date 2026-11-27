@@ -13,7 +13,6 @@
 #include "gdx/algo/sum.h"
 #include "gdx/denserasterio.h"
 
-#include <algorithm>
 #include <deque>
 
 namespace emap {
@@ -443,16 +442,39 @@ static gdx::DenseRaster<double> extract_country_from_pattern(const gdx::DenseRas
 {
     auto raster = extract_country_from_raster(spatialPattern, countryCoverage);
 
+    /*bool containsOnlyBorderCells = !std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [](const CountryCellCoverage::CellInfo& cell) {
+        return cell.coverage == 1.0;
+    });*/
+
     if (checkContents) {
-        const bool containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
-            return cell.fullyCovered && !raster.is_nodata(cell.countryGridCell) && raster[cell.countryGridCell] > 0.0;
+        bool containsData = false;
+
+        // This behavior tries to be smart and see the data is only present in the border cells
+        // Has unpleasant side effect on low resolutions for small countries. Needs to be improved
+
+        /*if (containsOnlyBorderCells) {
+            containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
+                return raster[cell.countryGridCell] > 0.0;
+            });
+        } else {
+            containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
+                return cell.coverage == 1.0 && raster[cell.countryGridCell] > 0.0;
+            });
+        }*/
+
+        containsData = std::any_of(countryCoverage.cells.begin(), countryCoverage.cells.end(), [&](const CountryCellCoverage::CellInfo& cell) {
+            return raster[cell.countryGridCell] > 0.0;
         });
-        if (!containsData) {
-            return {};
+
+        if (containsData) {
+            normalize_raster(raster);
+        } else {
+            raster = {};
         }
+    } else {
+        normalize_raster(raster);
     }
 
-    normalize_raster(raster);
     return raster;
 }
 
